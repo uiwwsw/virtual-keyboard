@@ -1,5 +1,8 @@
-import type { InputHTMLAttributes } from "react";
+import { forwardRef, type InputHTMLAttributes } from "react";
 
-export function ComposedInput(props: InputHTMLAttributes<HTMLInputElement>) {
-	return <input {...props} />;
-}
+export const ComposedInput = forwardRef<
+	HTMLInputElement,
+	InputHTMLAttributes<HTMLInputElement>
+>(function ComposedInput(props, ref) {
+	return <input {...props} ref={ref} />;
+});
