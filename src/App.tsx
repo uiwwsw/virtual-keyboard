@@ -1,10 +1,4 @@
-import {
-	useRef,
-	useState,
-	type ChangeEvent,
-	type FocusEvent,
-	type MouseEvent,
-} from "react";
+import { useRef, useState, type ChangeEvent, type FocusEvent } from "react";
 
 import { ComposedInput } from "./ComposedInput";
 import { generateCrossword } from "./generateCrossword";
