@@ -1,48 +1,78 @@
-import { useRef, useState } from "react";
-import { ComposedInput } from "./ComposedInput";
+import { useRef, type ChangeEvent } from "react";
 
-function Input({ answer }: { answer: string }) {
+import { ComposedInput } from "./ComposedInput";
+import { generateCrossword } from "./generateCrossword";
+
+const myWords = [
+	"타입스크립트",
+	"알고리즘",
+	"크로스워드",
+	"리액트",
+	"자바스크립트",
+	"개발자",
+	"즘스",
+	"호두",
+	"알리",
+];
+
+const crosswordMap = generateCrossword(myWords);
+
+const coll = crosswordMap[0].length ?? 1;
+
+function Input({
+	index,
+	wrapRef,
+	answer,
+}: {
+	answer?: string;
+	index: number;
+	wrapRef: React.RefObject<HTMLDivElement | null>;
+}) {
 	const ref = useRef<HTMLInputElement>(null);
-	const handleChange = () => {
-		if (ref.current?.value === answer) {
+	const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+		if (answer === e.target.value) {
+			if (ref.current) {
+				ref.current.readOnly = true;
+				ref.current.style.background = "red";
+				const nextInput = wrapRef.current?.children[index + 1];
+				if (
+					nextInput instanceof HTMLInputElement &&
+					nextInput.dataset.id !== "empty"
+				)
+					nextInput.focus();
+			}
 		}
 	};
 	return (
 		<ComposedInput
 			ref={ref}
+			disabled={!answer}
+			data-id={answer ? null : "empty"}
 			onChange={handleChange}
 			maxLength={1}
-			className="focus:z-10 border text-center relative w-8 h-8 box-border"
+			className={`focus:z-10 border text-center relative w-8 h-8 box-border${!answer ? " bg-zinc-800" : ""}`}
 		/>
 	);
 }
-const answer: Record<string, string[]> = {
-	"1-2": ["선물", "선물 설명", "v"],
-	"1-3": ["물산", "물산 설명", "h"],
-};
-const keys = Object.keys(answer);
-const maps: undefined[][] = Array(10).fill(Array(10).fill(undefined));
+
 function App() {
-	const [current, setCurrent] = useState();
+	const ref = useRef<HTMLDivElement>(null);
 	return (
 		<>
-			<div className="inline-block m-auto w-80 h-80">
-				{maps.map((x, i) =>
-					x.map((_, j) => {
+			<div className="m-auto" ref={ref} style={{ width: 32 * coll }}>
+				{crosswordMap.map((x, i) =>
+					x.map((y, j) => {
 						const key = `${i}-${j}`;
 						return (
 							<Input
-								answer={answer[key][0]}
-								key={keys.includes(key) ? key : "empty"}
+								answer={y}
+								index={i * coll + j}
+								key={y ? key : "empty"}
+								wrapRef={ref}
 							/>
 						);
 					}),
 				)}
-			</div>
-			<div>
-				{Object.entries(answer).map(([key, value]) => (
-					<p key={key}>{value[1]}</p>
-				))}
 			</div>
 		</>
 	);
