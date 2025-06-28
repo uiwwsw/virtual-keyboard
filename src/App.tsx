@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent, type FocusEvent } from "react";
+import { type ChangeEvent, type FocusEvent, useRef, useState } from "react";
 
 import { ComposedInput } from "./ComposedInput";
 import { generateCrossword } from "./generateCrossword";
