@@ -1,8 +1,45 @@
-import { forwardRef, type InputHTMLAttributes } from "react";
+import { forwardRef, type InputHTMLAttributes, useRef } from "react";
 
 export const ComposedInput = forwardRef<
 	HTMLInputElement,
 	InputHTMLAttributes<HTMLInputElement>
->(function ComposedInput(props, ref) {
-	return <input {...props} ref={ref} />;
+>(function ComposedInput(
+	{
+		onChange,
+		onCompositionStart,
+		onCompositionUpdate,
+		onCompositionEnd,
+		...props
+	},
+	ref,
+) {
+	const isCmpositionRef = useRef<true>(null);
+
+	return (
+		<input
+			{...props}
+			onChange={(e) => {
+				if (isCmpositionRef.current === null) {
+					e.preventDefault();
+					e.stopPropagation();
+					return;
+				}
+				onChange?.(e);
+			}}
+			onCompositionStart={(e) => {
+				isCmpositionRef.current = true;
+				onCompositionStart?.(e);
+			}}
+			onCompositionUpdate={(e) => {
+				isCmpositionRef.current = true;
+				onCompositionUpdate?.(e);
+			}}
+			onCompositionEnd={(e) => {
+				isCmpositionRef.current = true;
+				onCompositionEnd?.(e);
+			}}
+			ref={ref}
+		/>
+	);
 });
+ComposedInput.displayName = "ComposedInput";
