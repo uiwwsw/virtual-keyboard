@@ -1,1 +1,1 @@
-export { ComposedInput } from "./ComposedInput";
+export { ComposedInput, type ComposedInputProps } from "./ComposedInput";
