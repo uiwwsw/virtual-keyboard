@@ -20,6 +20,7 @@ export const ComposedInput = forwardRef<HTMLInputElement, ComposedInputProps>(
 					if (isCmpositionRef.current === null) {
 						e.preventDefault();
 						e.stopPropagation();
+						e.target.value = ''
 						return;
 					}
 					onChange?.(e);
