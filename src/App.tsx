@@ -4,7 +4,7 @@ function App() {
 	return (
 		<>
 			<div>
-				<Input />
+				<Input>abcde</Input>
 			</div>
 		</>
 	);

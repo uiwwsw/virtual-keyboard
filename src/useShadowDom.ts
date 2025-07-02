@@ -1,12 +1,23 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
-export function useShadowDom() {
-	const containerRef = useRef<HTMLElement>(null);
-	const shadowRootRef = useRef<ShadowRoot>(null);
+/**
+ * @description Shadow DOM이 붙은 container를 반환하는 React hook
+ * @returns containerRef: ShadowRoot가 붙은 div
+ * @returns shadowRoot: 생성된 ShadowRoot 인스턴스
+ */
+export function useShadowDom<T extends HTMLElement>() {
+	const [container, containerRef] = useState<T | null>();
+	const shadowRootRef = useRef<ShadowRoot | null>(null);
 
 	useEffect(() => {
-		if (containerRef.current && !shadowRootRef.current) {
-			shadowRootRef.current = containerRef.current.atta;
+		if (container && !shadowRootRef.current) {
+			shadowRootRef.current = container.attachShadow({
+				mode: "open",
+			});
+			// shadowRootRef.current.append
 		}
-	}, []);
+		console.log(shadowRootRef);
+	}, [container]);
+
+	return { containerRef, shadowRoot: shadowRootRef.current };
 }
