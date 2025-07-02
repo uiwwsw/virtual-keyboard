@@ -23,13 +23,12 @@
 
 **`virtual-hangul`은 다음 두 가지로 구성된 라이브러리입니다:**
 
-### 1. 🧠 `ComposedInput` — 완벽한 한글 입력을 위한 단일 문자 커스텀 인풋  
-- `maxLength=1` 기반의 **제어 가능한 입력 필드**  
-- `compositionstart` / `compositionend` 오류 없이 **정확한 한글 조합 처리**  
-- React / Shadow DOM / Tailwind 등 확장에 적합
+### 1. 🧠 `전용 Input` — 
+- 커스텀 api 를 제공하고
+- 버추얼 키보드가 네이티브처럼 작동하게 만드는 인풋
+- 커스텀 키보드 제공(예 핸드폰번호 전용 키패드, 천자인등)
 
-### 2. 🎹 `VirtualKeyboard` — 웹 전용 **가상 한글 키보드 UI**  
-- 한글 자모 조합을 직접 처리  
+### 2. 🎹 `VirtualKeyboard` — 웹 전용 **가상 한글 키보드 UI**   
 - 모바일에서도 네이티브 키보드 차단 → **일관된 입력 UX 제공**  
 - `ComposedInput`과 자동 연동  
 - 가볍고 설치 없는 **웹 앱에 최적화된 키보드 솔루션**
