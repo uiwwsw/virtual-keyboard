@@ -2,39 +2,118 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: <explanation> */
 /** biome-ignore-all lint/a11y/useKeyWithClickEvents: <explanation> */
 import {
-	useRef,
 	useState,
-	type InputHTMLAttributes,
 	type KeyboardEvent,
 	type MouseEvent,
+	type ClipboardEvent,
+	useMemo,
 } from "react";
 import { ShadowWrapper } from "./ShadowWrapper";
 import { BlinkingCaret } from "./BlinkingCaret";
-// custom-jsx.d.ts
-declare global {
-	namespace JSX {
-		interface IntrinsicElements {
-			div: React.DetailedHTMLProps<
-				React.HTMLAttributes<HTMLElement>,
-				HTMLElement
-			>;
-		}
-	}
-}
+import { assemble } from "es-hangul";
+
 export interface InputProps {
 	children?: string;
 }
+const isHangul = (char: string) =>
+	/^[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF]$/.test(char);
 
 export function Input({ children }: InputProps) {
 	const [caretIndex, setCaretIndex] = useState<number>(0);
 	const [letters, setLetters] = useState(() => children?.split("") ?? []);
+	// const adapterLetters = useMemo(
+	// 	() => (letters ? assemble(letters).split("") : []),
+	// 	[letters],
+	// );
+	const [isAllSelected, setIsAllSelected] = useState(false);
+
+	const handlePaste = (e: ClipboardEvent<HTMLDivElement>) => {
+		e.preventDefault();
+		const pastedText = e.clipboardData.getData("text/plain");
+		if (!pastedText) return;
+
+		const pastedLetters = pastedText.split("");
+		let newLetters: string[];
+		let newCaretIndex: number;
+
+		if (isAllSelected) {
+			newLetters = pastedLetters;
+			newCaretIndex = pastedLetters.length;
+		} else {
+			newLetters = [
+				...letters.slice(0, caretIndex),
+				...pastedLetters,
+				...letters.slice(caretIndex),
+			];
+			newCaretIndex = caretIndex + pastedLetters.length;
+		}
+
+		setLetters(newLetters);
+		setCaretIndex(newCaretIndex);
+		setIsAllSelected(false);
+	};
 
 	const handleKeyDown = (e: KeyboardEvent) => {
+		// Select All (Ctrl+A or Cmd+A)
+		if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+			e.preventDefault();
+			setIsAllSelected(true);
+			return;
+		}
+		// ✨ Copy (Ctrl+C or Cmd+C)
+		if ((e.ctrlKey || e.metaKey) && e.key === "c") {
+			if (isAllSelected) {
+				e.preventDefault();
+				const textToCopy = letters.join("");
+				navigator.clipboard.writeText(textToCopy).catch((err) => {
+					console.error("Failed to copy text: ", err);
+				});
+			}
+			return; // 복사 후 다른 동작을 막기 위해 return
+		}
+		if ((e.ctrlKey || e.metaKey) && e.key === "v") return;
+
+		if (isAllSelected) {
+			// On any key press while all is selected, replace or delete content.
+			switch (e.key) {
+				case "Backspace":
+				case "Delete": {
+					setLetters([]);
+					setCaretIndex(0);
+					setIsAllSelected(false);
+					break;
+				}
+				case "Shift":
+				case "CapsLock":
+				case "Control":
+				case "Alt":
+				case "Meta":
+				case "Enter":
+				case "ArrowUp":
+				case "ArrowDown":
+				case "ArrowLeft":
+				case "ArrowRight": {
+					// Do nothing for control keys
+					e.stopPropagation();
+					break;
+				}
+				default: {
+					// Replace content with the new character
+					setLetters([e.key]);
+					setCaretIndex(1);
+					setIsAllSelected(false);
+					break;
+				}
+			}
+			return;
+		}
+
+		// Default behavior when not all is selected
 		switch (e.key) {
 			case "Backspace": {
 				if (caretIndex > 0) {
 					const newLetters = [...letters];
-					newLetters.splice(caretIndex - 1, 1); // 앞 글자 삭제
+					newLetters.splice(caretIndex - 1, 1);
 					setLetters(newLetters);
 					setCaretIndex((i) => i - 1);
 				}
@@ -43,7 +122,7 @@ export function Input({ children }: InputProps) {
 			case "Delete": {
 				if (caretIndex < letters.length) {
 					const newLetters = [...letters];
-					newLetters.splice(caretIndex, 1); // 뒤 글자 삭제
+					newLetters.splice(caretIndex, 1);
 					setLetters(newLetters);
 				}
 				break;
@@ -52,93 +131,144 @@ export function Input({ children }: InputProps) {
 				if (caretIndex > 0) {
 					setCaretIndex((i) => i - 1);
 				}
+				setIsAllSelected(false); // Deselect
 				break;
 			}
 			case "ArrowRight": {
 				if (caretIndex < letters.length) {
 					setCaretIndex((i) => i + 1);
 				}
+				setIsAllSelected(false); // Deselect
 				break;
 			}
+			case "Tab":
 			case "Shift":
 			case "CapsLock":
 			case "Control":
 			case "Alt":
 			case "Meta":
 			case "Enter":
+			case "ArrowUp":
 			case "ArrowDown": {
 				e.stopPropagation();
 				break;
 			}
 			default: {
 				const newLetters = [...letters];
-				newLetters.splice(caretIndex, 0, e.key);
+				const prevChar = newLetters[caretIndex - 1];
+
+				if (isHangul(e.key) && isHangul(prevChar)) {
+					// 이전 글자 꺼내기
+					const prevChar = newLetters[caretIndex - 1];
+
+					// 이전 글자 제거
+					newLetters.splice(caretIndex - 1, 1);
+
+					// 조합 시도
+					const combined = assemble([prevChar, e.key]);
+
+					// 조합 결과 배열로 변환해서 삽입
+					const combinedLetters = combined.split("");
+
+					// 조합된 글자를 caretIndex -1 위치에 삽입
+					newLetters.splice(caretIndex - 1, 0, ...combinedLetters);
+
+					// 커서 위치 조정 (combinedLetters 길이 만큼 앞으로)
+					setCaretIndex(caretIndex - 1 + combinedLetters.length);
+				} else {
+					// 한글이 아니면 그냥 삽입
+					newLetters.splice(caretIndex, 0, e.key);
+					setCaretIndex((i) => i + 1);
+				}
+
 				setLetters(newLetters);
-				setCaretIndex((i) => i + 1);
-				return;
+				break;
 			}
 		}
 	};
 
 	const handleClickWrap = () => {
+		setIsAllSelected(false); // Deselect on click
 		setCaretIndex(letters.length);
 	};
+
 	const handleClickLetter = (e: MouseEvent<HTMLSpanElement>) => {
 		e.stopPropagation();
+		setIsAllSelected(false); // Deselect on click
 		const target = e.target;
-		if (target instanceof HTMLSpanElement)
+		if (target instanceof HTMLSpanElement) {
 			setCaretIndex(Number(target.dataset.value));
+		}
 	};
+
 	return (
 		<ShadowWrapper
 			css={`
-				.wrap {
-					position: relative;
-					cursor: text;
-					padding: 0;
-				}
-				.letter {
-					position: relative;
-					font-style: normal;
-					white-space: pre;
-				}
-				.cursor-area {
-					z-index: 1;
-					position: absolute;
-					width: 100%;
-					height: 100%;
-					top: 0;
-					right: 50%;
-				}
-			`}
+                .wrap {
+                    position: relative;
+                    cursor: text;
+                    padding: 0;
+                    background-color: #f0f0f0; /* Added a background for better visibility */
+                    border: 1px solid #ccc;
+                    padding: 8px;
+                    border-radius: 4px;
+                }
+                .wrap:focus {
+                    outline: 2px solid #007bff; /* Focus indicator */
+                    border-color: #007bff;
+                }
+                .letter {
+                    position: relative;
+                    font-style: normal;
+                    white-space: pre;
+                }
+                .letter.selected {
+                    background-color: #b4d5fe; /* Visual feedback for selection */
+                }
+                .cursor-area {
+                    z-index: 1;
+                    position: absolute;
+                    width: 100%;
+                    height: 100%;
+                    top: 0;
+                    left: 0; /* Changed from right: 50% for better click accuracy */
+                }
+            `}
 		>
 			<div
 				className="wrap"
-				role="button"
+				role="textbox" // Changed role for better accessibility
 				tabIndex={0}
 				contentEditable={false}
 				onKeyDown={handleKeyDown}
 				onClick={handleClickWrap}
+				onPaste={handlePaste} // Added paste handler
 			>
 				{letters.flatMap((x, i) => {
 					const item = (
-						<span key={`char-${i}`} className="letter">
+						<span
+							key={`char-${i}`}
+							className={`letter ${isAllSelected ? "selected" : ""}`}
+						>
 							{x}
 							<span
 								className="cursor-area"
 								role="button"
-								tabIndex={0}
+								tabIndex={-1}
 								onClick={handleClickLetter}
 								data-value={i}
 							/>
 						</span>
 					);
 					const caret =
-						caretIndex === i ? <BlinkingCaret key={`caret-${i}`} /> : null;
+						caretIndex === i && !isAllSelected ? (
+							<BlinkingCaret key={`caret-${i}`} />
+						) : null;
 					return [caret, item];
 				})}
-				{/* 마지막 글자 뒤에 커서 */}
-				{caretIndex === letters.length && <BlinkingCaret />}
+
+				{caretIndex === letters.length && !isAllSelected && <BlinkingCaret />}
+				<span className="letter"> </span>
 			</div>
 		</ShadowWrapper>
 	);

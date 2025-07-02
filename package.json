@@ -1,10 +1,11 @@
 {
-  "name": "composed-input",
+  "name": "virtual-hangul",
   "version": "0.0.3",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "files": ["dist"],
+  "keywords": ["한글","키보드","가상","input","custom","keyboard"],
   "exports": {
     ".": {
       "import": "./dist/index.js"
@@ -22,12 +23,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.1.10",
     "es-hangul": "^2.3.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-shadow": "^20.6.0",
-    "tailwindcss": "^4.1.10"
+    "react-shadow": "^20.6.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.0.5",

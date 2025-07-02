@@ -4,7 +4,7 @@ function App() {
 	return (
 		<>
 			<div>
-				<Input>abcde</Input>
+				<Input>가나다</Input>
 			</div>
 		</>
 	);
