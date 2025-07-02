@@ -1,1 +1,1 @@
-export { ComposedInput, type ComposedInputProps } from "./ComposedInput";
+export { Input, type InputProps } from "./components/Input";
