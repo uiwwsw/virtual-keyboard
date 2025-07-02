@@ -6,27 +6,28 @@ import {
 	type KeyboardEvent,
 	type MouseEvent,
 	type ClipboardEvent,
-	useMemo,
 } from "react";
 import { ShadowWrapper } from "./ShadowWrapper";
 import { BlinkingCaret } from "./BlinkingCaret";
 import { assemble } from "es-hangul";
+import { isHangul } from "../utils/isHangul";
+import { Keyboard } from "./Keyboard";
 
 export interface InputProps {
 	children?: string;
 }
-const isHangul = (char: string) =>
-	/^[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF]$/.test(char);
-
 export function Input({ children }: InputProps) {
+	const [focus, setFocus] = useState<boolean>();
 	const [caretIndex, setCaretIndex] = useState<number>(0);
 	const [letters, setLetters] = useState(() => children?.split("") ?? []);
 	// const adapterLetters = useMemo(
 	// 	() => (letters ? assemble(letters).split("") : []),
 	// 	[letters],
 	// );
-	const [isAllSelected, setIsAllSelected] = useState(false);
 
+	const [isAllSelected, setIsAllSelected] = useState(false);
+	const handleFocus = () => setFocus(true);
+	const handleBlur = () => setFocus(false);
 	const handlePaste = (e: ClipboardEvent<HTMLDivElement>) => {
 		e.preventDefault();
 		const pastedText = e.clipboardData.getData("text/plain");
@@ -240,6 +241,8 @@ export function Input({ children }: InputProps) {
 				role="textbox" // Changed role for better accessibility
 				tabIndex={0}
 				contentEditable={false}
+				onFocus={handleFocus}
+				onBlur={handleBlur}
 				onKeyDown={handleKeyDown}
 				onClick={handleClickWrap}
 				onPaste={handlePaste} // Added paste handler
@@ -261,15 +264,18 @@ export function Input({ children }: InputProps) {
 						</span>
 					);
 					const caret =
-						caretIndex === i && !isAllSelected ? (
-							<BlinkingCaret key={`caret-${i}`} />
+						caretIndex === i && !isAllSelected && focus ? (
+							<BlinkingCaret key={`caret-${caretIndex}-${i}`} />
 						) : null;
 					return [caret, item];
 				})}
 
-				{caretIndex === letters.length && !isAllSelected && <BlinkingCaret />}
+				{caretIndex === letters.length && !isAllSelected && focus && (
+					<BlinkingCaret />
+				)}
 				<span className="letter"> </span>
 			</div>
+			<Keyboard focus={focus} />
 		</ShadowWrapper>
 	);
 }
