@@ -1,4 +1,4 @@
-export function BlinkingCaret() {
+export function BlinkingCaret({ left, top }: { left: number; top: number }) {
 	return (
 		<>
 			<style>
@@ -17,6 +17,8 @@ export function BlinkingCaret() {
 				style={{
 					margin: "0 -0.12em",
 					position: "absolute",
+					left,
+					top,
 				}}
 			>
 				|
