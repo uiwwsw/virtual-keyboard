@@ -20,6 +20,8 @@ export interface InputProps {
 export function Input({ children }: InputProps) {
 	// TODO storage에 저장,
 	// TODO 초기에 한글인지 알 수 있는 방법은...?
+	const [selectionStart, setSelectionStart] = useState<number | null>(null);
+	const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
 	const hangulModeRef = useRef(false);
 	const isCompositionRef = useRef(false);
 	const [focus, setFocus] = useState<boolean>();
@@ -31,6 +33,16 @@ export function Input({ children }: InputProps) {
 	// );
 
 	const [isAllSelected, setIsAllSelected] = useState(false);
+	const isSelected = (index: number) => {
+		if (selectionStart === null || selectionEnd === null) return false;
+		const [start, end] = [selectionStart, selectionEnd].sort((a, b) => a - b);
+		return index >= start && index < end;
+	};
+	const hasSelection = () =>
+		selectionStart !== null &&
+		selectionEnd !== null &&
+		selectionStart !== selectionEnd;
+
 	const handleFocus = () => setFocus(true);
 	const handleBlur = () => setFocus(false);
 	const handlePaste = (e: ClipboardEvent<HTMLDivElement>) => {
@@ -39,24 +51,22 @@ export function Input({ children }: InputProps) {
 		if (!pastedText) return;
 
 		const pastedLetters = pastedText.split("");
-		let newLetters: string[];
-		let newCaretIndex: number;
+		let newLetters = [...letters];
 
-		if (isAllSelected) {
-			newLetters = pastedLetters;
-			newCaretIndex = pastedLetters.length;
+		if (hasSelection()) {
+			const [start, end] = [selectionStart!, selectionEnd!].sort(
+				(a, b) => a - b,
+			);
+			newLetters.splice(start, end - start, ...pastedLetters);
+			setCaretIndex(start + pastedLetters.length);
 		} else {
-			newLetters = [
-				...letters.slice(0, caretIndex),
-				...pastedLetters,
-				...letters.slice(caretIndex),
-			];
-			newCaretIndex = caretIndex + pastedLetters.length;
+			newLetters.splice(caretIndex, 0, ...pastedLetters);
+			setCaretIndex(caretIndex + pastedLetters.length);
 		}
 
 		setLetters(newLetters);
-		setCaretIndex(newCaretIndex);
-		setIsAllSelected(false);
+		setSelectionStart(null);
+		setSelectionEnd(null);
 	};
 
 	const handleKeyDown = (e: KeyboardEvent) => {
@@ -68,20 +78,26 @@ export function Input({ children }: InputProps) {
 
 		if ((e.ctrlKey || e.metaKey) && e.key === "a") {
 			e.preventDefault();
-			setIsAllSelected(true);
+			setSelectionStart(0);
+			setSelectionEnd(letters.length);
 			return;
 		}
+
 		// ✨ Copy (Ctrl+C or Cmd+C)
 		if ((e.ctrlKey || e.metaKey) && e.key === "c") {
-			if (isAllSelected) {
+			if (hasSelection()) {
 				e.preventDefault();
-				const textToCopy = letters.join("");
+				const [start, end] = [selectionStart!, selectionEnd!].sort(
+					(a, b) => a - b,
+				);
+				const textToCopy = letters.slice(start, end).join("");
 				navigator.clipboard.writeText(textToCopy).catch((err) => {
 					console.error("Failed to copy text: ", err);
 				});
 			}
-			return; // 복사 후 다른 동작을 막기 위해 return
+			return;
 		}
+
 		if ((e.ctrlKey || e.metaKey) && e.key === "v") return;
 
 		if (isAllSelected) {
@@ -126,42 +142,75 @@ export function Input({ children }: InputProps) {
 			case "Backspace": {
 				isCompositionRef.current = false;
 
-				if (caretIndex > 0) {
-					const newLetters = [...letters];
+				let newLetters = [...letters];
+				if (hasSelection()) {
+					const [start, end] = [selectionStart!, selectionEnd!].sort(
+						(a, b) => a - b,
+					);
+					newLetters.splice(start, end - start);
+					setCaretIndex(start);
+					setSelectionStart(null);
+					setSelectionEnd(null);
+				} else if (caretIndex > 0) {
 					newLetters.splice(caretIndex - 1, 1);
-					setLetters(newLetters);
 					setCaretIndex((i) => i - 1);
 				}
+				setLetters(newLetters);
 				break;
 			}
+
 			case "Delete": {
 				isCompositionRef.current = false;
 
-				if (caretIndex < letters.length) {
-					const newLetters = [...letters];
+				const newLetters = [...letters];
+				if (hasSelection()) {
+					const [start, end] = [selectionStart!, selectionEnd!].sort(
+						(a, b) => a - b,
+					);
+					newLetters.splice(start, end - start);
+					setCaretIndex(start);
+					setSelectionStart(null);
+					setSelectionEnd(null);
+				} else if (caretIndex < letters.length) {
 					newLetters.splice(caretIndex, 1);
-					setLetters(newLetters);
 				}
+				setLetters(newLetters);
 				break;
 			}
-			case "ArrowLeft": {
-				isCompositionRef.current = false;
 
-				if (caretIndex > 0) {
-					setCaretIndex((i) => i - 1);
+			case "ArrowLeft": {
+				if (e.shiftKey) {
+					if (selectionStart === null) {
+						setSelectionStart(caretIndex);
+						setSelectionEnd(caretIndex - 1);
+					} else {
+						setSelectionEnd(Math.max(0, caretIndex - 1));
+					}
+					setCaretIndex((i) => Math.max(0, i - 1));
+				} else {
+					setCaretIndex((i) => Math.max(0, i - 1));
+					setSelectionStart(null);
+					setSelectionEnd(null);
 				}
-				setIsAllSelected(false); // Deselect
 				break;
 			}
 			case "ArrowRight": {
-				isCompositionRef.current = false;
-
-				if (caretIndex < letters.length) {
-					setCaretIndex((i) => i + 1);
+				if (e.shiftKey) {
+					if (selectionStart === null) {
+						setSelectionStart(caretIndex);
+						setSelectionEnd(caretIndex + 1);
+					} else {
+						setSelectionEnd(Math.min(letters.length, caretIndex + 1));
+					}
+					setCaretIndex((i) => Math.min(letters.length, i + 1));
+				} else {
+					setCaretIndex((i) => Math.min(letters.length, i + 1));
+					setSelectionStart(null);
+					setSelectionEnd(null);
 				}
-				setIsAllSelected(false); // Deselect
 				break;
 			}
+
 			case "Tab":
 			case "Shift":
 			case "CapsLock":
@@ -175,17 +224,27 @@ export function Input({ children }: InputProps) {
 				break;
 			}
 			default: {
-				const newLetters = [...letters];
+				let newLetters = [...letters];
+
+				if (hasSelection()) {
+					const [start, end] = [selectionStart!, selectionEnd!].sort(
+						(a, b) => a - b,
+					);
+					newLetters.splice(start, end - start);
+					setCaretIndex(start);
+					setSelectionStart(null);
+					setSelectionEnd(null);
+				}
+
 				const prevChar = newLetters[caretIndex - 1];
 
 				if (hangulModeRef.current) {
 					const key = convertQwertyToHangul(e.key);
 					if (isHangul(prevChar)) {
 						newLetters.splice(caretIndex - 1, 1);
-						const combined = assemble([prevChar, key]);
-						const combinedLetters = combined.split("");
-						newLetters.splice(caretIndex - 1, 0, ...combinedLetters);
-						setCaretIndex(caretIndex - 1 + combinedLetters.length);
+						const combined = assemble([prevChar, key]).split("");
+						newLetters.splice(caretIndex - 1, 0, ...combined);
+						setCaretIndex(caretIndex - 1 + combined.length);
 					} else {
 						newLetters.splice(caretIndex, 0, key);
 						setCaretIndex((i) => i + 1);
@@ -197,16 +256,15 @@ export function Input({ children }: InputProps) {
 					isCompositionRef.current
 				) {
 					newLetters.splice(caretIndex - 1, 1);
-					const combined = assemble([prevChar, e.key]);
-					const combinedLetters = combined.split("");
-					newLetters.splice(caretIndex - 1, 0, ...combinedLetters);
-					setCaretIndex(caretIndex - 1 + combinedLetters.length);
+					const combined = assemble([prevChar, e.key]).split("");
+					newLetters.splice(caretIndex - 1, 0, ...combined);
+					setCaretIndex(caretIndex - 1 + combined.length);
 				} else {
 					newLetters.splice(caretIndex, 0, e.key);
 					setCaretIndex((i) => i + 1);
+					isCompositionRef.current = isHangul(e.key);
 				}
 
-				isCompositionRef.current = isHangul(e.key);
 				setLetters(newLetters);
 				break;
 			}
@@ -284,13 +342,13 @@ export function Input({ children }: InputProps) {
 							tabIndex={-1}
 							data-value={i}
 							onClick={handleClickLetter}
-							className={`letter ${isAllSelected ? "selected" : ""}`}
+							className={`letter ${isSelected(i) ? "selected" : ""}`}
 						>
 							{x}
 						</span>
 					);
 					const caret =
-						caretIndex === i && !isAllSelected && focus ? (
+						caretIndex === i && focus && selectionStart === null ? (
 							<BlinkingCaret key={`caret-${caretIndex}-${i}`} />
 						) : null;
 					return [caret, item];
