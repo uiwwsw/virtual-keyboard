@@ -1,7 +1,8 @@
 import { isMobileAgent } from "../utils/isMobileAgent";
-
+import qwerty from "../assets/qwerty.json";
 export function Keyboard({ focus }: { focus?: boolean }) {
 	if (!focus || !isMobileAgent()) return null;
+	console.log(qwerty);
 	return (
 		<div
 			style={{
@@ -12,6 +13,21 @@ export function Keyboard({ focus }: { focus?: boolean }) {
 				height: 200,
 				background: "gray",
 			}}
-		></div>
+		>
+			{qwerty.rows.map((row, i) => (
+				<div
+					style={{
+						display: "flex",
+					}}
+					key={i}
+				>
+					{row.map((cell, j) => (
+						<span style={{ flex: 1 }} key={`${i}-${j}`}>
+							{cell.label}
+						</span>
+					))}
+				</div>
+			))}
+		</div>
 	);
 }
