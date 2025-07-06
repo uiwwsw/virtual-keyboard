@@ -1,0 +1,43 @@
+{
+  "layout": "QWERTY",
+  "rows": [
+    [
+      { "label": "Q", "value": "q", "code": "KeyQ", "type": "char" },
+      { "label": "W", "value": "w", "code": "KeyW", "type": "char" },
+      { "label": "E", "value": "e", "code": "KeyE", "type": "char" },
+      { "label": "R", "value": "r", "code": "KeyR", "type": "char" },
+      { "label": "T", "value": "t", "code": "KeyT", "type": "char" },
+      { "label": "Y", "value": "y", "code": "KeyY", "type": "char" },
+      { "label": "U", "value": "u", "code": "KeyU", "type": "char" },
+      { "label": "I", "value": "i", "code": "KeyI", "type": "char" },
+      { "label": "O", "value": "o", "code": "KeyO", "type": "char" },
+      { "label": "P", "value": "p", "code": "KeyP", "type": "char" }
+    ],
+    [
+      { "label": "A", "value": "a", "code": "KeyA", "type": "char" },
+      { "label": "S", "value": "s", "code": "KeyS", "type": "char" },
+      { "label": "D", "value": "d", "code": "KeyD", "type": "char" },
+      { "label": "F", "value": "f", "code": "KeyF", "type": "char" },
+      { "label": "G", "value": "g", "code": "KeyG", "type": "char" },
+      { "label": "H", "value": "h", "code": "KeyH", "type": "char" },
+      { "label": "J", "value": "j", "code": "KeyJ", "type": "char" },
+      { "label": "K", "value": "k", "code": "KeyK", "type": "char" },
+      { "label": "L", "value": "l", "code": "KeyL", "type": "char" }
+    ],
+    [
+      { "label": "Shift", "value": "Shift", "code": "ShiftLeft", "type": "modifier" },
+      { "label": "Z", "value": "z", "code": "KeyZ", "type": "char" },
+      { "label": "X", "value": "x", "code": "KeyX", "type": "char" },
+      { "label": "C", "value": "c", "code": "KeyC", "type": "char" },
+      { "label": "V", "value": "v", "code": "KeyV", "type": "char" },
+      { "label": "B", "value": "b", "code": "KeyB", "type": "char" },
+      { "label": "N", "value": "n", "code": "KeyN", "type": "char" },
+      { "label": "M", "value": "m", "code": "KeyM", "type": "char" },
+      { "label": "Backspace", "value": "Backspace", "code": "Backspace", "type": "function" }
+    ],
+    [
+      { "label": "Space", "value": " ", "code": "Space", "type": "whitespace", "width": 5 },
+      { "label": "Enter", "value": "\n", "code": "Enter", "type": "function" }
+    ]
+  ]
+}
