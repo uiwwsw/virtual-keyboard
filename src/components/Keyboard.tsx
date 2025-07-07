@@ -1,10 +1,27 @@
 import { isMobileAgent } from "../utils/isMobileAgent";
 import qwerty from "../assets/qwerty.json";
-export function Keyboard({ focus }: { focus?: boolean }) {
-	if (!focus || !isMobileAgent()) return null;
-	console.log(qwerty);
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useOutsideClickEffect } from "@toss/react";
+export function Keyboard({
+	focus,
+	wrapEl,
+}: {
+	focus?: boolean;
+	wrapEl: HTMLDivElement | null;
+}) {
+	const [active, setActive] = useState(false);
+	const [wrapperEl, setWrapperEl] = useState<HTMLDivElement | null>(null);
+	useEffect(() => {
+		if (focus) setActive(true);
+	}, [focus]);
+	useOutsideClickEffect([wrapperEl, wrapEl], () => {
+		if (!focus) setActive(false);
+	});
+	if (!active || !isMobileAgent()) return null;
+
 	return (
 		<div
+			ref={setWrapperEl}
 			style={{
 				position: "fixed",
 				left: 0,

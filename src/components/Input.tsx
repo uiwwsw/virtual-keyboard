@@ -2,7 +2,7 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: <explanation> */
 /** biome-ignore-all lint/a11y/useSemanticElements: <explanation> */
 /** biome-ignore-all lint/a11y/useKeyWithClickEvents: <explanation> */
-import type { MouseEvent } from "react";
+import { useRef, useState, type MouseEvent } from "react";
 import { ShadowWrapper } from "./ShadowWrapper"; // 경로에 맞게 수정
 import { BlinkingCaret } from "./BlinkingCaret"; // 경로에 맞게 수정
 import { Keyboard } from "./Keyboard"; // 경로에 맞게 수정
@@ -14,6 +14,7 @@ export interface InputProps extends UseInputLogicProps {
 }
 
 export function Input({ children }: InputProps) {
+	const [wrapperEl, setWrapperEl] = useState<HTMLDivElement | null>(null);
 	const { letters, caretIndex, isFocused, isSelected, hasSelection, actions } =
 		useInputLogic({ initialValue: children });
 
@@ -68,6 +69,7 @@ export function Input({ children }: InputProps) {
       `}
 		>
 			<div
+				ref={setWrapperEl}
 				className="wrap"
 				role="textbox" // 시맨틱한 역할 부여
 				tabIndex={0}
@@ -99,7 +101,7 @@ export function Input({ children }: InputProps) {
 					<BlinkingCaret />
 				)}
 			</div>
-			<Keyboard focus={isFocused} />
+			<Keyboard focus={isFocused} wrapEl={wrapperEl} />
 		</ShadowWrapper>
 	);
 }

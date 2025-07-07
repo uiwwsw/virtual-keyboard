@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "module": "dist/index.js",
   "files": ["dist"],
-  "keywords": ["한글","키보드","가상","input","custom","keyboard", "천자인", "폰번호 전용", "숫자 전용"],
+  "keywords": ["한글", "키보드", "가상", "input", "custom", "keyboard", "천자인", "폰번호 전용", "숫자 전용"],
   "exports": {
     ".": {
       "import": "./dist/index.js"
@@ -23,6 +23,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@toss/react": "^1.8.1",
     "es-hangul": "^2.3.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
