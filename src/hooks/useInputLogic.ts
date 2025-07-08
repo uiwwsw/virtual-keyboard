@@ -23,6 +23,7 @@ export interface InputLogicActions {
 	handleClickLetter: (index: number) => void;
 }
 export function useInputLogic({ initialValue = "" }: UseInputLogicProps) {
+	const sti = useRef(setTimeout(() => null));
 	const [letters, setLetters] = useState<string[]>(() =>
 		initialValue.split(""),
 	);
@@ -82,8 +83,10 @@ export function useInputLogic({ initialValue = "" }: UseInputLogicProps) {
 		setIsFocused(true);
 	}, []);
 	const handleBlur = useCallback(() => {
-		setIsFocused(false);
-		isCompositionRef.current = false;
+		sti.current = setTimeout(() => {
+			setIsFocused(false);
+			isCompositionRef.current = false;
+		}, 0);
 	}, []);
 
 	const handlePaste = useCallback(

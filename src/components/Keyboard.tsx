@@ -16,6 +16,7 @@ export function Keyboard({
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: <explanation>
 		<div
+			data-virtual-keyboard="true"
 			onFocus={onFocus}
 			onBlur={onBlur}
 			tabIndex={-1}
