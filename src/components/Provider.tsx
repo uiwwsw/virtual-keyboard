@@ -6,12 +6,12 @@ import {
 	useState,
 	type ReactNode,
 	useEffect,
+	useRef, // Import useRef
 } from "react";
 import type { InputLogicActions } from "../hooks/useInputLogic";
 import { Keyboard } from "./Keyboard";
 
 interface InputContextValue {
-	currentInput: InputLogicActions | null;
 	register: (target: InputLogicActions) => void;
 	unregister: () => void;
 }
@@ -19,36 +19,41 @@ interface InputContextValue {
 const InputContext = createContext<InputContextValue | null>(null);
 
 export function InputProvider({ children }: { children: ReactNode }) {
-	const [currentInput, setCurrentInput] = useState<InputLogicActions | null>(
-		null,
-	);
+	// Use useRef to store the actions of the currently focused input
+	const currentInputActionsRef = useRef<InputLogicActions | null>(null);
+	const [isInputFocused, setIsInputFocused] = useState(false); // To trigger Keyboard re-render when focus changes
 
-	const register = useCallback(
-		(target: InputLogicActions) => {
-			if (!currentInput) setCurrentInput(target);
-		},
-		[currentInput],
-	);
+	const register = useCallback((target: InputLogicActions) => {
+		currentInputActionsRef.current = target;
+		setIsInputFocused(true); // Indicate that an input is focused
+	}, []);
 
 	const unregister = useCallback(() => {
-		if (currentInput) setCurrentInput(null);
-	}, [currentInput]);
+		currentInputActionsRef.current = null;
+		setIsInputFocused(false); // Indicate that no input is focused
+	}, []);
 
 	useEffect(() => {
-		if (currentInput) {
-			currentInput.handleFocus();
+		// This useEffect is for handling initial focus when an input registers
+		// and for ensuring handleFocus is called on the newly focused input.
+		// It should not be triggered by every input.
+		if (currentInputActionsRef.current && isInputFocused) {
+			currentInputActionsRef.current.handleFocus();
 		}
-	}, [currentInput]);
+	}, [isInputFocused]); // Only re-run when focus state changes
 
 	return (
-		<InputContext.Provider value={{ currentInput, register, unregister }}>
+		<InputContext.Provider value={{ register, unregister }}>
 			<>
 				{children}
 				<Keyboard
-					focus={!!currentInput}
-					onInput={currentInput?.insertCharacter ?? (() => {})}
-					onFocus={currentInput?.handleFocus ?? (() => {})}
-					onBlur={currentInput?.handleBlur ?? (() => {})}
+					focus={isInputFocused} // Pass focus state
+					// Access functions directly from the ref's current value
+					onInput={(key: string) =>
+						currentInputActionsRef.current?.insertCharacter(key)
+					}
+					onFocus={() => currentInputActionsRef.current?.handleFocus()}
+					onBlur={() => currentInputActionsRef.current?.handleBlur()}
 				/>
 			</>
 		</InputContext.Provider>
