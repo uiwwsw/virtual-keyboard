@@ -1,11 +1,5 @@
 // /components/Input/useInputLogic.ts
-import {
-	useState,
-	useRef,
-	type KeyboardEvent,
-	type ClipboardEvent,
-	useMemo,
-} from "react";
+import { useState, useRef, type ClipboardEvent, useMemo } from "react";
 import { assemble, convertQwertyToHangul } from "es-hangul";
 import { isHangul } from "../utils/isHangul"; // isHangul 유틸리티 경로에 맞게 수정해주세요.
 import { useStorage } from "./useStorage";
@@ -89,7 +83,7 @@ export function useInputLogic({ initialValue = "" }: UseInputLogicProps) {
 		clearSelection();
 	};
 
-	const handleKeyDown = (e: KeyboardEvent) => {
+	const handleKeyDown = (e: React.KeyboardEvent | KeyboardEvent) => {
 		if ((e.ctrlKey || e.metaKey) && e.key === "a") {
 			e.preventDefault();
 			setSelection({ start: 0, end: letters.length });
@@ -235,6 +229,16 @@ export function useInputLogic({ initialValue = "" }: UseInputLogicProps) {
 		}
 	};
 
+	const handleClick = (value: string) => {
+		const event = new KeyboardEvent("keydown", {
+			key: value,
+			code: `Key${value.toUpperCase()}`,
+			bubbles: true,
+			cancelable: true,
+		});
+		handleKeyDown(event);
+	};
+
 	const handleClickWrap = () => {
 		clearSelection();
 		setCaretIndex(letters.length);
@@ -247,7 +251,8 @@ export function useInputLogic({ initialValue = "" }: UseInputLogicProps) {
 
 	const isSelected = (index: number) => {
 		if (!hasSelection) return false;
-		const [start, end] = [selectionStart!, selectionEnd!].sort((a, b) => a - b);
+		if (!selectionStart || !selectionEnd) return false;
+		const [start, end] = [selectionStart, selectionEnd].sort((a, b) => a - b);
 		return index >= start && index < end;
 	};
 
@@ -263,6 +268,7 @@ export function useInputLogic({ initialValue = "" }: UseInputLogicProps) {
 			handleBlur,
 			handleKeyDown,
 			handlePaste,
+			handleClick,
 			handleClickWrap,
 			handleClickLetter,
 		},

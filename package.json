@@ -23,7 +23,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@toss/react": "^1.8.1",
     "es-hangul": "^2.3.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
