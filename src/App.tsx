@@ -1,13 +1,16 @@
 import { Input } from "./components/Input";
+import { InputProvider } from "./components/Provider";
 
 function App() {
-  return (
-    <>
-      <Input>가나다</Input>
-      <div>dwadawd</div>
-      <input type="text" />
-    </>
-  );
+	return (
+		<>
+			<InputProvider>
+				<Input>가나다</Input>
+			</InputProvider>
+			<div>dwadawd</div>
+			<input type="text" />
+		</>
+	);
 }
 
 export default App;
