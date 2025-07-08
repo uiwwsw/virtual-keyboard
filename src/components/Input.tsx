@@ -1,5 +1,5 @@
 // components/Input.tsx
-import { useEffect, type ClipboardEvent } from "react";
+import { useEffect } from "react";
 import { useInputLogic, type UseInputLogicProps } from "../hooks/useInputLogic";
 import { useInputContext } from "./Provider";
 import { ShadowWrapper } from "./ShadowWrapper";
@@ -10,20 +10,17 @@ export interface InputProps extends UseInputLogicProps {
 }
 
 export function Input({ initialValue = "" }: InputProps) {
-	const {
-		letters,
-		caretIndex,
-		isFocused,
-		isSelected,
-		hasSelection,
-		actions,
-	} = useInputLogic({ initialValue });
-	const { register, unregister } = useInputContext();
+	const { letters, caretIndex, isFocused, isSelected, hasSelection, actions } =
+		useInputLogic({ initialValue });
+	const { register, unregister, currentInput } = useInputContext();
 
 	useEffect(() => {
-		register(actions);
-		return () => unregister();
-	}, [actions, register, unregister]);
+		if (isFocused) {
+			register(actions);
+		} else {
+			unregister();
+		}
+	}, [isFocused, actions, register, unregister]);
 
 	const handleClickLetter = (e: React.MouseEvent<HTMLSpanElement>) => {
 		e.stopPropagation();
@@ -82,7 +79,7 @@ export function Input({ initialValue = "" }: InputProps) {
 				onBlur={actions.handleBlur}
 				onKeyDown={actions.handleKeyDown}
 				onClick={actions.handleClickWrap}
-				onPaste={actions.handlePaste as (e: ClipboardEvent<HTMLDivElement>) => void}
+				onPaste={actions.handlePaste}
 			>
 				{letters.map((char, i) => (
 					<span key={`char-${char}-${i}`}>

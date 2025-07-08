@@ -5,7 +5,9 @@ function App() {
 	return (
 		<>
 			<InputProvider>
-				<Input>가나다</Input>
+				<Input initialValue="가나달" />
+				<Input initialValue="가나달" />
+				<Input initialValue="가나달" />
 			</InputProvider>
 			<div>dwadawd</div>
 			<input type="text" />
