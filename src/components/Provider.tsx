@@ -25,7 +25,7 @@ export function InputProvider({ children }: { children: ReactNode }) {
 
 	const register = useCallback((target: InputLogicActions) => {
 		currentInputActionsRef.current = target;
-		setIsInputFocused(true); // Indicate that an input is focused
+		setIsInputFocused(true);
 	}, []);
 
 	const unregister = useCallback(() => {
@@ -33,14 +33,14 @@ export function InputProvider({ children }: { children: ReactNode }) {
 		setIsInputFocused(false); // Indicate that no input is focused
 	}, []);
 
-	useEffect(() => {
-		// This useEffect is for handling initial focus when an input registers
-		// and for ensuring handleFocus is called on the newly focused input.
-		// It should not be triggered by every input.
-		if (currentInputActionsRef.current && isInputFocused) {
-			currentInputActionsRef.current.handleFocus();
-		}
-	}, [isInputFocused]); // Only re-run when focus state changes
+	// useEffect(() => {
+	// 	// This useEffect is for handling initial focus when an input registers
+	// 	// and for ensuring handleFocus is called on the newly focused input.
+	// 	// It should not be triggered by every input.
+	// 	if (currentInputActionsRef.current && isInputFocused) {
+	// 		currentInputActionsRef.current.handleFocus();
+	// 	}
+	// }, [isInputFocused]); // Only re-run when focus state changes
 
 	return (
 		<InputContext.Provider value={{ register, unregister }}>

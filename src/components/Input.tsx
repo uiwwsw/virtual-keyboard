@@ -12,7 +12,7 @@ export interface InputProps extends UseInputLogicProps {
 export function Input({ initialValue = "" }: InputProps) {
 	const { letters, caretIndex, isFocused, isSelected, hasSelection, actions } =
 		useInputLogic({ initialValue });
-	const { register, unregister, currentInput } = useInputContext();
+	const { register, unregister } = useInputContext();
 
 	useEffect(() => {
 		if (isFocused) {
