@@ -23,7 +23,6 @@ export interface InputLogicActions {
 	handleClickLetter: (index: number) => void;
 }
 export function useInputLogic({ initialValue = "" }: UseInputLogicProps) {
-	const sti = useRef(setTimeout(() => null));
 	const [letters, setLetters] = useState<string[]>(() =>
 		initialValue.split(""),
 	);
@@ -80,14 +79,11 @@ export function useInputLogic({ initialValue = "" }: UseInputLogicProps) {
 	]);
 
 	const handleFocus = useCallback(() => {
-		clearTimeout(sti.current);
 		setIsFocused(true);
 	}, []);
 	const handleBlur = useCallback(() => {
-		sti.current = setTimeout(() => {
-			setIsFocused(false);
-			isCompositionRef.current = false;
-		}, 0);
+		setIsFocused(false);
+		isCompositionRef.current = false;
 	}, []);
 
 	const handlePaste = useCallback(
@@ -102,7 +98,9 @@ export function useInputLogic({ initialValue = "" }: UseInputLogicProps) {
 			const pastedLetters = pastedText.split("");
 
 			const currentCaret = hasSelection
-				? [selection.start, selection.end].sort((a, b) => (a ?? 0) - (b ?? 0))[0]
+				? [selection.start, selection.end].sort(
+						(a, b) => (a ?? 0) - (b ?? 0),
+					)[0]
 				: caretIndex;
 
 			newLetters.splice(currentCaret ?? 0, 0, ...pastedLetters);
