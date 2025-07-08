@@ -1,26 +1,33 @@
-// /components/Input/Input.tsx
-/** biome-ignore-all lint/suspicious/noArrayIndexKey: <explanation> */
-/** biome-ignore-all lint/a11y/useSemanticElements: <explanation> */
-/** biome-ignore-all lint/a11y/useKeyWithClickEvents: <explanation> */
-import type { MouseEvent } from "react";
-import { ShadowWrapper } from "./ShadowWrapper"; // 경로에 맞게 수정
-import { BlinkingCaret } from "./BlinkingCaret"; // 경로에 맞게 수정
-import { Keyboard } from "./Keyboard"; // 경로에 맞게 수정
+// components/Input.tsx
+import { useEffect, type ClipboardEvent } from "react";
 import { useInputLogic, type UseInputLogicProps } from "../hooks/useInputLogic";
-// import { useStorage } from "../hooks/useStorage";
+import { useInputContext } from "./Provider";
+import { ShadowWrapper } from "./ShadowWrapper";
+import { BlinkingCaret } from "./BlinkingCaret";
 
 export interface InputProps extends UseInputLogicProps {
-	children?: string; // children을 initialValue로 사용하기 위해 유지
+	// children?: string; // initialValue로 대체
 }
 
-export function Input({ children }: InputProps) {
-	const { letters, caretIndex, isFocused, isSelected, hasSelection, actions } =
-		useInputLogic({ initialValue: children });
+export function Input({ initialValue = "" }: InputProps) {
+	const {
+		letters,
+		caretIndex,
+		isFocused,
+		isSelected,
+		hasSelection,
+		actions,
+	} = useInputLogic({ initialValue });
+	const { register, unregister } = useInputContext();
 
-	const handleClickLetter = (e: MouseEvent<HTMLSpanElement>) => {
+	useEffect(() => {
+		register(actions);
+		return () => unregister();
+	}, [actions, register, unregister]);
+
+	const handleClickLetter = (e: React.MouseEvent<HTMLSpanElement>) => {
 		e.stopPropagation();
-		const target = e.currentTarget;
-		actions.handleClickLetter(Number(target.dataset.value));
+		actions.handleClickLetter(Number(e.currentTarget.dataset.value));
 	};
 
 	return (
@@ -30,7 +37,6 @@ export function Input({ children }: InputProps) {
         /* CSS 스타일은 여기에 그대로 유지 */
         .wrap {
           white-space: pre;
-
           position: relative;
           cursor: text;
           padding: 8px;
@@ -70,16 +76,15 @@ export function Input({ children }: InputProps) {
 		>
 			<div
 				className="wrap"
-				role="textbox" // 시맨틱한 역할 부여
+				role="textbox"
 				tabIndex={0}
 				onFocus={actions.handleFocus}
 				onBlur={actions.handleBlur}
 				onKeyDown={actions.handleKeyDown}
 				onClick={actions.handleClickWrap}
-				onPaste={actions.handlePaste}
+				onPaste={actions.handlePaste as (e: ClipboardEvent<HTMLDivElement>) => void}
 			>
 				{letters.map((char, i) => (
-					// map의 두 번째 인자 key 사용 지양을 위해 char와 index 조합
 					<span key={`char-${char}-${i}`}>
 						{caretIndex === i && isFocused && !hasSelection && (
 							<BlinkingCaret />
@@ -95,12 +100,10 @@ export function Input({ children }: InputProps) {
 						</span>
 					</span>
 				))}
-
 				{caretIndex === letters.length && isFocused && !hasSelection && (
 					<BlinkingCaret />
 				)}
 			</div>
-			<Keyboard focus={isFocused} onInput={actions.handleClick} />
 		</ShadowWrapper>
 	);
 }

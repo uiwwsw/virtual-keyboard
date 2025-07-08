@@ -1,40 +1,24 @@
 /** biome-ignore-all lint/a11y/useFocusableInteractive: <explanation> */
 import { isMobileAgent } from "../utils/isMobileAgent";
 import qwerty from "../assets/qwerty.json";
-import { useEffect, useState } from "react";
 export function Keyboard({
 	focus,
 	onInput,
+	onFocus,
+	onBlur,
 }: {
 	focus?: boolean;
 	onInput: (value: string) => unknown;
+	onFocus: () => unknown;
+	onBlur: () => unknown;
 }) {
-	const [active, setActive] = useState(false);
-	const handleInput = (value: string) => {
-		if (onInput) {
-			onInput(value); // 외부로 값 전달
-		} else {
-			console.log("Pressed:", value); // 기본 동작 (디버그용)
-		}
-	};
-	useEffect(() => {
-		if (focus) setActive(true);
-	}, [focus]);
-	useEffect(() => {
-		const test = (e: MouseEvent) => {
-			const target = e.target as HTMLElement;
-			if (target.tagName === "VIRTUAL-KEYBOARD") return;
-			setActive(false);
-		};
-		document.addEventListener("click", test);
-		return () => {
-			document.removeEventListener("click", test);
-		};
-	}, []);
-	if (!active || !isMobileAgent()) return null;
-
+	if (!focus || !isMobileAgent()) return null;
 	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: <explanation>
 		<div
+			onFocus={onFocus}
+			onBlur={onBlur}
+			tabIndex={-1}
 			style={{
 				position: "fixed",
 				left: 0,
@@ -54,7 +38,7 @@ export function Keyboard({
 					{row.map((cell, j) => (
 						<button
 							type="button"
-							onClick={() => handleInput(cell.value)}
+							onClick={() => onInput(cell.value)}
 							style={{ flex: 1 }}
 							key={`${i}-${j}`}
 						>
