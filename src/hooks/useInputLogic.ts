@@ -16,14 +16,9 @@ export interface UseInputLogicProps {
 export interface InputLogicActions {
 	handleFocus: () => void;
 	handleBlur: () => void;
-	handleKeyDown: (e: React.KeyboardEvent | KeyboardEvent) => void;
-	handlePaste: (e: ClipboardEvent<HTMLDivElement>) => void;
 	insertCharacter: (key: string) => void;
-	handleClickWrap: () => void;
-	handleClickLetter: (index: number) => void;
 }
 export function useInputLogic({ initialValue = "" }: UseInputLogicProps) {
-	const sti = useRef(setTimeout(() => null));
 	const [letters, setLetters] = useState<string[]>(() =>
 		initialValue.split(""),
 	);
@@ -80,14 +75,11 @@ export function useInputLogic({ initialValue = "" }: UseInputLogicProps) {
 	]);
 
 	const handleFocus = useCallback(() => {
-		clearTimeout(sti.current);
 		setIsFocused(true);
 	}, []);
 	const handleBlur = useCallback(() => {
-		sti.current = setTimeout(() => {
-			setIsFocused(false);
-			isCompositionRef.current = false;
-		}, 0);
+		setIsFocused(false);
+		isCompositionRef.current = false;
 	}, []);
 
 	const handlePaste = useCallback(
@@ -321,21 +313,9 @@ export function useInputLogic({ initialValue = "" }: UseInputLogicProps) {
 		() => ({
 			handleFocus,
 			handleBlur,
-			handleKeyDown,
-			handlePaste,
 			insertCharacter,
-			handleClickWrap,
-			handleClickLetter,
 		}),
-		[
-			handleFocus,
-			handleBlur,
-			handleKeyDown,
-			handlePaste,
-			insertCharacter,
-			handleClickWrap,
-			handleClickLetter,
-		],
+		[handleFocus, handleBlur, insertCharacter],
 	);
 
 	// UI 컴포넌트가 사용할 상태와 함수들을 반환합니다.
@@ -346,5 +326,12 @@ export function useInputLogic({ initialValue = "" }: UseInputLogicProps) {
 		isSelected,
 		hasSelection,
 		actions,
+		handleFocus,
+		handleBlur,
+		handleKeyDown,
+		handlePaste,
+		insertCharacter,
+		handleClickWrap,
+		handleClickLetter,
 	};
 }

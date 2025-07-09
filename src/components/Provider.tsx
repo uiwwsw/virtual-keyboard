@@ -1,12 +1,11 @@
 // components/InputProvider.tsx
 import {
+	type ReactNode,
 	createContext,
 	useCallback,
 	useContext,
+	useRef,
 	useState,
-	type ReactNode,
-	useEffect,
-	useRef, // Import useRef
 } from "react";
 import type { InputLogicActions } from "../hooks/useInputLogic";
 import { Keyboard } from "./Keyboard";
@@ -44,18 +43,14 @@ export function InputProvider({ children }: { children: ReactNode }) {
 
 	return (
 		<InputContext.Provider value={{ register, unregister }}>
-			<>
-				{children}
+			{children}
+			{isInputFocused && (
 				<Keyboard
-					focus={isInputFocused} // Pass focus state
-					// Access functions directly from the ref's current value
-					onInput={(key: string) =>
-						currentInputActionsRef.current?.insertCharacter(key)
-					}
-					onFocus={() => currentInputActionsRef.current?.handleFocus()}
-					onBlur={() => currentInputActionsRef.current?.handleBlur()}
+					onInput={currentInputActionsRef.current?.insertCharacter}
+					onFocus={currentInputActionsRef.current?.handleFocus}
+					onBlur={currentInputActionsRef.current?.handleBlur}
 				/>
-			</>
+			)}
 		</InputContext.Provider>
 	);
 }
