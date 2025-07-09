@@ -10,8 +10,20 @@ export interface InputProps extends UseInputLogicProps {
 }
 
 export function Input({ initialValue = "" }: InputProps) {
-	const { letters, caretIndex, isFocused, isSelected, hasSelection, actions } =
-		useInputLogic({ initialValue });
+	const {
+		letters,
+		caretIndex,
+		isFocused,
+		isSelected,
+		hasSelection,
+		actions,
+		handleBlur,
+		handleClickLetter,
+		handleClickWrap,
+		handleFocus,
+		handleKeyDown,
+		handlePaste,
+	} = useInputLogic({ initialValue });
 	const { register, unregister } = useInputContext();
 
 	useEffect(() => {
@@ -22,9 +34,9 @@ export function Input({ initialValue = "" }: InputProps) {
 		}
 	}, [isFocused, actions, register, unregister]);
 
-	const handleClickLetter = (e: React.MouseEvent<HTMLSpanElement>) => {
+	const adapterClickLetter = (e: React.MouseEvent<HTMLSpanElement>) => {
 		e.stopPropagation();
-		actions.handleClickLetter(Number(e.currentTarget.dataset.value));
+		handleClickLetter(Number(e.currentTarget.dataset.value));
 	};
 
 	return (
@@ -75,11 +87,11 @@ export function Input({ initialValue = "" }: InputProps) {
 				className="wrap"
 				role="textbox"
 				tabIndex={0}
-				onFocus={actions.handleFocus}
-				onBlur={actions.handleBlur}
-				onKeyDown={actions.handleKeyDown}
-				onClick={actions.handleClickWrap}
-				onPaste={actions.handlePaste}
+				onFocus={handleFocus}
+				onBlur={handleBlur}
+				onKeyDown={handleKeyDown}
+				onClick={handleClickWrap}
+				onPaste={handlePaste}
 			>
 				{letters.map((char, i) => (
 					<span key={`char-${char}-${i}`}>
@@ -90,7 +102,7 @@ export function Input({ initialValue = "" }: InputProps) {
 							role="button"
 							tabIndex={-1}
 							data-value={i}
-							onClick={handleClickLetter}
+							onClick={adapterClickLetter}
 							className={`letter ${isSelected(i) ? "selected" : ""}`}
 						>
 							{char}

@@ -1,21 +1,35 @@
 /** biome-ignore-all lint/a11y/useFocusableInteractive: <explanation> */
 import { isMobileAgent } from "../utils/isMobileAgent";
 import qwerty from "../assets/qwerty.json";
+import { useRef } from "react";
 export function Keyboard({
+	focus,
 	onInput,
 	onFocus,
 	onBlur,
 }: {
+	focus?: boolean;
 	onInput?: (value: string) => unknown;
 	onFocus?: () => unknown;
 	onBlur?: () => unknown;
 }) {
-	if (!isMobileAgent()) return null;
+	const sti = useRef(0);
+	const handleFocus = () => {
+		clearTimeout(sti.current);
+		onFocus?.();
+	};
+	const handleBlur = () => {
+		sti.current = setTimeout(() => {
+			onBlur?.();
+		}, 0);
+	};
+	if (!focus || !isMobileAgent()) return null;
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: <explanation>
 		<div
-			// onFocus={onFocus}
-			onBlur={onBlur}
+			data-virtual-keyboard="true"
+			onFocus={handleFocus}
+			onBlur={handleBlur}
 			tabIndex={-1}
 			style={{
 				position: "fixed",
