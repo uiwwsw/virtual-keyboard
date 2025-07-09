@@ -80,6 +80,7 @@ export function useInputLogic({ initialValue = "" }: UseInputLogicProps) {
 	]);
 
 	const handleFocus = useCallback(() => {
+		clearTimeout(sti.current);
 		setIsFocused(true);
 	}, []);
 	const handleBlur = useCallback(() => {
