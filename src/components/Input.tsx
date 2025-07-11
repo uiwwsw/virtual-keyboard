@@ -7,11 +7,12 @@ import {
 	useId,
 	useImperativeHandle,
 } from "react";
-import { assemble, convertQwertyToHangul } from "es-hangul";
+import { assemble } from "es-hangul";
 import { isHangul } from "../utils/isHangul";
 import { ShadowWrapper } from "./ShadowWrapper";
 import { BlinkingCaret } from "./BlinkingCaret";
 import { useVirtualInputContext } from "./Context";
+import { parseKeyInput } from "../utils/parseKeyInput";
 export interface VirtualInputHandle {
 	handleKeyDown: (e: KeyboardEvent | React.KeyboardEvent) => void;
 }
@@ -112,7 +113,7 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent | KeyboardEvent) => {
-			if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
 				e.preventDefault();
 				setSelection({ start: 0, end: letters.length });
 				return;
@@ -122,7 +123,7 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 				return;
 			}
 
-			if ((e.ctrlKey || e.metaKey) && e.key === "c") {
+			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
 				if (hasSelection && selectionStart !== null && selectionEnd !== null) {
 					e.preventDefault();
 					const [start, end] = [selectionStart, selectionEnd].sort(
@@ -136,7 +137,11 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 				return;
 			}
 
-			if ((e.ctrlKey || e.metaKey) && (e.key === "c" || e.key === "v")) return;
+			if (
+				(e.ctrlKey || e.metaKey) &&
+				(e.key.toLowerCase() === "c" || e.key.toLowerCase() === "v")
+			)
+				return;
 
 			switch (e.key) {
 				case "Backspace": {
@@ -219,31 +224,35 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 				}
 
 				default: {
+					const result = parseKeyInput(e, hangulMode);
+
+					if (result.toggleHangulMode) {
+						setHangulMode(!hangulMode);
+						return;
+					}
+
+					if (!result.handled || !result.text) return;
+
+					const { text, composing } = result;
+
 					const { newLetters, finalCaretIndex } = hasSelection
 						? deleteSelectedText()
 						: { newLetters: [...letters], finalCaretIndex: caretIndex };
-					let charToInsert = e.key;
-					let isComposing = false;
 
 					const prevChar = newLetters[finalCaretIndex - 1];
 
-					if (hangulMode) {
-						charToInsert = convertQwertyToHangul(e.key);
-						isComposing = true;
-					} else if (isHangul(e.key)) {
-						isComposing = true;
-					}
-					if (isComposing && isHangul(prevChar) && isCompositionRef.current) {
-						const combined = assemble([prevChar, charToInsert]).split("");
+					if (composing && isHangul(prevChar) && isCompositionRef.current) {
+						const combined = assemble([prevChar, text]).split("");
 						newLetters.splice(finalCaretIndex - 1, 1, ...combined);
 						setLetters(newLetters);
 						setCaretIndex(finalCaretIndex - 1 + combined.length);
 					} else {
-						newLetters.splice(finalCaretIndex, 0, charToInsert);
+						newLetters.splice(finalCaretIndex, 0, text);
 						setLetters(newLetters);
 						setCaretIndex(finalCaretIndex + 1);
 					}
-					isCompositionRef.current = isComposing;
+
+					isCompositionRef.current = composing;
 					break;
 				}
 			}

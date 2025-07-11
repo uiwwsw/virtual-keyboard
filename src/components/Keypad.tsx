@@ -42,7 +42,7 @@ export function VirtualKeypad({
 	);
 	if (!focusId || !isMobileAgent()) return null;
 	return (
-		<ShadowWrapper tagName={"virtual-keyboard" as "div"}>
+		<ShadowWrapper tagName={"virtual-keypad" as "div"}>
 			<div
 				onFocus={handleFocus}
 				onBlur={onBlur}
