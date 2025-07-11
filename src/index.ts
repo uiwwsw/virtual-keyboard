@@ -1,2 +1,2 @@
 export * from "./components/Input";
-export * from "./hooks/useInputLogic";
+export * from "./components/Provider";

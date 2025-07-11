@@ -1,14 +1,14 @@
-import { Input } from "./components/Input";
-import { InputProvider } from "./components/Provider";
+import { VirtualInput } from "./components/Input";
+import { VirtualInputProvider } from "./components/Provider";
 
 function App() {
 	return (
 		<>
-			<InputProvider>
-				<Input initialValue="가나달" />
-				<Input initialValue="가나달" />
-				<Input initialValue="가나달" />
-			</InputProvider>
+			<VirtualInputProvider>
+				<VirtualInput initialValue="가나달" />
+				<VirtualInput initialValue="가나달" />
+				<VirtualInput initialValue="가나달" />
+			</VirtualInputProvider>
 			<div>dwadawd</div>
 			<input type="text" />
 		</>

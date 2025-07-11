@@ -1,58 +1,58 @@
-// components/InputProvider.tsx
+// components/VirtualInputProvider.tsx
 import {
-  useState,
-  type ReactNode,
-  useRef, // Import useRef
+	useState,
+	type ReactNode,
+	useRef, // Import useRef
 } from "react";
-import { Keyboard, type KeyboardName } from "./Keyboard";
+import { VirtualKeypad, type VirtualKeypadName } from "./Keypad";
 import { useStorage } from "../hooks/useStorage";
-import { InputContext } from "./Context";
-import type { InputHandle } from "./Input";
+import { VirtualInputContext } from "./Context";
+import type { VirtualInputHandle } from "./Input";
 
-export function InputProvider({
-  children,
-  defaultHangulMode = true,
-  defaultLayout = "QWERTYKO",
+export function VirtualInputProvider({
+	children,
+	defaultHangulMode = true,
+	defaultLayout = "QWERTYKO",
 }: {
-  children: ReactNode;
-  defaultHangulMode?: boolean;
-  defaultLayout?: KeyboardName;
+	children: ReactNode;
+	defaultHangulMode?: boolean;
+	defaultLayout?: VirtualKeypadName;
 }) {
-  const inputRef = useRef<InputHandle>(null);
-  const sti = useRef(setTimeout(() => null, 0));
-  const [focusId, setFocusId] = useState<string | undefined>();
+	const inputRef = useRef<VirtualInputHandle>(null);
+	const sti = useRef(setTimeout(() => null, 0));
+	const [focusId, setFocusId] = useState<string | undefined>();
 
-  const [hangulMode, setHangulMode] = useStorage(
-    "virtual-keyboard-hangul-mode",
-    defaultHangulMode
-  );
+	const [hangulMode, setHangulMode] = useStorage(
+		"virtual-keyboard-hangul-mode",
+		defaultHangulMode,
+	);
 
-  const onFocus = (id: string) => {
-    clearTimeout(sti.current);
-    setFocusId(id);
-  };
-  const onBlur = () => {
-    sti.current = setTimeout(() => {
-      setFocusId(undefined);
-      isCompositionRef.current = false;
-    }, 0);
-  };
+	const onFocus = (id: string) => {
+		clearTimeout(sti.current);
+		setFocusId(id);
+	};
+	const onBlur = () => {
+		sti.current = setTimeout(() => {
+			setFocusId(undefined);
+			isCompositionRef.current = false;
+		}, 0);
+	};
 
-  const isCompositionRef = useRef(false);
-  return (
-    <InputContext.Provider
-      value={{
-        inputRef,
-        isCompositionRef,
-        onFocus,
-        onBlur,
-        focusId,
-        setHangulMode,
-        hangulMode,
-      }}
-    >
-      {children}
-      <Keyboard defaultLayout={defaultLayout} />
-    </InputContext.Provider>
-  );
+	const isCompositionRef = useRef(false);
+	return (
+		<VirtualInputContext.Provider
+			value={{
+				inputRef,
+				isCompositionRef,
+				onFocus,
+				onBlur,
+				focusId,
+				setHangulMode,
+				hangulMode,
+			}}
+		>
+			{children}
+			<VirtualKeypad defaultLayout={defaultLayout} />
+		</VirtualInputContext.Provider>
+	);
 }
