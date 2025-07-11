@@ -2,14 +2,27 @@
 import { isMobileAgent } from "../utils/isMobileAgent";
 import qwerty from "../assets/qwerty.json";
 import { useInputContext } from "./Context";
+import { useCallback } from "react";
 
 export function Keyboard() {
-  const { focusId, onBlur, onFocus } = useInputContext();
+  const { focusId, onBlur, onFocus, inputRef } = useInputContext();
 
+  const handleFocus = useCallback(() => {
+    onFocus(focusId!);
+  }, [onFocus, focusId]);
+  const insertCharacter = useCallback(
+    (value: string) => {
+      const event = new KeyboardEvent("keydown", {
+        key: value,
+        code: `Key${value.toUpperCase()}`,
+        bubbles: true,
+        cancelable: true,
+      });
+      inputRef.current?.handleKeyDown(event);
+    },
+    [inputRef]
+  );
   if (!focusId || !isMobileAgent()) return null;
-  const handleFocus = () => {
-    onFocus(focusId);
-  };
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: <explanation>
     <div

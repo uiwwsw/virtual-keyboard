@@ -7,6 +7,7 @@ import {
 import { Keyboard } from "./Keyboard";
 import { useStorage } from "../hooks/useStorage";
 import { InputContext } from "./Context";
+import type { InputHandle } from "./Input";
 
 export function InputProvider({
   children,
@@ -15,6 +16,7 @@ export function InputProvider({
   children: ReactNode;
   defaultHangulMode?: boolean;
 }) {
+  const inputRef = useRef<InputHandle>(null);
   const sti = useRef(setTimeout(() => null, 0));
   const [focusId, setFocusId] = useState<string | undefined>();
 
@@ -37,6 +39,7 @@ export function InputProvider({
   return (
     <InputContext.Provider
       value={{
+        inputRef,
         isCompositionRef,
         onFocus,
         onBlur,
@@ -45,10 +48,8 @@ export function InputProvider({
         hangulMode,
       }}
     >
-      <>
-        {children}
-        <Keyboard />
-      </>
+      {children}
+      <Keyboard />
     </InputContext.Provider>
   );
 }

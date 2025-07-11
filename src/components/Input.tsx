@@ -5,17 +5,20 @@ import {
   useMemo,
   useCallback,
   useId,
+  useImperativeHandle,
 } from "react";
 import { assemble, convertQwertyToHangul } from "es-hangul";
 import { isHangul } from "../utils/isHangul";
 import { ShadowWrapper } from "./ShadowWrapper";
 import { BlinkingCaret } from "./BlinkingCaret";
 import { useInputContext } from "./Context";
+export interface InputHandle {
+  handleKeyDown: (e: KeyboardEvent | React.KeyboardEvent) => void;
+}
 
 export interface InputProps {
   initialValue?: string;
 }
-
 export function Input({ initialValue = "" }: InputProps) {
   const id = useId();
   const [letters, setLetters] = useState<string[]>(() =>
@@ -36,6 +39,7 @@ export function Input({ initialValue = "" }: InputProps) {
     hangulMode,
     setHangulMode,
     isCompositionRef,
+    inputRef,
   } = useInputContext();
   const isFocused = focusId === id;
   const selectionStart = selection.start;
@@ -72,14 +76,6 @@ export function Input({ initialValue = "" }: InputProps) {
     selectionEnd,
     clearSelection,
   ]);
-
-  const handleFocus = useCallback(() => {
-    onFocus(id);
-  }, [onFocus, id]);
-
-  const handleBlur = useCallback(() => {
-    onBlur();
-  }, [onBlur]);
 
   const handlePaste = useCallback(
     (e: ClipboardEvent<HTMLDivElement>) => {
@@ -266,7 +262,13 @@ export function Input({ initialValue = "" }: InputProps) {
       isCompositionRef,
     ]
   );
+  const handleFocus = useCallback(() => {
+    onFocus(id);
+  }, [onFocus, id]);
 
+  const handleBlur = useCallback(() => {
+    onBlur();
+  }, [onBlur]);
   const handleClickWrap = useCallback(() => {
     clearSelection();
     setCaretIndex(letters.length);
@@ -294,6 +296,10 @@ export function Input({ initialValue = "" }: InputProps) {
     e.stopPropagation();
     handleClickLetter(Number(e.currentTarget.dataset.value));
   };
+  // 이 부분이 핵심!
+  useImperativeHandle(inputRef, () => ({
+    handleKeyDown,
+  }));
 
   return (
     <ShadowWrapper

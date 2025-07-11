@@ -5,7 +5,9 @@ import {
   type RefObject,
   useContext,
 } from "react";
+import type { InputHandle } from "./Input";
 interface InputContextValue {
+  inputRef: RefObject<InputHandle | null>;
   isCompositionRef: RefObject<boolean>;
   onFocus: (id: string) => void;
   onBlur: () => void;
