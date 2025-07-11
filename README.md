@@ -73,6 +73,7 @@ npm install @uiwwsw/virtual-keyboard
 > `virtual-keyboard`은 단순한 인풋이 아닙니다.
 >
 > 🧩 **완전 제어 가능한 한글 입력기 + 키보드 시스템**입니다.
+
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=uiwwsw/virtual-keyboard&type=Date)](https://www.star-history.com/#uiwwsw/virtual-keyboard&Date)
