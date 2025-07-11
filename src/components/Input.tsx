@@ -5,13 +5,12 @@ import {
   type ClipboardEvent,
   useMemo,
   useCallback,
-  useEffect,
 } from "react";
 import { assemble, convertQwertyToHangul } from "es-hangul";
-// import { useStorage } from "../hooks/useStorage";
 import { isHangul } from "../utils/isHangul";
 import { ShadowWrapper } from "./ShadowWrapper";
 import { BlinkingCaret } from "./BlinkingCaret";
+import { useInputContext } from "./Context";
 
 export interface InputProps {
   initialValue?: string;
@@ -30,6 +29,14 @@ export function Input({ initialValue = "" }: InputProps) {
     end: number | null;
   }>({ start: null, end: null });
 
+  const {
+    isFocused,
+    setIsFocused,
+    hangulMode,
+    setHangulMode,
+    isCompositionRef,
+  } = useInputContext();
+
   const selectionStart = selection.start;
   const selectionEnd = selection.end;
 
@@ -46,7 +53,7 @@ export function Input({ initialValue = "" }: InputProps) {
   }, []);
 
   const deleteSelectedText = useCallback(() => {
-    if (!hasSelection || !selectionStart || !selectionEnd)
+    if (!hasSelection || selectionStart === null || selectionEnd === null)
       return { newLetters: [...letters], finalCaretIndex: caretIndex };
 
     const [start, end] = [selectionStart, selectionEnd].sort((a, b) => a - b);
@@ -68,13 +75,14 @@ export function Input({ initialValue = "" }: InputProps) {
   const handleFocus = useCallback(() => {
     clearTimeout(sti.current);
     setIsFocused(true);
-  }, []);
+  }, [setIsFocused]);
+
   const handleBlur = useCallback(() => {
     sti.current = setTimeout(() => {
       setIsFocused(false);
       isCompositionRef.current = false;
     }, 0);
-  }, []);
+  }, [setIsFocused, isCompositionRef]);
 
   const handlePaste = useCallback(
     (e: ClipboardEvent<HTMLDivElement>) => {
@@ -123,7 +131,7 @@ export function Input({ initialValue = "" }: InputProps) {
       }
 
       if ((e.ctrlKey || e.metaKey) && e.key === "c") {
-        if (hasSelection && selectionStart && selectionEnd) {
+        if (hasSelection && selectionStart !== null && selectionEnd !== null) {
           e.preventDefault();
           const [start, end] = [selectionStart, selectionEnd].sort(
             (a, b) => a - b
@@ -258,20 +266,8 @@ export function Input({ initialValue = "" }: InputProps) {
       deleteSelectedText,
       hangulMode,
       setHangulMode,
+      isCompositionRef,
     ]
-  );
-
-  const insertCharacter = useCallback(
-    (value: string) => {
-      const event = new KeyboardEvent("keydown", {
-        key: value,
-        code: `Key${value.toUpperCase()}`,
-        bubbles: true,
-        cancelable: true,
-      });
-      handleKeyDown(event);
-    },
-    [handleKeyDown]
   );
 
   const handleClickWrap = useCallback(() => {
@@ -296,37 +292,6 @@ export function Input({ initialValue = "" }: InputProps) {
     },
     [hasSelection, selectionStart, selectionEnd]
   );
-
-  const actions = useMemo(
-    () => ({
-      handleFocus,
-      handleBlur,
-      handleKeyDown,
-      handlePaste,
-      insertCharacter,
-      handleClickWrap,
-      handleClickLetter,
-    }),
-    [
-      handleFocus,
-      handleBlur,
-      handleKeyDown,
-      handlePaste,
-      insertCharacter,
-      handleClickWrap,
-      handleClickLetter,
-    ]
-  );
-
-  const { register, unregister } = useInputContext();
-
-  useEffect(() => {
-    if (isFocused) {
-      register(actions);
-    } else {
-      unregister();
-    }
-  }, [isFocused, actions, register, unregister]);
 
   const handleClickLetterEvent = (e: React.MouseEvent<HTMLSpanElement>) => {
     e.stopPropagation();
