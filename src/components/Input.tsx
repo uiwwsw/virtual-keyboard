@@ -1,10 +1,10 @@
 // components/Input.tsx
 import {
   useState,
-  useRef,
   type ClipboardEvent,
   useMemo,
   useCallback,
+  useId,
 } from "react";
 import { assemble, convertQwertyToHangul } from "es-hangul";
 import { isHangul } from "../utils/isHangul";
@@ -17,7 +17,7 @@ export interface InputProps {
 }
 
 export function Input({ initialValue = "" }: InputProps) {
-  const sti = useRef(setTimeout(() => null));
+  const id = useId();
   const [letters, setLetters] = useState<string[]>(() =>
     initialValue.split("")
   );
@@ -30,13 +30,14 @@ export function Input({ initialValue = "" }: InputProps) {
   }>({ start: null, end: null });
 
   const {
-    isFocused,
-    setIsFocused,
+    focusId,
+    onFocus,
+    onBlur,
     hangulMode,
     setHangulMode,
     isCompositionRef,
   } = useInputContext();
-
+  const isFocused = focusId === id;
   const selectionStart = selection.start;
   const selectionEnd = selection.end;
 
@@ -73,16 +74,12 @@ export function Input({ initialValue = "" }: InputProps) {
   ]);
 
   const handleFocus = useCallback(() => {
-    clearTimeout(sti.current);
-    setIsFocused(true);
-  }, [setIsFocused]);
+    onFocus(id);
+  }, [onFocus, id]);
 
   const handleBlur = useCallback(() => {
-    sti.current = setTimeout(() => {
-      setIsFocused(false);
-      isCompositionRef.current = false;
-    }, 0);
-  }, [setIsFocused, isCompositionRef]);
+    onBlur();
+  }, [onBlur]);
 
   const handlePaste = useCallback(
     (e: ClipboardEvent<HTMLDivElement>) => {

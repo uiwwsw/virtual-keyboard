@@ -4,17 +4,18 @@ import qwerty from "../assets/qwerty.json";
 import { useInputContext } from "./Context";
 
 export function Keyboard() {
-  const { isFocused, insertCharacter, handleFocus, handleBlur } =
-    useInputContext();
+  const { focusId, onBlur, onFocus } = useInputContext();
 
-  if (!isFocused || !isMobileAgent()) return null;
-
+  if (!focusId || !isMobileAgent()) return null;
+  const handleFocus = () => {
+    onFocus(focusId);
+  };
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: <explanation>
     <div
       data-virtual-keyboard="true"
       onFocus={handleFocus}
-      onBlur={handleBlur}
+      onBlur={onBlur}
       tabIndex={-1}
       style={{
         position: "fixed",

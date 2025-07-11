@@ -7,8 +7,9 @@ import {
 } from "react";
 interface InputContextValue {
   isCompositionRef: RefObject<boolean>;
-  setIsFocused: Dispatch<SetStateAction<boolean>>;
-  isFocused: boolean;
+  onFocus: (id: string) => void;
+  onBlur: () => void;
+  focusId: string | undefined;
   setHangulMode: Dispatch<SetStateAction<boolean>>;
   hangulMode: boolean;
 }
