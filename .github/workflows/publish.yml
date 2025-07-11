@@ -13,6 +13,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -20,10 +23,10 @@ jobs:
           registry-url: 'https://registry.npmjs.org/'
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Build (optional)
-        run: npm run build # 필요 없으면 제거
+        run: bun run build # 필요 없으면 제거
 
       - name: Publish to NPM
         run: npm publish
