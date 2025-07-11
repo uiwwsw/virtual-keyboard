@@ -60,27 +60,27 @@
   ],
   "QWERTYKO": [
     [
-      { "label": "ㅂ", "value": "q", "code": "KeyQ" },
-      { "label": "ㅈ", "value": "w", "code": "KeyW" },
-      { "label": "ㄷ", "value": "e", "code": "KeyE" },
-      { "label": "ㄱ", "value": "r", "code": "KeyR" },
-      { "label": "ㅅ", "value": "t", "code": "KeyT" },
-      { "label": "ㅛ", "value": "y", "code": "KeyY" },
-      { "label": "ㅕ", "value": "u", "code": "KeyU" },
-      { "label": "ㅑ", "value": "i", "code": "KeyI" },
-      { "label": "ㅐ", "value": "o", "code": "KeyO" },
-      { "label": "ㅔ", "value": "p", "code": "KeyP" }
+      { "label": "ㅂ", "value": "ㅂ", "code": "KeyQ" },
+      { "label": "ㅈ", "value": "ㅈ", "code": "KeyW" },
+      { "label": "ㄷ", "value": "ㄷ", "code": "KeyE" },
+      { "label": "ㄱ", "value": "ㄱ", "code": "KeyR" },
+      { "label": "ㅅ", "value": "ㅅ", "code": "KeyT" },
+      { "label": "ㅛ", "value": "ㅛ", "code": "KeyY" },
+      { "label": "ㅕ", "value": "ㅕ", "code": "KeyU" },
+      { "label": "ㅑ", "value": "ㅑ", "code": "KeyI" },
+      { "label": "ㅐ", "value": "ㅐ", "code": "KeyO" },
+      { "label": "ㅔ", "value": "ㅔ", "code": "KeyP" }
     ],
     [
-      { "label": "ㅁ", "value": "a", "code": "KeyA" },
-      { "label": "ㄴ", "value": "s", "code": "KeyS" },
-      { "label": "ㅇ", "value": "d", "code": "KeyD" },
-      { "label": "ㄹ", "value": "f", "code": "KeyF" },
-      { "label": "ㅎ", "value": "g", "code": "KeyG" },
-      { "label": "ㅗ", "value": "h", "code": "KeyH" },
-      { "label": "ㅓ", "value": "j", "code": "KeyJ" },
-      { "label": "ㅏ", "value": "k", "code": "KeyK" },
-      { "label": "ㅣ", "value": "l", "code": "KeyL" }
+      { "label": "ㅁ", "value": "ㅁ", "code": "KeyA" },
+      { "label": "ㄴ", "value": "ㄴ", "code": "KeyS" },
+      { "label": "ㅇ", "value": "ㅇ", "code": "KeyD" },
+      { "label": "ㄹ", "value": "ㄹ", "code": "KeyF" },
+      { "label": "ㅎ", "value": "ㅎ", "code": "KeyG" },
+      { "label": "ㅗ", "value": "ㅗ", "code": "KeyH" },
+      { "label": "ㅓ", "value": "ㅓ", "code": "KeyJ" },
+      { "label": "ㅏ", "value": "ㅏ", "code": "KeyK" },
+      { "label": "ㅣ", "value": "ㅣ", "code": "KeyL" }
     ],
     [
       {
@@ -88,13 +88,13 @@
         "value": "Shift",
         "code": "ShiftLeft"
       },
-      { "label": "ㅋ", "value": "z", "code": "KeyZ" },
-      { "label": "ㅌ", "value": "x", "code": "KeyX" },
-      { "label": "ㅊ", "value": "c", "code": "KeyC" },
-      { "label": "ㅍ", "value": "v", "code": "KeyV" },
-      { "label": "ㅠ", "value": "b", "code": "KeyB" },
-      { "label": "ㅜ", "value": "n", "code": "KeyN" },
-      { "label": "ㅡ", "value": "m", "code": "KeyM" },
+      { "label": "ㅋ", "value": "ㅋ", "code": "KeyZ" },
+      { "label": "ㅌ", "value": "ㅌ", "code": "KeyX" },
+      { "label": "ㅊ", "value": "ㅊ", "code": "KeyC" },
+      { "label": "ㅍ", "value": "ㅍ", "code": "KeyV" },
+      { "label": "ㅠ", "value": "ㅠ", "code": "KeyB" },
+      { "label": "ㅜ", "value": "ㅜ", "code": "KeyN" },
+      { "label": "ㅡ", "value": "ㅡ", "code": "KeyM" },
       {
         "label": "Backspace",
         "value": "Backspace",

@@ -38,7 +38,7 @@ export function VirtualInputProvider({
 		}, 0);
 	};
 
-	const isCompositionRef = useRef(false);
+	const isCompositionRef = useRef<boolean | undefined>(undefined);
 	return (
 		<VirtualInputContext.Provider
 			value={{

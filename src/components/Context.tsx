@@ -8,7 +8,7 @@ import {
 import type { VirtualInputHandle } from "./Input";
 interface VirtualInputContextValue {
 	inputRef: RefObject<VirtualInputHandle | null>;
-	isCompositionRef: RefObject<boolean>;
+	isCompositionRef: RefObject<boolean | undefined>;
 	onFocus: (id: string) => void;
 	onBlur: () => void;
 	focusId: string | undefined;
