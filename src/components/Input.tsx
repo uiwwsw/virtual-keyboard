@@ -1,36 +1,317 @@
 // components/Input.tsx
-import { useEffect } from "react";
-import { useInputLogic, type UseInputLogicProps } from "../hooks/useInputLogic";
-import { useInputContext } from "./Provider";
+import {
+  useState,
+  type ClipboardEvent,
+  useMemo,
+  useCallback,
+  useId,
+  useImperativeHandle,
+} from "react";
+import { assemble, convertQwertyToHangul } from "es-hangul";
+import { isHangul } from "../utils/isHangul";
 import { ShadowWrapper } from "./ShadowWrapper";
 import { BlinkingCaret } from "./BlinkingCaret";
-
-export interface InputProps extends UseInputLogicProps {
-	// children?: string; // initialValue로 대체
+import { useInputContext } from "./Context";
+export interface InputHandle {
+  handleKeyDown: (e: KeyboardEvent | React.KeyboardEvent) => void;
 }
 
+export interface InputProps {
+  initialValue?: string;
+}
 export function Input({ initialValue = "" }: InputProps) {
-	const { letters, caretIndex, isFocused, isSelected, hasSelection, actions } =
-		useInputLogic({ initialValue });
-	const { register, unregister } = useInputContext();
+  const id = useId();
+  const [letters, setLetters] = useState<string[]>(() =>
+    initialValue.split("")
+  );
+  const [caretIndex, setCaretIndex] = useState<number>(
+    () => initialValue.length
+  );
+  const [selection, setSelection] = useState<{
+    start: number | null;
+    end: number | null;
+  }>({ start: null, end: null });
 
-	useEffect(() => {
-		if (isFocused) {
-			register(actions);
-		} else {
-			unregister();
-		}
-	}, [isFocused, actions, register, unregister]);
+  const {
+    focusId,
+    onFocus,
+    onBlur,
+    hangulMode,
+    setHangulMode,
+    isCompositionRef,
+    inputRef,
+  } = useInputContext();
+  const isFocused = focusId === id;
+  const selectionStart = selection.start;
+  const selectionEnd = selection.end;
 
-	const handleClickLetter = (e: React.MouseEvent<HTMLSpanElement>) => {
-		e.stopPropagation();
-		actions.handleClickLetter(Number(e.currentTarget.dataset.value));
-	};
+  const hasSelection = useMemo(
+    () =>
+      selectionStart !== null &&
+      selectionEnd !== null &&
+      selectionStart !== selectionEnd,
+    [selectionStart, selectionEnd]
+  );
 
-	return (
-		<ShadowWrapper
-			tagName={"virtual-keyboard" as "input"}
-			css={`
+  const clearSelection = useCallback(() => {
+    setSelection({ start: null, end: null });
+  }, []);
+
+  const deleteSelectedText = useCallback(() => {
+    if (!hasSelection || selectionStart === null || selectionEnd === null)
+      return { newLetters: [...letters], finalCaretIndex: caretIndex };
+
+    const [start, end] = [selectionStart, selectionEnd].sort((a, b) => a - b);
+    const newLetters = [...letters];
+    newLetters.splice(start, end - start);
+
+    clearSelection();
+    setCaretIndex(start);
+    return { newLetters, finalCaretIndex: start };
+  }, [
+    letters,
+    caretIndex,
+    hasSelection,
+    selectionStart,
+    selectionEnd,
+    clearSelection,
+  ]);
+
+  const handlePaste = useCallback(
+    (e: ClipboardEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      const pastedText = e.clipboardData.getData("text/plain");
+      if (!pastedText) return;
+
+      const { newLetters } = hasSelection
+        ? deleteSelectedText()
+        : { newLetters: [...letters] };
+      const pastedLetters = pastedText.split("");
+
+      const currentCaret = hasSelection
+        ? [selection.start, selection.end].sort(
+            (a, b) => (a ?? 0) - (b ?? 0)
+          )[0]
+        : caretIndex;
+
+      newLetters.splice(currentCaret ?? 0, 0, ...pastedLetters);
+      setLetters(newLetters);
+      setCaretIndex((currentCaret ?? 0) + pastedLetters.length);
+      clearSelection();
+    },
+    [
+      letters,
+      caretIndex,
+      hasSelection,
+      selection.start,
+      selection.end,
+      clearSelection,
+      deleteSelectedText,
+    ]
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent | KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+        e.preventDefault();
+        setSelection({ start: 0, end: letters.length });
+        return;
+      }
+      if (e.key === "HangulMode") {
+        setHangulMode(!hangulMode);
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === "c") {
+        if (hasSelection && selectionStart !== null && selectionEnd !== null) {
+          e.preventDefault();
+          const [start, end] = [selectionStart, selectionEnd].sort(
+            (a, b) => a - b
+          );
+          const textToCopy = letters.slice(start, end).join("");
+          navigator.clipboard.writeText(textToCopy).catch((err) => {
+            console.error("Failed to copy text: ", err);
+          });
+        }
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && (e.key === "c" || e.key === "v")) return;
+
+      switch (e.key) {
+        case "Backspace": {
+          isCompositionRef.current = false;
+          if (hasSelection) {
+            const { newLetters, finalCaretIndex } = deleteSelectedText();
+            setLetters(newLetters);
+            setCaretIndex(finalCaretIndex);
+          } else if (caretIndex > 0) {
+            const newLetters = [...letters];
+            newLetters.splice(caretIndex - 1, 1);
+            setLetters(newLetters);
+            setCaretIndex((i) => i - 1);
+          }
+          break;
+        }
+        case "Delete": {
+          isCompositionRef.current = false;
+          if (hasSelection) {
+            const { newLetters, finalCaretIndex } = deleteSelectedText();
+            setLetters(newLetters);
+            setCaretIndex(finalCaretIndex);
+          } else if (caretIndex < letters.length) {
+            const newLetters = [...letters];
+            newLetters.splice(caretIndex, 1);
+            setLetters(newLetters);
+          }
+          break;
+        }
+        case "ArrowLeft": {
+          isCompositionRef.current = false;
+          const newCaretIndex = Math.max(0, caretIndex - 1);
+          if (e.shiftKey) {
+            setSelection((prev) => ({
+              start: prev.start ?? caretIndex,
+              end: newCaretIndex,
+            }));
+          } else {
+            clearSelection();
+          }
+          setCaretIndex(newCaretIndex);
+          break;
+        }
+        case "ArrowRight": {
+          isCompositionRef.current = false;
+          const newCaretIndex = Math.min(letters.length, caretIndex + 1);
+          if (e.shiftKey) {
+            setSelection((prev) => ({
+              start: prev.start ?? caretIndex,
+              end: newCaretIndex,
+            }));
+          } else {
+            clearSelection();
+          }
+          setCaretIndex(newCaretIndex);
+          break;
+        }
+        case "Unidentified":
+        case "Shift":
+        case "Control":
+        case "Alt":
+        case "Meta":
+        case "CapsLock":
+        case "Enter":
+        case "Tab":
+        case "ArrowUp":
+        case "ArrowDown":
+          e.stopPropagation();
+          break;
+        case "End": {
+          const newCaretIndex = letters.length;
+          if (e.shiftKey) {
+            setSelection((prev) => ({
+              ...prev,
+              end: newCaretIndex,
+            }));
+          }
+          setCaretIndex(newCaretIndex);
+          break;
+        }
+
+        default: {
+          const { newLetters, finalCaretIndex } = hasSelection
+            ? deleteSelectedText()
+            : { newLetters: [...letters], finalCaretIndex: caretIndex };
+          let charToInsert = e.key;
+          let isComposing = false;
+
+          const prevChar = newLetters[finalCaretIndex - 1];
+
+          if (hangulMode) {
+            charToInsert = convertQwertyToHangul(e.key);
+            isComposing = true;
+          } else if (isHangul(e.key)) {
+            isComposing = true;
+          }
+          if (isComposing && isHangul(prevChar) && isCompositionRef.current) {
+            const combined = assemble([prevChar, charToInsert]).split("");
+            newLetters.splice(finalCaretIndex - 1, 1, ...combined);
+            setLetters(newLetters);
+            setCaretIndex(finalCaretIndex - 1 + combined.length);
+          } else {
+            newLetters.splice(finalCaretIndex, 0, charToInsert);
+            setLetters(newLetters);
+            setCaretIndex(finalCaretIndex + 1);
+          }
+          isCompositionRef.current = isComposing;
+          break;
+        }
+      }
+    },
+    [
+      letters,
+      caretIndex,
+      hasSelection,
+      selectionStart,
+      selectionEnd,
+      clearSelection,
+      deleteSelectedText,
+      hangulMode,
+      setHangulMode,
+      isCompositionRef,
+    ]
+  );
+  const handleFocus = useCallback(() => {
+    onFocus(id);
+  }, [onFocus, id]);
+
+  const handleBlur = useCallback(() => {
+    onBlur();
+  }, [onBlur]);
+  const handleClickWrap = useCallback(() => {
+    clearSelection();
+    setCaretIndex(letters.length);
+  }, [clearSelection, letters.length]);
+
+  const handleClickLetter = useCallback(
+    (index: number) => {
+      clearSelection();
+      setCaretIndex(index);
+    },
+    [clearSelection]
+  );
+
+  const isSelected = useCallback(
+    (index: number) => {
+      if (!hasSelection || selectionStart === null || selectionEnd === null)
+        return false;
+      const [start, end] = [selectionStart, selectionEnd].sort((a, b) => a - b);
+      return index >= start && index < end;
+    },
+    [hasSelection, selectionStart, selectionEnd]
+  );
+
+  const handleClickLetterEvent = (e: React.MouseEvent<HTMLSpanElement>) => {
+    e.stopPropagation();
+    handleClickLetter(Number(e.currentTarget.dataset.value));
+  };
+  useImperativeHandle(
+    inputRef,
+    () => {
+      if (isFocused) {
+        return {
+          handleKeyDown,
+        };
+      }
+      return inputRef.current!;
+    },
+    [isFocused, handleKeyDown, inputRef]
+  );
+
+  return (
+    <ShadowWrapper
+      tagName={"virtual-input" as "input"}
+      css={`
         /* CSS 스타일은 여기에 그대로 유지 */
         .wrap {
           white-space: pre;
@@ -70,37 +351,37 @@ export function Input({ initialValue = "" }: InputProps) {
           animation: blink 1s step-start infinite;
         }
       `}
-		>
-			<div
-				className="wrap"
-				role="textbox"
-				tabIndex={0}
-				onFocus={actions.handleFocus}
-				onBlur={actions.handleBlur}
-				onKeyDown={actions.handleKeyDown}
-				onClick={actions.handleClickWrap}
-				onPaste={actions.handlePaste}
-			>
-				{letters.map((char, i) => (
-					<span key={`char-${char}-${i}`}>
-						{caretIndex === i && isFocused && !hasSelection && (
-							<BlinkingCaret />
-						)}
-						<span
-							role="button"
-							tabIndex={-1}
-							data-value={i}
-							onClick={handleClickLetter}
-							className={`letter ${isSelected(i) ? "selected" : ""}`}
-						>
-							{char}
-						</span>
-					</span>
-				))}
-				{caretIndex === letters.length && isFocused && !hasSelection && (
-					<BlinkingCaret />
-				)}
-			</div>
-		</ShadowWrapper>
-	);
+    >
+      <div
+        className="wrap"
+        role="textbox"
+        tabIndex={0}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        onClick={handleClickWrap}
+        onPaste={handlePaste}
+      >
+        {letters.map((char, i) => (
+          <span key={`char-${char}-${i}`}>
+            {caretIndex === i && isFocused && !hasSelection && (
+              <BlinkingCaret />
+            )}
+            <span
+              role="button"
+              tabIndex={-1}
+              data-value={i}
+              onClick={handleClickLetterEvent}
+              className={`letter ${isSelected(i) ? "selected" : ""}`}
+            >
+              {char}
+            </span>
+          </span>
+        ))}
+        {caretIndex === letters.length && isFocused && !hasSelection && (
+          <BlinkingCaret />
+        )}
+      </div>
+    </ShadowWrapper>
+  );
 }

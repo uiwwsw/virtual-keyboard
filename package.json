@@ -1,11 +1,23 @@
 {
-  "name": "virtual-hangul",
+  "name": "virtual-keyboard",
   "version": "0.0.3",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
-  "files": ["dist"],
-  "keywords": ["한글", "키보드", "가상", "input", "custom", "keyboard", "천자인", "폰번호 전용", "숫자 전용"],
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "한글",
+    "키보드",
+    "가상",
+    "input",
+    "custom",
+    "keyboard",
+    "천자인",
+    "폰번호 전용",
+    "숫자 전용"
+  ],
   "exports": {
     ".": {
       "import": "./dist/index.js"
