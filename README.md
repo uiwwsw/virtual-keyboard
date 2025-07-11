@@ -1,3 +1,6 @@
+[![Version](https://img.shields.io/badge/version-1.0.0–RC.1-orange)](https://github.com/uiwwsw/virtual-keyboard/releases)
+[![License](https://img.shields.io/github/license/starfederation/datastar)](https://github.com/uiwwsw/virtual-keyboard/blob/main/LICENSE)
+[![Stars](https://img.shields.io/github/stars/starfederation/datastar?style=flat)](https://github.com/uiwwsw/virtual-keyboard/stargazers)
 # virtual-keyboard
 
 [데모](https://composed-input-y46p.vercel.app/)
@@ -6,6 +9,14 @@
 > **Composition 오류 없는 입력 필드 + 가상 키보드**  
 > 커스텀 디자인된 키보드 제공
 > 키보드 충돌 없는 한글 UX를 웹에서 구현하세요.
+
+---
+
+## 설치
+
+```bash
+npm install @uiwwsw/virtual-keyboard
+```
 
 ---
 
@@ -62,3 +73,6 @@
 > `virtual-keyboard`은 단순한 인풋이 아닙니다.
 >
 > 🧩 **완전 제어 가능한 한글 입력기 + 키보드 시스템**입니다.
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=uiwwsw/virtual-keyboard&type=Date)](https://www.star-history.com/#uiwwsw/virtual-keyboard&Date)
