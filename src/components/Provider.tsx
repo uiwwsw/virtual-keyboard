@@ -6,8 +6,6 @@ import {
 	useCallback,
 } from "react";
 import { VirtualKeypad, type VirtualKeypadName } from "./Keypad";
-
-export type VirtualKeypadName = "newqwerty";
 import { useStorage } from "../hooks/useStorage";
 import { VirtualInputContext } from "./Context";
 import type { VirtualInputHandle } from "./Input";
@@ -15,7 +13,7 @@ import type { VirtualInputHandle } from "./Input";
 export function VirtualInputProvider({
 	children,
 	defaultHangulMode = true,
-	defaultLayout = "newqwerty",
+	defaultLayout = "QWERTY",
 }: {
 	children: ReactNode;
 	defaultHangulMode?: boolean;
@@ -24,7 +22,7 @@ export function VirtualInputProvider({
 	const inputRef = useRef<VirtualInputHandle>(null);
 	const sti = useRef(setTimeout(() => null, 0));
 	const [focusId, setFocusId] = useState<string | undefined>();
-	const shiftRef = useRef(false);
+	const [shift, setShift] = useState(false);
 	const [hangulMode, setHangulMode] = useStorage(
 		"virtual-keyboard-hangul-mode",
 		defaultHangulMode,
@@ -41,8 +39,12 @@ export function VirtualInputProvider({
 		}, 0);
 	};
 	const toggleShift = useCallback(() => {
-		shiftRef.current = !shiftRef.current;
+		setShift((prev) => !prev);
 	}, []);
+
+	const toggleKorean = useCallback(() => {
+		setHangulMode((prev) => !prev);
+	}, [setHangulMode]);
 	const isCompositionRef = useRef<boolean | undefined>(undefined);
 	return (
 		<VirtualInputContext.Provider
@@ -54,8 +56,9 @@ export function VirtualInputProvider({
 				focusId,
 				setHangulMode,
 				hangulMode,
-				shiftRef,
+				shift,
 				toggleShift,
+				toggleKorean,
 			}}
 		>
 			{children}

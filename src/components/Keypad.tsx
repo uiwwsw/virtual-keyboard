@@ -5,9 +5,9 @@ import { useCallback, type MouseEvent } from "react";
 import LAYOUT from "../assets/layout.json";
 import { useStorage } from "../hooks/useStorage";
 import { ShadowWrapper } from "./ShadowWrapper";
+import { convertQwertyToHangul } from "es-hangul";
 
-export type VirtualKeypadName = "newqwerty";
-
+export type VirtualKeypadName = "QWERTY";
 export function VirtualKeypad({
 	defaultLayout,
 }: {
@@ -17,36 +17,70 @@ export function VirtualKeypad({
 		"virtual-keyboard-layout",
 		defaultLayout,
 	);
-	const { focusId, onBlur, onFocus, inputRef, shiftRef, toggleShift, hangulMode } = useVirtualInputContext();
+	const {
+		focusId,
+		onBlur,
+		onFocus,
+		inputRef,
+		shift,
+		hangulMode,
+		toggleShift,
+		toggleKorean,
+	} = useVirtualInputContext();
 
 	const handleFocus = useCallback(() => {
 		if (!focusId) return;
 		onFocus(focusId);
 	}, [onFocus, focusId]);
+	const getTransformedValue = useCallback(
+		(cell: { label?: string; value: string; type?: string }) => {
+			if (cell.type === "char") {
+				if (hangulMode) {
+					return convertQwertyToHangul(cell.value);
+				}
+				if (shift) {
+					return cell.value.toUpperCase();
+				}
+				return cell.value;
+			}
+
+			return cell.label ?? cell.value;
+		},
+		[hangulMode, shift],
+	);
+
 	const insertCharacter = useCallback(
 		(e: MouseEvent<HTMLButtonElement>) => {
 			const target = e.target;
 			if (!(target instanceof HTMLButtonElement)) return;
 
-			const cellValue = target.value;
-			const cellCode = target.dataset.code;
+			const { value, dataset } = target;
+			const type = dataset.type as "char" | "action";
 
-			if (cellValue === "Shift") {
-				toggleShift();
-				return;
+			if (type === "action") {
+				if (value === "Shift") {
+					toggleShift();
+					return;
+				}
+				if (value === "HangulMode") {
+					toggleKorean();
+					return;
+				}
 			}
 
 			const event = new KeyboardEvent("keydown", {
-				key: cellValue,
-				code: cellCode,
+				key: getTransformedValue({
+					value,
+					type,
+				}),
+				code: `Key${value.toUpperCase()}`,
 				bubbles: true,
 				cancelable: true,
-				shiftKey: shiftRef.current,
+				shiftKey: shift,
 			});
 			inputRef.current?.handleKeyDown(event);
-			const layoutAttr = target.dataset.layout;
-			if (layoutAttr) setLayout(layoutAttr as VirtualKeypadName);
-		}, [inputRef, setLayout, shiftRef, toggleShift],
+		},
+		[inputRef, shift, toggleShift, toggleKorean, getTransformedValue],
 	);
 	if (!focusId || !isMobileAgent()) return null;
 	return (
@@ -72,41 +106,18 @@ export function VirtualKeypad({
 							}}
 							key={i}
 						>
-							{row.map((cell, j) => {
-								let displayLabel = "";
-								let keyValue = "";
-								const isSpecialKey = cell.special !== undefined;
-
-								if (isSpecialKey) {
-									displayLabel = cell.special.label;
-									keyValue = cell.special.value;
-									if (cell.code === "HangulMode") {
-										displayLabel = hangulMode ? "ENG" : "한/영";
-									}
-									if (cell.code === "ShiftLeft") {
-										displayLabel = shiftRef.current ? "SHIFT" : "Shift";
-									}
-								} else if (hangulMode) {
-									displayLabel = shiftRef.current ? cell.ko.shifted.label : cell.ko.normal.label;
-									keyValue = shiftRef.current ? cell.ko.shifted.value : cell.ko.normal.value;
-								} else {
-									displayLabel = shiftRef.current ? cell.en.shifted.label : cell.en.normal.label;
-									keyValue = shiftRef.current ? cell.en.shifted.value : cell.en.normal.value;
-								}
-
-								return (
-									<button
-										type="button"
-										value={keyValue}
-										data-code={cell.code}
-										onClick={insertCharacter}
-										style={{ flex: 1 }}
-										key={`${i}-${j}`}
-									>
-										{displayLabel}
-									</button>
-								);
-							})}
+							{row.map((cell, j) => (
+								<button
+									type="button"
+									value={cell.value}
+									data-type={cell.type}
+									onClick={insertCharacter}
+									style={{ flex: 1 }}
+									key={`${i}-${j}`}
+								>
+									{getTransformedValue(cell)}
+								</button>
+							))}
 						</div>
 					))}
 			</div>
