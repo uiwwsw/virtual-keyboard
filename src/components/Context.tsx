@@ -14,6 +14,8 @@ interface VirtualInputContextValue {
 	focusId: string | undefined;
 	setHangulMode: Dispatch<SetStateAction<boolean>>;
 	hangulMode: boolean;
+	shiftRef: RefObject<boolean>;
+	toggleShift: () => void;
 }
 export const VirtualInputContext =
 	createContext<VirtualInputContextValue | null>(null);

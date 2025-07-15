@@ -3,6 +3,7 @@ import {
 	useState,
 	type ReactNode,
 	useRef, // Import useRef
+	useCallback,
 } from "react";
 import { VirtualKeypad, type VirtualKeypadName } from "./Keypad";
 import { useStorage } from "../hooks/useStorage";
@@ -21,7 +22,7 @@ export function VirtualInputProvider({
 	const inputRef = useRef<VirtualInputHandle>(null);
 	const sti = useRef(setTimeout(() => null, 0));
 	const [focusId, setFocusId] = useState<string | undefined>();
-
+	const shiftRef = useRef(false);
 	const [hangulMode, setHangulMode] = useStorage(
 		"virtual-keyboard-hangul-mode",
 		defaultHangulMode,
@@ -37,7 +38,9 @@ export function VirtualInputProvider({
 			isCompositionRef.current = false;
 		}, 0);
 	};
-
+	const toggleShift = useCallback(() => {
+		shiftRef.current = !shiftRef.current;
+	}, []);
 	const isCompositionRef = useRef<boolean | undefined>(undefined);
 	return (
 		<VirtualInputContext.Provider
@@ -49,6 +52,8 @@ export function VirtualInputProvider({
 				focusId,
 				setHangulMode,
 				hangulMode,
+				shiftRef,
+				toggleShift,
 			}}
 		>
 			{children}
