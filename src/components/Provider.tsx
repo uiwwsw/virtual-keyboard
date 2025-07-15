@@ -5,19 +5,19 @@ import {
 	useRef, // Import useRef
 	useCallback,
 } from "react";
-import { VirtualKeypad, type VirtualKeypadName } from "./Keypad";
+import { VirtualKeypad, type KeypadLayout } from "./Keypad";
 import { useStorage } from "../hooks/useStorage";
 import { VirtualInputContext } from "./Context";
 import type { VirtualInputHandle } from "./Input";
-
+import qwerty from "../assets/qwerty.json";
 export function VirtualInputProvider({
 	children,
+	layout = qwerty,
 	defaultHangulMode = true,
-	defaultLayout = "QWERTY",
 }: {
+	layout: KeypadLayout;
 	children: ReactNode;
 	defaultHangulMode?: boolean;
-	defaultLayout?: VirtualKeypadName;
 }) {
 	const inputRef = useRef<VirtualInputHandle>(null);
 	const sti = useRef(setTimeout(() => null, 0));
@@ -62,7 +62,7 @@ export function VirtualInputProvider({
 			}}
 		>
 			{children}
-			<VirtualKeypad defaultLayout={defaultLayout} />
+			<VirtualKeypad layout={layout} />
 		</VirtualInputContext.Provider>
 	);
 }

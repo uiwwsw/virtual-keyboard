@@ -1,22 +1,19 @@
 /** biome-ignore-all lint/a11y/useFocusableInteractive: <explanation> */
+/** biome-ignore-all assist/source/organizeImports: <explanation> */
+/** biome-ignore-all lint/suspicious/noArrayIndexKey: <explanation> */
+/** biome-ignore-all lint/a11y/noStaticElementInteractions: <explanation> */
 import { isMobileAgent } from "../utils/isMobileAgent";
 import { useVirtualInputContext } from "./Context";
 import { useCallback, type MouseEvent } from "react";
-import LAYOUT from "../assets/layout.json";
-import { useStorage } from "../hooks/useStorage";
 import { ShadowWrapper } from "./ShadowWrapper";
 import { convertQwertyToHangul } from "es-hangul";
-
-export type VirtualKeypadName = "QWERTY";
-export function VirtualKeypad({
-	defaultLayout,
-}: {
-	defaultLayout?: VirtualKeypadName;
-}) {
-	const [layout, setLayout] = useStorage(
-		"virtual-keyboard-layout",
-		defaultLayout,
-	);
+export type KeypadLayout = {
+	label: string;
+	value: string;
+	width?: number;
+	type?: string;
+}[][];
+export function VirtualKeypad({ layout }: { layout: KeypadLayout }) {
 	const {
 		focusId,
 		onBlur,
@@ -98,28 +95,27 @@ export function VirtualKeypad({
 					background: "gray",
 				}}
 			>
-				{layout &&
-					LAYOUT[layout]?.map((row, i) => (
-						<div
-							style={{
-								display: "flex",
-							}}
-							key={i}
-						>
-							{row.map((cell, j) => (
-								<button
-									type="button"
-									value={cell.value}
-									data-type={cell.type}
-									onClick={insertCharacter}
-									style={{ flex: 1 }}
-									key={`${i}-${j}`}
-								>
-									{getTransformedValue(cell)}
-								</button>
-							))}
-						</div>
-					))}
+				{layout?.map((row, i) => (
+					<div
+						style={{
+							display: "flex",
+						}}
+						key={i}
+					>
+						{row.map((cell, j) => (
+							<button
+								type="button"
+								value={cell.value}
+								data-type={cell.type}
+								onClick={insertCharacter}
+								style={{ flex: 1 }}
+								key={`${i}-${j}`}
+							>
+								{getTransformedValue(cell)}
+							</button>
+						))}
+					</div>
+				))}
 			</div>
 		</ShadowWrapper>
 	);
