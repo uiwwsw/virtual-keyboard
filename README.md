@@ -1,7 +1,10 @@
-[![Version](https://img.shields.io/badge/version-1.0.0–RC.1-orange)](https://github.com/uiwwsw/virtual-keyboard/releases)
-[![License](https://img.shields.io/github/license/starfederation/datastar)](https://github.com/uiwwsw/virtual-keyboard/blob/main/LICENSE)
-[![Stars](https://img.shields.io/github/stars/starfederation/datastar?style=flat)](https://github.com/uiwwsw/virtual-keyboard/stargazers)
+[![npm version](https://img.shields.io/npm/v/@uiwwsw/virtual-keyboard.svg)](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard)
+[![License](https://img.shields.io/github/license/uiwwsw/virtual-keyboard)](https://github.com/uiwwsw/virtual-keyboard/blob/main/LICENSE)
+[![Stars](https://img.shields.io/github/stars/uiwwsw/virtual-keyboard?style=flat)](https://github.com/uiwwsw/virtual-keyboard/stargazers)
+
 # virtual-keyboard
+![Virtual Keyboard Banner](https://raw.githubusercontent.com/uiwwsw/virtual-keyboard/main/docs/banner.png)
+
 
 [데모](https://composed-input-y46p.vercel.app/)
 
