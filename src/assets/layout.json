@@ -1,119 +1,161 @@
 {
-  "QWERTY": [
-    [
-      { "label": "Q", "value": "q", "code": "KeyQ" },
-      { "label": "W", "value": "w", "code": "KeyW" },
-      { "label": "E", "value": "e", "code": "KeyE" },
-      { "label": "R", "value": "r", "code": "KeyR" },
-      { "label": "T", "value": "t", "code": "KeyT" },
-      { "label": "Y", "value": "y", "code": "KeyY" },
-      { "label": "U", "value": "u", "code": "KeyU" },
-      { "label": "I", "value": "i", "code": "KeyI" },
-      { "label": "O", "value": "o", "code": "KeyO" },
-      { "label": "P", "value": "p", "code": "KeyP" }
-    ],
-    [
-      { "label": "A", "value": "a", "code": "KeyA" },
-      { "label": "S", "value": "s", "code": "KeyS" },
-      { "label": "D", "value": "d", "code": "KeyD" },
-      { "label": "F", "value": "f", "code": "KeyF" },
-      { "label": "G", "value": "g", "code": "KeyG" },
-      { "label": "H", "value": "h", "code": "KeyH" },
-      { "label": "J", "value": "j", "code": "KeyJ" },
-      { "label": "K", "value": "k", "code": "KeyK" },
-      { "label": "L", "value": "l", "code": "KeyL" }
-    ],
+  "newqwerty": [
     [
       {
-        "label": "Shift",
-        "value": "Shift",
-        "code": "ShiftLeft"
+        "code": "KeyQ",
+        "en": { "normal": { "label": "q", "value": "q" }, "shifted": { "label": "Q", "value": "Q" } },
+        "ko": { "normal": { "label": "ㅂ", "value": "ㅂ" }, "shifted": { "label": "ㅃ", "value": "ㅃ" } }
       },
-      { "label": "Z", "value": "z", "code": "KeyZ" },
-      { "label": "X", "value": "x", "code": "KeyX" },
-      { "label": "C", "value": "c", "code": "KeyC" },
-      { "label": "V", "value": "v", "code": "KeyV" },
-      { "label": "B", "value": "b", "code": "KeyB" },
-      { "label": "N", "value": "n", "code": "KeyN" },
-      { "label": "M", "value": "m", "code": "KeyM" },
       {
-        "label": "Backspace",
-        "value": "Backspace",
-        "code": "Backspace"
+        "code": "KeyW",
+        "en": { "normal": { "label": "w", "value": "w" }, "shifted": { "label": "W", "value": "W" } },
+        "ko": { "normal": { "label": "ㅈ", "value": "ㅈ" }, "shifted": { "label": "ㅉ", "value": "ㅉ" } }
+      },
+      {
+        "code": "KeyE",
+        "en": { "normal": { "label": "e", "value": "e" }, "shifted": { "label": "E", "value": "E" } },
+        "ko": { "normal": { "label": "ㄷ", "value": "ㄷ" }, "shifted": { "label": "ㄸ", "value": "ㄸ" } }
+      },
+      {
+        "code": "KeyR",
+        "en": { "normal": { "label": "r", "value": "r" }, "shifted": { "label": "R", "value": "R" } },
+        "ko": { "normal": { "label": "ㄱ", "value": "ㄱ" }, "shifted": { "label": "ㄲ", "value": "ㄲ" } }
+      },
+      {
+        "code": "KeyT",
+        "en": { "normal": { "label": "t", "value": "t" }, "shifted": { "label": "T", "value": "T" } } ,
+        "ko": { "normal": { "label": "ㅅ", "value": "ㅅ" }, "shifted": { "label": "ㅆ", "value": "ㅆ" } }
+      },
+      {
+        "code": "KeyY",
+        "en": { "normal": { "label": "y", "value": "y" }, "shifted": { "label": "Y", "value": "Y" } },
+        "ko": { "normal": { "label": "ㅛ", "value": "ㅛ" }, "shifted": { "label": "ㅛ", "value": "ㅛ" } }
+      },
+      {
+        "code": "KeyU",
+        "en": { "normal": { "label": "u", "value": "u" }, "shifted": { "label": "U", "value": "U" } },
+        "ko": { "normal": { "label": "ㅕ", "value": "ㅕ" }, "shifted": { "label": "ㅕ", "value": "ㅕ" } }
+      },
+      {
+        "code": "KeyI",
+        "en": { "normal": { "label": "i", "value": "i" }, "shifted": { "label": "I", "value": "I" } },
+        "ko": { "normal": { "label": "ㅑ", "value": "ㅑ" }, "shifted": { "label": "ㅑ", "value": "ㅑ" } }
+      },
+      {
+        "code": "KeyO",
+        "en": { "normal": { "label": "o", "value": "o" }, "shifted": { "label": "O", "value": "O" } },
+        "ko": { "normal": { "label": "ㅐ", "value": "ㅐ" }, "shifted": { "label": "ㅒ", "value": "ㅒ" } }
+      },
+      {
+        "code": "KeyP",
+        "en": { "normal": { "label": "p", "value": "p" }, "shifted": { "label": "P", "value": "P" } },
+        "ko": { "normal": { "label": "ㅔ", "value": "ㅔ" }, "shifted": { "label": "ㅖ", "value": "ㅖ" } }
       }
     ],
     [
       {
-        "label": "Space",
-        "value": " ",
+        "code": "KeyA",
+        "en": { "normal": { "label": "a", "value": "a" }, "shifted": { "label": "A", "value": "A" } },
+        "ko": { "normal": { "label": "ㅁ", "value": "ㅁ" }, "shifted": { "label": "ㅁ", "value": "ㅁ" } }
+      },
+      {
+        "code": "KeyS",
+        "en": { "normal": { "label": "s", "value": "s" }, "shifted": { "label": "S", "value": "S" } },
+        "ko": { "normal": { "label": "ㄴ", "value": "ㄴ" }, "shifted": { "label": "ㄴ", "value": "ㄴ" } }
+      },
+      {
+        "code": "KeyD",
+        "en": { "normal": { "label": "d", "value": "d" }, "shifted": { "label": "D", "value": "D" } },
+        "ko": { "normal": { "label": "ㅇ", "value": "ㅇ" }, "shifted": { "label": "ㅇ", "value": "ㅇ" } }
+      },
+      {
+        "code": "KeyF",
+        "en": { "normal": { "label": "f", "value": "f" }, "shifted": { "label": "F", "value": "F" } },
+        "ko": { "normal": { "label": "ㄹ", "value": "ㄹ" }, "shifted": { "label": "ㄹ", "value": "ㄹ" } }
+      },
+      {
+        "code": "KeyG",
+        "en": { "normal": { "label": "g", "value": "g" }, "shifted": { "label": "G", "value": "G" } },
+        "ko": { "normal": { "label": "ㅎ", "value": "ㅎ" }, "shifted": { "label": "ㅎ", "value": "ㅎ" } }
+      },
+      {
+        "code": "KeyH",
+        "en": { "normal": { "label": "h", "value": "h" }, "shifted": { "label": "H", "value": "H" } },
+        "ko": { "normal": { "label": "ㅗ", "value": "ㅗ" }, "shifted": { "label": "ㅗ", "value": "ㅗ" } }
+      },
+      {
+        "code": "KeyJ",
+        "en": { "normal": { "label": "j", "value": "j" }, "shifted": { "label": "J", "value": "J" } },
+        "ko": { "normal": { "label": "ㅓ", "value": "ㅓ" }, "shifted": { "label": "ㅓ", "value": "ㅓ" } }
+      },
+      {
+        "code": "KeyK",
+        "en": { "normal": { "label": "k", "value": "k" }, "shifted": { "label": "K", "value": "K" } },
+        "ko": { "normal": { "label": "ㅏ", "value": "ㅏ" }, "shifted": { "label": "ㅏ", "value": "ㅏ" } }
+      },
+      {
+        "code": "KeyL",
+        "en": { "normal": { "label": "l", "value": "l" }, "shifted": { "label": "L", "value": "L" } },
+        "ko": { "normal": { "label": "ㅣ", "value": "ㅣ" }, "shifted": { "label": "ㅣ", "value": "ㅣ" } }
+      }
+    ],
+    [
+      {
+        "code": "ShiftLeft",
+        "special": { "label": "Shift", "value": "Shift" }
+      },
+      {
+        "code": "KeyZ",
+        "en": { "normal": { "label": "z", "value": "z" }, "shifted": { "label": "Z", "value": "Z" } },
+        "ko": { "normal": { "label": "ㅋ", "value": "ㅋ" }, "shifted": { "label": "ㅋ", "value": "ㅋ" } }
+      },
+      {
+        "code": "KeyX",
+        "en": { "normal": { "label": "x", "value": "x" }, "shifted": { "label": "X", "value": "X" } },
+        "ko": { "normal": { "label": "ㅌ", "value": "ㅌ" }, "shifted": { "label": "ㅌ", "value": "ㅌ" } }
+      },
+      {
+        "code": "KeyC",
+        "en": { "normal": { "label": "c", "value": "c" }, "shifted": { "label": "C", "value": "C" } },
+        "ko": { "normal": { "label": "ㅊ", "value": "ㅊ" }, "shifted": { "label": "ㅊ", "value": "ㅊ" } }
+      },
+      {
+        "code": "KeyV",
+        "en": { "normal": { "label": "v", "value": "v" }, "shifted": { "label": "V", "value": "V" } },
+        "ko": { "normal": { "label": "ㅍ", "value": "ㅍ" }, "shifted": { "label": "ㅍ", "value": "ㅍ" } }
+      },
+      {
+        "code": "KeyB",
+        "en": { "normal": { "label": "b", "value": "b" }, "shifted": { "label": "B", "value": "B" } },
+        "ko": { "normal": { "label": "ㅠ", "value": "ㅠ" }, "shifted": { "label": "ㅠ", "value": "ㅠ" } }
+      },
+      {
+        "code": "KeyN",
+        "en": { "normal": { "label": "n", "value": "n" }, "shifted": { "label": "N", "value": "N" } },
+        "ko": { "normal": { "label": "ㅜ", "value": "ㅜ" }, "shifted": { "label": "ㅜ", "value": "ㅜ" } }
+      },
+      {
+        "code": "KeyM",
+        "en": { "normal": { "label": "m", "value": "m" }, "shifted": { "label": "M", "value": "M" } },
+        "ko": { "normal": { "label": "ㅡ", "value": "ㅡ" }, "shifted": { "label": "ㅡ", "value": "ㅡ" } }
+      },
+      {
+        "code": "Backspace",
+        "special": { "label": "Backspace", "value": "Backspace" }
+      }
+    ],
+    [
+      {
         "code": "Space",
-        "width": 5
+        "special": { "label": "Space", "value": " ", "width": 5 }
       },
-      { "label": "Enter", "value": "\n", "code": "Enter" },
       {
-        "label": "한글",
-        "value": "HangulMode",
+        "code": "Enter",
+        "special": { "label": "Enter", "value": "\n" }
+      },
+      {
         "code": "HangulMode",
-        "layout": "QWERTYKO"
-      }
-    ]
-  ],
-  "QWERTYKO": [
-    [
-      { "label": "ㅂ", "value": "ㅂ", "code": "KeyQ" },
-      { "label": "ㅈ", "value": "ㅈ", "code": "KeyW" },
-      { "label": "ㄷ", "value": "ㄷ", "code": "KeyE" },
-      { "label": "ㄱ", "value": "ㄱ", "code": "KeyR" },
-      { "label": "ㅅ", "value": "ㅅ", "code": "KeyT" },
-      { "label": "ㅛ", "value": "ㅛ", "code": "KeyY" },
-      { "label": "ㅕ", "value": "ㅕ", "code": "KeyU" },
-      { "label": "ㅑ", "value": "ㅑ", "code": "KeyI" },
-      { "label": "ㅐ", "value": "ㅐ", "code": "KeyO" },
-      { "label": "ㅔ", "value": "ㅔ", "code": "KeyP" }
-    ],
-    [
-      { "label": "ㅁ", "value": "ㅁ", "code": "KeyA" },
-      { "label": "ㄴ", "value": "ㄴ", "code": "KeyS" },
-      { "label": "ㅇ", "value": "ㅇ", "code": "KeyD" },
-      { "label": "ㄹ", "value": "ㄹ", "code": "KeyF" },
-      { "label": "ㅎ", "value": "ㅎ", "code": "KeyG" },
-      { "label": "ㅗ", "value": "ㅗ", "code": "KeyH" },
-      { "label": "ㅓ", "value": "ㅓ", "code": "KeyJ" },
-      { "label": "ㅏ", "value": "ㅏ", "code": "KeyK" },
-      { "label": "ㅣ", "value": "ㅣ", "code": "KeyL" }
-    ],
-    [
-      {
-        "label": "Shift",
-        "value": "Shift",
-        "code": "ShiftLeft"
-      },
-      { "label": "ㅋ", "value": "ㅋ", "code": "KeyZ" },
-      { "label": "ㅌ", "value": "ㅌ", "code": "KeyX" },
-      { "label": "ㅊ", "value": "ㅊ", "code": "KeyC" },
-      { "label": "ㅍ", "value": "ㅍ", "code": "KeyV" },
-      { "label": "ㅠ", "value": "ㅠ", "code": "KeyB" },
-      { "label": "ㅜ", "value": "ㅜ", "code": "KeyN" },
-      { "label": "ㅡ", "value": "ㅡ", "code": "KeyM" },
-      {
-        "label": "Backspace",
-        "value": "Backspace",
-        "code": "Backspace"
-      }
-    ],
-    [
-      {
-        "label": "Space",
-        "value": " ",
-        "code": "Space",
-        "width": 5
-      },
-      { "label": "Enter", "value": "\n", "code": "Enter" },
-      {
-        "label": "ENG",
-        "value": "HangulMode",
-        "code": "HangulMode",
-        "layout": "QWERTY"
+        "special": { "label": "한/영", "value": "HangulMode" }
       }
     ]
   ]

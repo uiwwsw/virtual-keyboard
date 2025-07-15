@@ -6,6 +6,8 @@ import {
 	useCallback,
 } from "react";
 import { VirtualKeypad, type VirtualKeypadName } from "./Keypad";
+
+export type VirtualKeypadName = "newqwerty";
 import { useStorage } from "../hooks/useStorage";
 import { VirtualInputContext } from "./Context";
 import type { VirtualInputHandle } from "./Input";
@@ -13,7 +15,7 @@ import type { VirtualInputHandle } from "./Input";
 export function VirtualInputProvider({
 	children,
 	defaultHangulMode = true,
-	defaultLayout = "QWERTYKO",
+	defaultLayout = "newqwerty",
 }: {
 	children: ReactNode;
 	defaultHangulMode?: boolean;
