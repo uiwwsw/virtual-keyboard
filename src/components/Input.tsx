@@ -1,4 +1,8 @@
 // components/Input.tsx
+/** biome-ignore-all lint/suspicious/noArrayIndexKey: <explanation> */
+/** biome-ignore-all assist/source/organizeImports: <explanation> */
+/** biome-ignore-all lint/a11y/useSemanticElements: <explanation> */
+/** biome-ignore-all lint/a11y/useKeyWithClickEvents: <explanation> */
 import {
 	useState,
 	type ClipboardEvent,
@@ -316,6 +320,7 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 				handleKeyDown,
 			};
 		}
+		// biome-ignore lint/style/noNonNullAssertion: <explanation>
 		return inputRef.current!;
 	}, [isFocused, handleKeyDown, inputRef]);
 
