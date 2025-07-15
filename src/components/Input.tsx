@@ -41,7 +41,7 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 		setHangulMode,
 		isCompositionRef,
 		inputRef,
-		shiftRef,
+		shift,
 	} = useVirtualInputContext();
 	const isFocused = focusId === id;
 	const selectionStart = selection.start;
@@ -236,7 +236,7 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 
 					let { text, composing } = result;
 
-					if (shiftRef.current && text.length === 1 && text.match(/[a-z]/i)) {
+					if (shift && text.length === 1 && text.match(/[a-z]/i)) {
 						text = text.toUpperCase();
 					}
 
@@ -273,6 +273,7 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 			hangulMode,
 			setHangulMode,
 			isCompositionRef,
+			shift,
 		],
 	);
 	const handleFocus = useCallback(() => {
