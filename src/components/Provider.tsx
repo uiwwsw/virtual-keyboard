@@ -15,7 +15,7 @@ export function VirtualInputProvider({
 	layout = qwerty,
 	defaultHangulMode = true,
 }: {
-	layout: KeypadLayout;
+	layout?: KeypadLayout;
 	children: ReactNode;
 	defaultHangulMode?: boolean;
 }) {
