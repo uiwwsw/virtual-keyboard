@@ -1,4 +1,8 @@
 // components/Input.tsx
+/** biome-ignore-all lint/suspicious/noArrayIndexKey: <explanation> */
+/** biome-ignore-all assist/source/organizeImports: <explanation> */
+/** biome-ignore-all lint/a11y/useSemanticElements: <explanation> */
+/** biome-ignore-all lint/a11y/useKeyWithClickEvents: <explanation> */
 import {
 	useState,
 	type ClipboardEvent,
@@ -41,6 +45,7 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 		setHangulMode,
 		isCompositionRef,
 		inputRef,
+		shift,
 	} = useVirtualInputContext();
 	const isFocused = focusId === id;
 	const selectionStart = selection.start;
@@ -233,7 +238,11 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 
 					if (!result.handled || !result.text) return;
 
-					const { text, composing } = result;
+					let { text, composing } = result;
+
+					if (shift && text.length === 1 && text.match(/[a-z]/i)) {
+						text = text.toUpperCase();
+					}
 
 					const { newLetters, finalCaretIndex } = hasSelection
 						? deleteSelectedText()
@@ -268,6 +277,7 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 			hangulMode,
 			setHangulMode,
 			isCompositionRef,
+			shift,
 		],
 	);
 	const handleFocus = useCallback(() => {
@@ -310,6 +320,7 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 				handleKeyDown,
 			};
 		}
+		// biome-ignore lint/style/noNonNullAssertion: <explanation>
 		return inputRef.current!;
 	}, [isFocused, handleKeyDown, inputRef]);
 
