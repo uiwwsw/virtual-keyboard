@@ -41,6 +41,7 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 		setHangulMode,
 		isCompositionRef,
 		inputRef,
+		shiftRef,
 	} = useVirtualInputContext();
 	const isFocused = focusId === id;
 	const selectionStart = selection.start;
@@ -233,7 +234,11 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 
 					if (!result.handled || !result.text) return;
 
-					const { text, composing } = result;
+					let { text, composing } = result;
+
+					if (shiftRef.current && text.length === 1 && text.match(/[a-z]/i)) {
+						text = text.toUpperCase();
+					}
 
 					const { newLetters, finalCaretIndex } = hasSelection
 						? deleteSelectedText()

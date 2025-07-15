@@ -16,7 +16,7 @@ export function VirtualKeypad({
 		"virtual-keyboard-layout",
 		defaultLayout,
 	);
-	const { focusId, onBlur, onFocus, inputRef } = useVirtualInputContext();
+	const { focusId, onBlur, onFocus, inputRef, shiftRef, toggleShift } = useVirtualInputContext();
 
 	const handleFocus = useCallback(() => {
 		if (!focusId) return;
@@ -28,17 +28,23 @@ export function VirtualKeypad({
 			if (!(target instanceof HTMLButtonElement)) return;
 
 			const value = target.value;
+
+			if (value === "Shift") {
+				toggleShift();
+				return;
+			}
+
 			const event = new KeyboardEvent("keydown", {
 				key: value,
 				code: `Key${value.toUpperCase()}`,
 				bubbles: true,
 				cancelable: true,
+				shiftKey: shiftRef.current,
 			});
 			inputRef.current?.handleKeyDown(event);
 			const layout = target.dataset.layout;
 			if (layout) setLayout(layout as VirtualKeypadName);
-		},
-		[inputRef, setLayout],
+		}, [inputRef, setLayout, shiftRef, toggleShift],
 	);
 	if (!focusId || !isMobileAgent()) return null;
 	return (
@@ -73,7 +79,15 @@ export function VirtualKeypad({
 									style={{ flex: 1 }}
 									key={`${i}-${j}`}
 								>
-									{cell.label}
+									{cell.label === "Shift" ? (
+										shiftRef.current ? (
+											"SHIFT"
+										) : (
+											"Shift"
+										)
+									) : (
+										cell.label
+									)}
 								</button>
 							))}
 						</div>
