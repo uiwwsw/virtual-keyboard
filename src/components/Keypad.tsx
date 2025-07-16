@@ -11,6 +11,7 @@ export type KeypadLayout = {
 	label: string;
 	value: string;
 	width?: number;
+	height?: number;
 	type?: string;
 }[][];
 export function VirtualKeypad({ layout }: { layout: KeypadLayout }) {
@@ -87,6 +88,8 @@ export function VirtualKeypad({ layout }: { layout: KeypadLayout }) {
 				onBlur={onBlur}
 				tabIndex={-1}
 				style={{
+					display: "flex",
+					flexDirection: "column",
 					position: "fixed",
 					left: 0,
 					right: 0,
@@ -99,6 +102,7 @@ export function VirtualKeypad({ layout }: { layout: KeypadLayout }) {
 					<div
 						style={{
 							display: "flex",
+							flex: 1,
 						}}
 						key={i}
 					>
