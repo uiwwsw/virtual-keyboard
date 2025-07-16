@@ -152,7 +152,6 @@ export function VirtualInput({
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent | KeyboardEvent) => {
-			console.log(e, "!!!");
 			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
 				e.preventDefault();
 				setSelection({ start: 0, end: letters.length });
