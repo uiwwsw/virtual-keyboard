@@ -105,16 +105,16 @@ export function VirtualKeypad({
           flex-direction: column;
           position: fixed;
           background-color: #f0f2f5;
-          padding: 8px;
+          padding: calc(8px / var(--scale-factor));
           box-sizing: border-box;
-          gap: 8px;
-          box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+          gap: calc(8px / var(--scale-factor));
+          box-shadow: 0 calc(-2px / var(--scale-factor)) calc(10px / var(--scale-factor)) rgba(0, 0, 0, 0.1);
           user-select: none;
         }
         .keypad-row {
           display: flex;
           flex: 1;
-          gap: 8px;
+          gap: calc(8px / var(--scale-factor));
         }
         .keypad-button {
           flex: 1;
@@ -122,19 +122,19 @@ export function VirtualKeypad({
           justify-content: center;
           align-items: center;
           background-color: #ffffff;
-          border: 1px solid #ccc;
-          border-radius: 8px;
-          font-size: 18px;
+          border: calc(1px / var(--scale-factor)) solid #ccc;
+          border-radius: calc(8px / var(--scale-factor));
+          font-size: calc(18px / var(--scale-factor));
           font-weight: 500;
           color: #333;
           cursor: pointer;
-          box-shadow: 0 2px 2px rgba(0, 0, 0, 0.05);
-          transition: all 0.1s ease-in-out;
+          box-shadow: 0 calc(2px / var(--scale-factor)) calc(2px / var(--scale-factor)) rgba(0, 0, 0, 0.05);
         }
         .keypad-button:active {
           background-color: #e0e0e0;
           transform: scale(0.98);
-          box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 calc(1px / var(--scale-factor)) calc(1px / var(--scale-factor)) rgba(0, 0, 0, 0.1);
+          transition: all 0.1s ease-in-out;
         }
         .keypad-button.action {
             background-color: #d1d5db;
@@ -152,8 +152,11 @@ export function VirtualKeypad({
 				style={{
 					left: viewport.offsetLeft,
 					width: viewport.width,
-					top: viewport.offsetTop + viewport.height - 200 / viewport.scale,
-					height: 200 / viewport.scale,
+					top: Math.round(
+						viewport.offsetTop + viewport.height - 200 / viewport.scale,
+					),
+					height: Math.round(200 / viewport.scale),
+					"--scale-factor": viewport.scale,
 				}}
 			>
 				{layout?.map((row, i) => (
@@ -164,7 +167,7 @@ export function VirtualKeypad({
 								value={cell.value}
 								data-type={cell.type}
 								onClick={insertCharacter}
-								className={`keypad-button ${cell.type === 'action' ? 'action' : ''}`}
+								className={`keypad-button ${cell.type === "action" ? "action" : ""}`}
 								key={`${i}-${j}`}
 							>
 								{getTransformedValue(cell)}

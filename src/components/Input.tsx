@@ -24,22 +24,16 @@ export interface VirtualInputHandle {
 	handleKeyDown: (e: KeyboardEvent | React.KeyboardEvent) => void;
 }
 
-export interface VirtualInputProps
-	extends Omit<
-		React.InputHTMLAttributes<HTMLInputElement>,
-		"value" | "onChange" | "onInput" | "defaultValue"
-	> {
+export interface VirtualInputProps {
 	value?: string;
 	defaultValue?: string;
 	onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
-	// onInput?: (event: React.FormEvent<HTMLInputElement>) => void;
 }
 
 export function VirtualInput({
 	value: controlledValue,
 	defaultValue,
 	onChange,
-	// onInput,
 	...props
 }: VirtualInputProps) {
 	const id = useId();
@@ -68,17 +62,11 @@ export function VirtualInput({
 				target: fakeInput,
 				currentTarget: fakeInput,
 			} as React.ChangeEvent<HTMLInputElement>;
-			// const inputEvent = { target: fakeInput, currentTarget: fakeInput } as unknown as React.FormEvent<HTMLInputElement>;
 
 			onChange?.(changeEvent);
-			// onInput?.(inputEvent);
 			setCaretIndex(newCaretIndex);
 		},
-		[
-			controlledValue,
-			onChange,
-			// onInput
-		],
+		[controlledValue, onChange],
 	);
 
 	useEffect(() => {
@@ -375,55 +363,20 @@ export function VirtualInput({
 	}, [isFocused, handleKeyDown, inputRef]);
 
 	return (
-		<ShadowWrapper
-			tagName={"virtual-input" as "input"}
-			css={`
-        /* CSS 스타일은 여기에 그대로 유지 */
-        .wrap {
-          white-space: pre;
-          position: relative;
-          cursor: text;
-          padding: 8px;
-          background-color: #f0f0f0;
-          border: 1px solid #ccc;
-          border-radius: 4px;
-        }
-        .wrap::after {
-          content: " ";
-        }
-        .wrap:focus {
-          outline: 2px solid #007bff;
-          border-color: #007bff;
-        }
-        .letter {
-          position: relative;
-          font-style: normal;
-          outline: none;
-        }
-        .letter.selected {
-          background-color: #b4d5fe;
-        }
-        @keyframes blink {
-          0%,
-          49% {
-            opacity: 1;
-          }
-          50%,
-          100% {
-            opacity: 0;
-          }
-        }
-        .blink {
-          animation: blink 1s step-start infinite;
-        }
-      `}
-		>
+		<ShadowWrapper tagName={"virtual-input" as "input"}>
 			<div
 				{...props}
 				ref={divRef}
 				className="wrap"
 				role="textbox"
 				tabIndex={0}
+				style={{
+					minHeight: "1.5em", // Standard input height
+					lineHeight: "1.5em", // Standard input line height
+					outline: "none", // Remove default outline
+					font: "inherit",
+					width: "100%",
+				}}
 				onFocus={handleFocus}
 				onBlur={handleBlur}
 				onKeyDown={handleKeyDown}
