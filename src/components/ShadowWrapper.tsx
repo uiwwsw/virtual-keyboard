@@ -23,7 +23,7 @@ export const ShadowWrapper = memo(
     // host div가 마운트되면 shadowRoot를 생성합니다. 이 작업은 한 번만 실행됩니다.
     useEffect(() => {
       if (host && !shadowRoot) {
-        const shadow = host.attachShadow({ mode: "open" });
+        const shadow = host.attachShadow({ mode: "closed" });
         setShadowRoot(shadow);
       }
     }, [host, shadowRoot]); // host가 설정될 때만 실행
