@@ -1,4 +1,5 @@
 // components/Input.tsx
+/** biome-ignore-all lint/a11y/useFocusableInteractive: <explanation> */
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: <explanation> */
 /** biome-ignore-all assist/source/organizeImports: <explanation> */
 /** biome-ignore-all lint/a11y/useSemanticElements: <explanation> */
@@ -151,6 +152,7 @@ export function VirtualInput({
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent | KeyboardEvent) => {
+			console.log(e, "!!!");
 			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
 				e.preventDefault();
 				setSelection({ start: 0, end: letters.length });
@@ -383,6 +385,19 @@ export function VirtualInput({
         .letter.selected {
           background-color: #b4d5fe;
         }
+		  @keyframes blink {
+          0%,
+          49% {
+            opacity: 1;
+          }
+          50%,
+          100% {
+            opacity: 0;
+          }
+        }
+        .blink {
+          animation: blink 1s step-start infinite;
+        }
 		`}
 		>
 			<div
@@ -411,7 +426,6 @@ export function VirtualInput({
 						)}
 						<span
 							role="button"
-							tabIndex={-1}
 							data-value={i}
 							onClick={handleClickLetterEvent}
 							className={`letter ${isSelected(i) ? "selected" : ""}`}
