@@ -5,7 +5,7 @@ function App() {
 	return (
 		<>
 			<VirtualInputProvider>
-				<VirtualInput initialValue="가나달" />
+				<VirtualInput defaultValue="가나달" />
 			</VirtualInputProvider>
 			<VirtualInputProvider
 				layout={[
@@ -31,7 +31,7 @@ function App() {
 					],
 				]}
 			>
-				<VirtualInput initialValue="가나달" />
+				<VirtualInput defaultValue="가나달" />
 			</VirtualInputProvider>
 			<div>dwadawd</div>
 			<input type="text" />
