@@ -31,8 +31,8 @@ export const useVisualViewport = () => {
 			window.visualViewport.addEventListener("resize", handleResize);
 			window.visualViewport.addEventListener("scroll", handleResize);
 			return () => {
-				window.visualViewport.removeEventListener("resize", handleResize);
-				window.visualViewport.removeEventListener("scroll", handleResize);
+				window.visualViewport?.removeEventListener("resize", handleResize);
+				window.visualViewport?.removeEventListener("scroll", handleResize);
 			};
 		}
 

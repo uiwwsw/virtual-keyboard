@@ -7,6 +7,13 @@ import { useVirtualInputContext } from "./Context";
 import { useCallback, type MouseEvent } from "react";
 import { ShadowWrapper } from "./ShadowWrapper";
 import { convertQwertyToHangul } from "es-hangul";
+
+declare module 'react' {
+  interface CSSProperties {
+    [key: `--${string}`]: string | number;
+  }
+}
+
 export type KeypadLayout = {
 	label: string;
 	value: string;
