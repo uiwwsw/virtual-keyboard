@@ -23,7 +23,7 @@
 		{ "label": "l", "value": "l", "type": "char" }
 	],
 	[
-		{ "label": "shift", "value": "Shift", "type": "action" },
+		{ "label": "⇧", "value": "Shift", "type": "action" },
 		{ "label": "z", "value": "z", "type": "char" },
 		{ "label": "x", "value": "x", "type": "char" },
 		{ "label": "c", "value": "c", "type": "char" },
@@ -31,11 +31,11 @@
 		{ "label": "b", "value": "b", "type": "char" },
 		{ "label": "n", "value": "n", "type": "char" },
 		{ "label": "m", "value": "m", "type": "char" },
-		{ "label": "backspace", "value": "Backspace", "type": "action" }
+		{ "label": "⌫", "value": "Backspace", "type": "action" }
 	],
 	[
-		{ "label": "space", "value": " ", "width": 5, "type": "char" },
-		{ "label": "enter", "value": "\n", "type": "action" },
-		{ "label": "한글", "value": "HangulMode", "type": "action" }
+		{ "label": "␣", "value": " ", "width": 5, "type": "action" },
+		{ "label": "⏎", "value": "\n", "type": "action" },
+		{ "label": "🌐", "value": "HangulMode", "type": "action" }
 	]
 ]

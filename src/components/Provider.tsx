@@ -2,8 +2,9 @@
 import {
 	useState,
 	type ReactNode,
-	useRef, // Import useRef
+	useRef,
 	useCallback,
+	useEffect,
 } from "react";
 import { VirtualKeypad, type KeypadLayout } from "./Keypad";
 import { useStorage } from "../hooks/useStorage";
@@ -29,6 +30,17 @@ export function VirtualInputProvider({
 		defaultHangulMode,
 	);
 	const viewport = useVisualViewport();
+
+	useEffect(() => {
+		if (focusId) {
+			document.body.style.paddingBottom = `${Math.round(200 / viewport.scale)}px`;
+		} else {
+			document.body.style.paddingBottom = '0px';
+		}
+		return () => {
+			document.body.style.paddingBottom = '0px';
+		};
+	}, [focusId, viewport.scale]);
 
 	const onFocus = (id: string) => {
 		clearTimeout(sti.current);
