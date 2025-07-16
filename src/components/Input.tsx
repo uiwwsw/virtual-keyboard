@@ -363,7 +363,28 @@ export function VirtualInput({
 	}, [isFocused, handleKeyDown, inputRef]);
 
 	return (
-		<ShadowWrapper tagName={"virtual-input" as "input"}>
+		<ShadowWrapper
+			tagName={"virtual-input" as "input"}
+			css={`
+		.wrap {
+          white-space: pre;
+          position: relative;
+          cursor: text;
+          border-radius: 4px;
+		  user-select: none;
+        }
+        .wrap::after {
+          content: " ";
+        }
+        .letter {
+          position: relative;
+          outline: none;
+        }
+        .letter.selected {
+          background-color: #b4d5fe;
+        }
+		`}
+		>
 			<div
 				{...props}
 				ref={divRef}
