@@ -110,6 +110,7 @@ export function VirtualKeypad({
           gap: calc(8px / var(--scale-factor));
           box-shadow: 0 calc(-2px / var(--scale-factor)) calc(10px / var(--scale-factor)) rgba(0, 0, 0, 0.1);
           user-select: none;
+          touch-action: manipulation;
         }
         .keypad-row {
           display: flex;
