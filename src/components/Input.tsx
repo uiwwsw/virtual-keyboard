@@ -10,6 +10,8 @@ import {
 	useCallback,
 	useId,
 	useImperativeHandle,
+	useEffect,
+	useRef,
 } from "react";
 import { assemble } from "es-hangul";
 import { isHangul } from "../utils/isHangul";
@@ -17,25 +19,73 @@ import { ShadowWrapper } from "./ShadowWrapper";
 import { BlinkingCaret } from "./BlinkingCaret";
 import { useVirtualInputContext } from "./Context";
 import { parseKeyInput } from "../utils/parseKeyInput";
+
 export interface VirtualInputHandle {
 	handleKeyDown: (e: KeyboardEvent | React.KeyboardEvent) => void;
 }
 
-export interface VirtualInputProps {
-	initialValue?: string;
+export interface VirtualInputProps
+	extends Omit<
+		React.InputHTMLAttributes<HTMLInputElement>,
+		"value" | "onChange" | "onInput" | "defaultValue"
+	> {
+	value?: string;
+	defaultValue?: string;
+	onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+	// onInput?: (event: React.FormEvent<HTMLInputElement>) => void;
 }
-export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
+
+export function VirtualInput({
+	value: controlledValue,
+	defaultValue,
+	onChange,
+	// onInput,
+	...props
+}: VirtualInputProps) {
 	const id = useId();
-	const [letters, setLetters] = useState<string[]>(() =>
-		initialValue.split(""),
+	const [internalValue, setInternalValue] = useState(
+		controlledValue ?? defaultValue ?? "",
 	);
 	const [caretIndex, setCaretIndex] = useState<number>(
-		() => initialValue.length,
+		() => (controlledValue ?? defaultValue ?? "").length,
 	);
 	const [selection, setSelection] = useState<{
 		start: number | null;
 		end: number | null;
 	}>({ start: null, end: null });
+	const divRef = useRef<HTMLDivElement>(null);
+
+	const letters = useMemo(() => internalValue.split(""), [internalValue]);
+
+	const updateValue = useCallback(
+		(newValue: string, newCaretIndex: number) => {
+			if (controlledValue === undefined) {
+				setInternalValue(newValue);
+			}
+
+			const fakeInput = { value: newValue } as HTMLInputElement;
+			const changeEvent = {
+				target: fakeInput,
+				currentTarget: fakeInput,
+			} as React.ChangeEvent<HTMLInputElement>;
+			// const inputEvent = { target: fakeInput, currentTarget: fakeInput } as unknown as React.FormEvent<HTMLInputElement>;
+
+			onChange?.(changeEvent);
+			// onInput?.(inputEvent);
+			setCaretIndex(newCaretIndex);
+		},
+		[
+			controlledValue,
+			onChange,
+			// onInput
+		],
+	);
+
+	useEffect(() => {
+		if (controlledValue !== undefined && controlledValue !== internalValue) {
+			setInternalValue(controlledValue);
+		}
+	}, [controlledValue, internalValue]);
 
 	const {
 		focusId,
@@ -64,18 +114,17 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 	}, []);
 
 	const deleteSelectedText = useCallback(() => {
-		if (!hasSelection || selectionStart === null || selectionEnd === null)
-			return { newLetters: [...letters], finalCaretIndex: caretIndex };
+		if (!hasSelection || selectionStart === null || selectionEnd === null) {
+			return { newString: internalValue, finalCaretIndex: caretIndex };
+		}
 
 		const [start, end] = [selectionStart, selectionEnd].sort((a, b) => a - b);
-		const newLetters = [...letters];
-		newLetters.splice(start, end - start);
+		const newString = internalValue.slice(0, start) + internalValue.slice(end);
 
 		clearSelection();
-		setCaretIndex(start);
-		return { newLetters, finalCaretIndex: start };
+		return { newString, finalCaretIndex: start };
 	}, [
-		letters,
+		internalValue,
 		caretIndex,
 		hasSelection,
 		selectionStart,
@@ -89,30 +138,26 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 			const pastedText = e.clipboardData.getData("text/plain");
 			if (!pastedText) return;
 
-			const { newLetters } = hasSelection
+			const { newString, finalCaretIndex } = hasSelection
 				? deleteSelectedText()
-				: { newLetters: [...letters] };
-			const pastedLetters = pastedText.split("");
+				: { newString: internalValue, finalCaretIndex: caretIndex };
 
-			const currentCaret = hasSelection
-				? [selection.start, selection.end].sort(
-						(a, b) => (a ?? 0) - (b ?? 0),
-					)[0]
-				: caretIndex;
+			const finalString =
+				newString.slice(0, finalCaretIndex) +
+				pastedText +
+				newString.slice(finalCaretIndex);
+			const newCaretPosition = finalCaretIndex + pastedText.length;
 
-			newLetters.splice(currentCaret ?? 0, 0, ...pastedLetters);
-			setLetters(newLetters);
-			setCaretIndex((currentCaret ?? 0) + pastedLetters.length);
+			updateValue(finalString, newCaretPosition);
 			clearSelection();
 		},
 		[
-			letters,
+			internalValue,
 			caretIndex,
 			hasSelection,
-			selection.start,
-			selection.end,
 			clearSelection,
 			deleteSelectedText,
+			updateValue,
 		],
 	);
 
@@ -152,27 +197,26 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 				case "Backspace": {
 					isCompositionRef.current = false;
 					if (hasSelection) {
-						const { newLetters, finalCaretIndex } = deleteSelectedText();
-						setLetters(newLetters);
-						setCaretIndex(finalCaretIndex);
+						const { newString, finalCaretIndex } = deleteSelectedText();
+						updateValue(newString, finalCaretIndex);
 					} else if (caretIndex > 0) {
-						const newLetters = [...letters];
-						newLetters.splice(caretIndex - 1, 1);
-						setLetters(newLetters);
-						setCaretIndex((i) => i - 1);
+						const newString =
+							internalValue.slice(0, caretIndex - 1) +
+							internalValue.slice(caretIndex);
+						updateValue(newString, caretIndex - 1);
 					}
 					break;
 				}
 				case "Delete": {
 					isCompositionRef.current = false;
 					if (hasSelection) {
-						const { newLetters, finalCaretIndex } = deleteSelectedText();
-						setLetters(newLetters);
-						setCaretIndex(finalCaretIndex);
+						const { newString, finalCaretIndex } = deleteSelectedText();
+						updateValue(newString, finalCaretIndex);
 					} else if (caretIndex < letters.length) {
-						const newLetters = [...letters];
-						newLetters.splice(caretIndex, 1);
-						setLetters(newLetters);
+						const newString =
+							internalValue.slice(0, caretIndex) +
+							internalValue.slice(caretIndex + 1);
+						updateValue(newString, caretIndex);
 					}
 					break;
 				}
@@ -244,21 +288,25 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 						text = text.toUpperCase();
 					}
 
-					const { newLetters, finalCaretIndex } = hasSelection
+					const { newString, finalCaretIndex } = hasSelection
 						? deleteSelectedText()
-						: { newLetters: [...letters], finalCaretIndex: caretIndex };
+						: { newString: internalValue, finalCaretIndex: caretIndex };
 
-					const prevChar = newLetters[finalCaretIndex - 1];
+					const prevChar = newString[finalCaretIndex - 1];
 
 					if (composing && isHangul(prevChar) && isCompositionRef.current) {
-						const combined = assemble([prevChar, text]).split("");
-						newLetters.splice(finalCaretIndex - 1, 1, ...combined);
-						setLetters(newLetters);
-						setCaretIndex(finalCaretIndex - 1 + combined.length);
+						const combined = assemble([prevChar, text]);
+						const finalString =
+							newString.slice(0, finalCaretIndex - 1) +
+							combined +
+							newString.slice(finalCaretIndex);
+						updateValue(finalString, finalCaretIndex - 1 + combined.length);
 					} else {
-						newLetters.splice(finalCaretIndex, 0, text);
-						setLetters(newLetters);
-						setCaretIndex(finalCaretIndex + 1);
+						const finalString =
+							newString.slice(0, finalCaretIndex) +
+							text +
+							newString.slice(finalCaretIndex);
+						updateValue(finalString, finalCaretIndex + text.length);
 					}
 
 					isCompositionRef.current = composing;
@@ -278,6 +326,8 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
 			setHangulMode,
 			isCompositionRef,
 			shift,
+			updateValue,
+			internalValue,
 		],
 	);
 	const handleFocus = useCallback(() => {
@@ -369,6 +419,8 @@ export function VirtualInput({ initialValue = "" }: VirtualInputProps) {
       `}
 		>
 			<div
+				{...props}
+				ref={divRef}
 				className="wrap"
 				role="textbox"
 				tabIndex={0}

@@ -10,6 +10,7 @@ import { useStorage } from "../hooks/useStorage";
 import { VirtualInputContext } from "./Context";
 import type { VirtualInputHandle } from "./Input";
 import qwerty from "../assets/qwerty.json";
+import { useVisualViewport } from "../hooks/useVisualViewport";
 export function VirtualInputProvider({
 	children,
 	layout = qwerty,
@@ -27,6 +28,7 @@ export function VirtualInputProvider({
 		"virtual-keyboard-hangul-mode",
 		defaultHangulMode,
 	);
+	const viewport = useVisualViewport();
 
 	const onFocus = (id: string) => {
 		clearTimeout(sti.current);
@@ -62,7 +64,7 @@ export function VirtualInputProvider({
 			}}
 		>
 			{children}
-			<VirtualKeypad layout={layout} />
+			<VirtualKeypad layout={layout} viewport={viewport} />
 		</VirtualInputContext.Provider>
 	);
 }

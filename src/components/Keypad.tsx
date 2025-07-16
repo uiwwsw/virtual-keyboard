@@ -14,7 +14,22 @@ export type KeypadLayout = {
 	height?: number;
 	type?: string;
 }[][];
-export function VirtualKeypad({ layout }: { layout: KeypadLayout }) {
+
+export type Viewport = {
+	width: number;
+	height: number;
+	scale: number;
+	offsetLeft: number;
+	offsetTop: number;
+};
+
+export function VirtualKeypad({
+	layout,
+	viewport,
+}: {
+	layout: KeypadLayout;
+	viewport: Viewport;
+}) {
 	const {
 		focusId,
 		onBlur,
@@ -82,37 +97,74 @@ export function VirtualKeypad({ layout }: { layout: KeypadLayout }) {
 	);
 	if (!focusId || !isMobileAgent()) return null;
 	return (
-		<ShadowWrapper tagName={"virtual-keypad" as "div"}>
+		<ShadowWrapper
+			tagName={"virtual-keypad" as "div"}
+			css={`
+        .keypad-container {
+          display: flex;
+          flex-direction: column;
+          position: fixed;
+          background-color: #f0f2f5;
+          padding: 8px;
+          box-sizing: border-box;
+          gap: 8px;
+          box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+          user-select: none;
+        }
+        .keypad-row {
+          display: flex;
+          flex: 1;
+          gap: 8px;
+        }
+        .keypad-button {
+          flex: 1;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          background-color: #ffffff;
+          border: 1px solid #ccc;
+          border-radius: 8px;
+          font-size: 18px;
+          font-weight: 500;
+          color: #333;
+          cursor: pointer;
+          box-shadow: 0 2px 2px rgba(0, 0, 0, 0.05);
+          transition: all 0.1s ease-in-out;
+        }
+        .keypad-button:active {
+          background-color: #e0e0e0;
+          transform: scale(0.98);
+          box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+        }
+        .keypad-button.action {
+            background-color: #d1d5db;
+        }
+        .keypad-button.action:active {
+            background-color: #b0b5bE;
+        }
+      `}
+		>
 			<div
 				onFocus={handleFocus}
 				onBlur={onBlur}
 				tabIndex={-1}
+				className="keypad-container"
 				style={{
-					display: "flex",
-					flexDirection: "column",
-					position: "fixed",
-					left: 0,
-					right: 0,
-					bottom: 0,
-					height: 200,
-					background: "gray",
+					left: viewport.offsetLeft,
+					width: viewport.width,
+					top: viewport.offsetTop + viewport.height - 200 / viewport.scale,
+					height: 200 / viewport.scale,
 				}}
 			>
 				{layout?.map((row, i) => (
-					<div
-						style={{
-							display: "flex",
-							flex: 1,
-						}}
-						key={i}
-					>
+					<div className="keypad-row" key={i}>
 						{row.map((cell, j) => (
 							<button
 								type="button"
 								value={cell.value}
 								data-type={cell.type}
 								onClick={insertCharacter}
-								style={{ flex: 1 }}
+								className={`keypad-button ${cell.type === 'action' ? 'action' : ''}`}
 								key={`${i}-${j}`}
 							>
 								{getTransformedValue(cell)}
