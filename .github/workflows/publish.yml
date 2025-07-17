@@ -3,7 +3,7 @@ name: Publish to NPM
 on:
   push:
     branches:
-      - main  # 또는 배포 브랜치
+      - main # 또는 배포 브랜치
 
 jobs:
   publish:
@@ -19,14 +19,14 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          registry-url: 'https://registry.npmjs.org/'
+          node-version: "18"
+          registry-url: "https://registry.npmjs.org/"
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
       - name: Build (optional)
-        run: bun run build # 필요 없으면 제거
+        run: bun run build-package # 필요 없으면 제거
 
       - name: Publish to NPM
         run: npm publish
