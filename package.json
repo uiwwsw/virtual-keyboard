@@ -1,6 +1,6 @@
 {
   "name": "@uiwwsw/virtual-keyboard",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -16,7 +16,14 @@
     "custom",
     "keyboard",
     "폰번호 전용",
-    "숫자 전용"
+    "숫자 전용",
+    "composition",
+    "IME",
+    "hangul",
+    "no composition issue",
+    "korean input",
+    "웹 한글 입력",
+    "조합 이슈 해결"
   ],
   "exports": {
     ".": {
