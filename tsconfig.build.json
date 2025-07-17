@@ -1,0 +1,19 @@
+// tsconfig.build.json
+{
+  "extends": "./tsconfig.json", // 또는 tsconfig.app.json을 기반으로
+  "compilerOptions": {
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node", // 또는 "nodenext" (최신 Node + ESM 스타일이면)
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationDir": "dist/types",
+    "outDir": "dist",
+    "noEmit": false,
+    "jsx": "react-jsx", // 필요시 명시
+    "module": "ESNext",
+    "target": "ESNext"
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}

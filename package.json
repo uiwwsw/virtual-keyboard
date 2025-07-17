@@ -1,7 +1,8 @@
 {
   "name": "@uiwwsw/virtual-keyboard",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "type": "module",
+  "types": "dist/types/index.d.ts",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "files": [
@@ -40,7 +41,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build-package": "bun build src/index.ts --outdir dist --target browser --format esm --external react --external react-dom",
+    "build-package": "bun build src/index.ts --outdir dist --target browser --format esm --external react --external react-dom && tsc -p tsconfig.build.json",
     "lint": "eslint .",
     "preview": "vite preview"
   },
