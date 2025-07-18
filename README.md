@@ -1,5 +1,3 @@
-<div align="center">
-
 # virtual-keyboard
 
 **A revolutionary virtual keyboard solution for React that solves the Korean `composition` issue.**
@@ -8,8 +6,6 @@
 [![Publish](https://github.com/uiwwsw/virtual-keyboard/actions/workflows/publish.yml/badge.svg)](https://github.com/uiwwsw/virtual-keyboard/actions/workflows/publish.yml)
 [![License](https://img.shields.io/github/license/uiwwsw/virtual-keyboard)](https://github.com/uiwwsw/virtual-keyboard/blob/main/LICENSE)
 [![Stars](https://img.shields.io/github/stars/uiwwsw/virtual-keyboard?style=flat)](https://github.com/uiwwsw/virtual-keyboard/stargazers)
-
-</div>
 
 ![Virtual Keyboard Banner](https://raw.githubusercontent.com/uiwwsw/virtual-keyboard/main/docs/banner.png)
 
@@ -41,7 +37,7 @@ Wrap your input fields with the `VirtualInputProvider`. This provider manages th
 Use the default QWERTY keyboard for Korean and English input.
 
 ```tsx
-import { VirtualInput, VirtualInputProvider } from '@uiwwsw/virtual-keyboard';
+import { VirtualInput, VirtualInputProvider } from "@uiwwsw/virtual-keyboard";
 
 function App() {
   return (
@@ -58,7 +54,7 @@ function App() {
 You can provide a custom layout for specialized inputs, such as a number pad for phone numbers.
 
 ```tsx
-import { VirtualInput, VirtualInputProvider } from '@uiwwsw/virtual-keyboard';
+import { VirtualInput, VirtualInputProvider } from "@uiwwsw/virtual-keyboard";
 
 const numberPadLayout = [
   [{ value: "1" }, { value: "2" }, { value: "3" }],
@@ -84,10 +80,10 @@ function App() {
 
 The main provider that manages the keyboard state and UI.
 
-| Prop      | Type                               | Description                                                              |
-| :-------- | :--------------------------------- | :----------------------------------------------------------------------- |
-| `layout`  | `Key[][][]` (optional)             | A 2D array to define a custom keyboard layout.                           |
-| `children`| `ReactNode`                        | Must contain at least one `VirtualInput` component.                      |
+| Prop       | Type                   | Description                                         |
+| :--------- | :--------------------- | :-------------------------------------------------- |
+| `layout`   | `Key[][][]` (optional) | A 2D array to define a custom keyboard layout.      |
+| `children` | `ReactNode`            | Must contain at least one `VirtualInput` component. |
 
 ### `<VirtualInput />`
 
