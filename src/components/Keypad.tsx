@@ -8,10 +8,10 @@ import { useCallback, type MouseEvent } from "react";
 import { ShadowWrapper } from "./ShadowWrapper";
 import { convertQwertyToHangul } from "es-hangul";
 
-declare module 'react' {
-  interface CSSProperties {
-    [key: `--${string}`]: string | number;
-  }
+declare module "react" {
+	interface CSSProperties {
+		[key: `--${string}`]: string | number;
+	}
 }
 
 export type KeypadLayout = {
@@ -124,7 +124,22 @@ export function VirtualKeypad({
           flex: 1;
           gap: calc(8px / var(--scale-factor));
         }
+        @keyframes key-pop {
+          from {
+            opacity: 0.9;
+            transform: translate(-50%, 5px) scale(1);
+          }
+          to {
+            opacity: 1;
+            transform: translate(-50%, calc(-15px / var(--scale-factor))) scale(1.4);
+          }
+        }
+        @keyframes key-press {
+          from { transform: scale(1); }
+          to { transform: scale(0.96); }
+        }
         .keypad-button {
+          position: relative;
           flex: 1;
           display: flex;
           justify-content: center;
@@ -139,17 +154,31 @@ export function VirtualKeypad({
           box-shadow: 0 calc(2px / var(--scale-factor)) calc(2px / var(--scale-factor)) rgba(0, 0, 0, 0.05);
         }
         .keypad-button:active {
-          background-color: #e0e0e0;
-          transform: scale(0.98);
-          box-shadow: 0 calc(1px / var(--scale-factor)) calc(1px / var(--scale-factor)) rgba(0, 0, 0, 0.1);
-          transition: all 0.1s ease-in-out;
+          animation: key-press 0.05s forwards;
         }
-        .keypad-button.action {
-            background-color: #d1d5db;
+        .key-popup {
+          display: none;
+          position: absolute;
+          left: 50%;
+          bottom: 80%;
+          min-width: 100%;
+          padding: calc(8px / var(--scale-factor)) calc(12px / var(--scale-factor));
+          background-color: #f9fafb;
+          color: #333;
+          border-radius: calc(10px / var(--scale-factor));
+          box-shadow: 0 calc(-2px / var(--scale-factor)) calc(10px / var(--scale-factor)) rgba(0, 0, 0, 0.15);
+          pointer-events: none;
+          font-size: calc(26px / var(--scale-factor));
+          font-weight: 500;
+          text-align: center;
+          z-index: 10;
+          line-height: 1.2;
         }
-        .keypad-button.action:active {
-            background-color: #b0b5bE;
+        .keypad-button:active .key-popup {
+          display: block;
+          animation: key-pop 0.1s ease-out forwards;
         }
+       
       `}
 		>
 			<div
@@ -179,6 +208,7 @@ export function VirtualKeypad({
 								key={`${i}-${j}`}
 							>
 								{getTransformedValue(cell)}
+								<div className="key-popup">{getTransformedValue(cell)}</div>
 							</button>
 						))}
 					</div>
