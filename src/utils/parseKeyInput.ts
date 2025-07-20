@@ -57,9 +57,8 @@ export function parseKeyInput(
 			};
 		}
 	}
-
 	// --- Windows ---
-	if (hangulMode) {
+	if (hangulMode && e.key.length === 1) {
 		return {
 			handled: true,
 			text: isHangul(e.key) ? e.key : convertQwertyToHangul(e.key),
