@@ -17,6 +17,7 @@
 
 ## Key Features
 
+- ❤️ **Without <input /> **: No input, No contentEditable. Just div.
 - ✨ **Composition-Free Input**: Directly handles Korean character composition, bypassing native IME events to prevent common bugs.
 - 🎹 **Customizable Keyboard UI**: Provides a default keyboard and supports fully custom layouts for any use case (e.g., number pads, phone keypads).
 - 📱 **Mobile-First**: Blocks the native mobile keyboard for a consistent and controlled user experience in web apps.
