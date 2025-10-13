@@ -4,7 +4,7 @@
 /** biome-ignore-all lint/a11y/noStaticElementInteractions: <explanation> */
 import { isMobileAgent } from "../utils/isMobileAgent";
 import { useVirtualInputContext } from "./Context";
-import { useCallback, type MouseEvent } from "react";
+import { useCallback, type MouseEvent, type CSSProperties } from "react";
 import { ShadowWrapper } from "./ShadowWrapper";
 import { convertQwertyToHangul } from "es-hangul";
 
@@ -69,18 +69,22 @@ export function VirtualKeypad({
 		[hangulMode, shift],
 	);
 
-	const insertCharacter = useCallback(
-		(e: MouseEvent<HTMLButtonElement>) => {
-			const target = e.target;
-			if (!(target instanceof HTMLButtonElement)) return;
+        const insertCharacter = useCallback(
+                (e: MouseEvent<HTMLButtonElement>) => {
+                        const target = e.target;
+                        if (!(target instanceof HTMLButtonElement)) return;
 
-			const { value, dataset } = target;
-			const type = dataset.type as "char" | "action";
+                        const { value, dataset } = target;
+                        const type = dataset.type as "char" | "action";
 
-			if (type === "action") {
-				if (value === "Shift") {
-					toggleShift();
-					return;
+                        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+                                navigator.vibrate?.(10);
+                        }
+
+                        if (type === "action") {
+                                if (value === "Shift") {
+                                        toggleShift();
+                                        return;
 				}
 				if (value === "HangulMode") {
 					toggleKorean();
@@ -103,26 +107,27 @@ export function VirtualKeypad({
 		[inputRef, shift, toggleShift, toggleKorean, getTransformedValue],
 	);
 	if (!focusId || !isMobileAgent()) return null;
-	return (
-		<ShadowWrapper
-			tagName={"virtual-keypad" as "div"}
-			css={`
+        return (
+                <ShadowWrapper
+                        tagName={"virtual-keypad" as "div"}
+                        css={`
         .keypad-container {
           display: flex;
           flex-direction: column;
           position: fixed;
-          background-color: #f0f2f5;
-          padding: calc(8px / var(--scale-factor));
+          background-color: #e8eaee;
+          padding: calc(12px / var(--scale-factor));
           box-sizing: border-box;
-          gap: calc(8px / var(--scale-factor));
-          box-shadow: 0 calc(-2px / var(--scale-factor)) calc(10px / var(--scale-factor)) rgba(0, 0, 0, 0.1);
+          gap: calc(10px / var(--scale-factor));
+          border-radius: calc(18px / var(--scale-factor));
+          box-shadow: 0 calc(-6px / var(--scale-factor)) calc(30px / var(--scale-factor)) rgba(15, 23, 42, 0.2);
           user-select: none;
           touch-action: manipulation;
         }
         .keypad-row {
           display: flex;
           flex: 1;
-          gap: calc(8px / var(--scale-factor));
+          gap: calc(10px / var(--scale-factor));
         }
         @keyframes key-pop {
           from {
@@ -144,17 +149,23 @@ export function VirtualKeypad({
           display: flex;
           justify-content: center;
           align-items: center;
-          background-color: #ffffff;
-          border: calc(1px / var(--scale-factor)) solid #ccc;
-          border-radius: calc(8px / var(--scale-factor));
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, #dfe3eb 100%);
+          border: calc(1px / var(--scale-factor)) solid rgba(148, 163, 184, 0.7);
+          border-radius: calc(12px / var(--scale-factor));
           font-size: calc(18px / var(--scale-factor));
-          font-weight: 500;
-          color: #333;
+          font-weight: 600;
+          letter-spacing: 0.01em;
+          color: #1f2933;
           cursor: pointer;
-          box-shadow: 0 calc(2px / var(--scale-factor)) calc(2px / var(--scale-factor)) rgba(0, 0, 0, 0.05);
+          box-shadow:
+            0 calc(2px / var(--scale-factor)) calc(4px / var(--scale-factor)) rgba(15, 23, 42, 0.12),
+            inset 0 calc(1px / var(--scale-factor)) calc(1px / var(--scale-factor)) rgba(255, 255, 255, 0.65);
+          transition: transform 80ms ease, box-shadow 80ms ease, background 120ms ease;
         }
         .keypad-button:active {
           animation: key-press 0.05s forwards;
+          box-shadow: 0 calc(1px / var(--scale-factor)) calc(2px / var(--scale-factor)) rgba(15, 23, 42, 0.18);
+          background: linear-gradient(180deg, rgba(248, 249, 251, 0.95) 0%, #c9d2df 100%);
         }
         .key-popup {
           display: none;
@@ -163,10 +174,10 @@ export function VirtualKeypad({
           bottom: 80%;
           min-width: 100%;
           padding: calc(8px / var(--scale-factor)) calc(12px / var(--scale-factor));
-          background-color: #f9fafb;
-          color: #333;
+          background-color: rgba(248, 250, 252, 0.98);
+          color: #0f172a;
           border-radius: calc(10px / var(--scale-factor));
-          box-shadow: 0 calc(-2px / var(--scale-factor)) calc(10px / var(--scale-factor)) rgba(0, 0, 0, 0.15);
+          box-shadow: 0 calc(-4px / var(--scale-factor)) calc(18px / var(--scale-factor)) rgba(15, 23, 42, 0.18);
           pointer-events: none;
           font-size: calc(26px / var(--scale-factor));
           font-weight: 500;
@@ -178,11 +189,27 @@ export function VirtualKeypad({
           display: block;
           animation: key-pop 0.1s ease-out forwards;
         }
-       
+        .keypad-button.action {
+          background: linear-gradient(180deg, #f8fafc 0%, #cbd5f5 100%);
+          color: #1e3a8a;
+          border-color: rgba(59, 130, 246, 0.55);
+        }
+        .keypad-button.active-modifier {
+          background: linear-gradient(180deg, #e0ecff 0%, #99b7ff 100%);
+          color: #1e3a8a;
+          box-shadow:
+            0 calc(3px / var(--scale-factor)) calc(6px / var(--scale-factor)) rgba(37, 99, 235, 0.25),
+            inset 0 calc(1px / var(--scale-factor)) calc(1px / var(--scale-factor)) rgba(255, 255, 255, 0.55);
+        }
+        .keypad-button:focus-visible {
+          outline: none;
+          box-shadow: 0 0 0 calc(3px / var(--scale-factor)) rgba(59, 130, 246, 0.35);
+        }
+
       `}
-		>
-			<div
-				onFocus={handleFocus}
+                >
+                        <div
+                                onFocus={handleFocus}
 				onBlur={onBlur}
 				tabIndex={-1}
 				className="keypad-container"
@@ -196,23 +223,45 @@ export function VirtualKeypad({
 					"--scale-factor": viewport.scale,
 				}}
 			>
-				{layout?.map((row, i) => (
-					<div className="keypad-row" key={i}>
-						{row.map((cell, j) => (
-							<button
-								type="button"
-								value={cell.value}
-								data-type={cell.type}
-								onClick={insertCharacter}
-								className={`keypad-button ${cell.type === "action" ? "action" : ""}`}
-								key={`${i}-${j}`}
-							>
-								{getTransformedValue(cell)}
-								<div className="key-popup">{getTransformedValue(cell)}</div>
-							</button>
-						))}
-					</div>
-				))}
+                                {layout?.map((row, i) => (
+                                        <div className="keypad-row" key={i}>
+                                                {row.map((cell, j) => {
+                                                        const buttonClasses = ["keypad-button"];
+                                                        if (cell.type === "action") {
+                                                                buttonClasses.push("action");
+                                                        }
+                                                        if (cell.value === "Shift" && shift) {
+                                                                buttonClasses.push("active-modifier");
+                                                        }
+                                                        if (cell.value === "HangulMode" && hangulMode) {
+                                                                buttonClasses.push("active-modifier");
+                                                        }
+
+                                                        const style: CSSProperties = {};
+                                                        if (cell.width) {
+                                                                style.flex = `0 0 calc(${cell.width}px / var(--scale-factor))`;
+                                                        }
+                                                        if (cell.height) {
+                                                                style.height = `calc(${cell.height}px / var(--scale-factor))`;
+                                                        }
+
+                                                        return (
+                                                        <button
+                                                                type="button"
+                                                                value={cell.value}
+                                                                data-type={cell.type}
+                                                                onClick={insertCharacter}
+                                                                className={buttonClasses.join(" ")}
+                                                                style={style}
+                                                                key={`${i}-${j}`}
+                                                        >
+                                                                {getTransformedValue(cell)}
+                                                                <div className="key-popup">{getTransformedValue(cell)}</div>
+                                                        </button>
+                                                );
+                                                })}
+                                        </div>
+                                ))}
 			</div>
 		</ShadowWrapper>
 	);
