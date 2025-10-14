@@ -9,7 +9,7 @@
 
 ![Virtual Keyboard Banner](https://raw.githubusercontent.com/uiwwsw/virtual-keyboard/main/docs/banner.png)
 
-[**Visit the Demo →**](https://composed-input-y46p.vercel.app/)
+[**Visit the Demo →**](https://composed-input.vercel.app/)
 
 ---
 
