@@ -52,22 +52,25 @@ export function VirtualKeypad({
 		if (!focusId) return;
 		onFocus(focusId);
 	}, [onFocus, focusId]);
-	const getTransformedValue = useCallback(
-		(cell: { label?: string; value: string; type?: string }) => {
-			if (cell.type === "char") {
-				if (hangulMode) {
-					return convertQwertyToHangul(cell.value);
-				}
-				if (shift) {
-					return cell.value.toUpperCase();
-				}
-				return cell.value;
-			}
+        const getTransformedValue = useCallback(
+                (cell: { label?: string; value: string; type?: string }) => {
+                        if (cell.type === "char") {
+                                const isConvertibleHangulSource =
+                                        hangulMode && /[a-zA-Z]/.test(cell.value) && cell.value.length === 1;
 
-			return cell.label ?? cell.value;
-		},
-		[hangulMode, shift],
-	);
+                                if (isConvertibleHangulSource) {
+                                        return convertQwertyToHangul(cell.value);
+                                }
+                                if (shift) {
+                                        return cell.value.toUpperCase();
+                                }
+                                return cell.value;
+                        }
+
+                        return cell.label ?? cell.value;
+                },
+                [hangulMode, shift],
+        );
 
         const insertCharacter = useCallback(
                 (e: MouseEvent<HTMLButtonElement>) => {
@@ -239,7 +242,7 @@ export function VirtualKeypad({
 
                                                         const style: CSSProperties = {};
                                                         if (cell.width) {
-                                                                style.flex = `0 0 calc(${cell.width}px / var(--scale-factor))`;
+                                                                style.flex = `${cell.width} 0 0`;
                                                         }
                                                         if (cell.height) {
                                                                 style.height = `calc(${cell.height}px / var(--scale-factor))`;
