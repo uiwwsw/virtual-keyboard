@@ -220,6 +220,10 @@ body {
   color: #475569;
 }
 
+.mode-input {
+  display: flex;
+}
+
 .mode-input virtual-input {
   border: 2px solid #d4d8f0;
   padding: 18px 20px;
