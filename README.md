@@ -11,6 +11,9 @@
 
 [**Visit the Demo →**](https://composed-input.vercel.app/)
 
+> 📱 데모 페이지에는 모바일 고정 키보드와 숫자·다이얼러 전용 모드를 직접 전환해 볼 수 있는 섹션이 준비되어 있습니다.
+> 실제 모바일 기기 혹은 DevTools 기기 모드(User-Agent 를 모바일로 전환)에 맞춰 접속하면 네이티브 키보드 대신 이 라이브러리의 가상 키보드가 표시됩니다.
+
 ---
 
 `virtual-keyboard` is a React component library that provides a custom virtual keyboard and input field, specifically designed to solve the infamous Korean `composition` event issues in web environments. It offers a seamless and native-like typing experience, free from common bugs like character duplication, cursor jumping, and broken compositions.
