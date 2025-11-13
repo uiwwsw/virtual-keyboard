@@ -222,6 +222,7 @@ body {
 
 .mode-input {
   display: flex;
+  flex-direction: column;
 }
 
 .mode-input virtual-input {
