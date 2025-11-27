@@ -126,6 +126,7 @@ export function VirtualKeypad({
           box-shadow: 0 calc(-6px / var(--scale-factor)) calc(30px / var(--scale-factor)) rgba(15, 23, 42, 0.2);
           user-select: none;
           touch-action: manipulation;
+          z-index: 9999;
         }
         .keypad-row {
           display: flex;
@@ -182,6 +183,8 @@ export function VirtualKeypad({
           border-radius: calc(10px / var(--scale-factor));
           box-shadow: 0 calc(-4px / var(--scale-factor)) calc(18px / var(--scale-factor)) rgba(15, 23, 42, 0.18);
           pointer-events: none;
+          touch-action: none;
+          user-select: none;
           font-size: calc(26px / var(--scale-factor));
           font-weight: 500;
           text-align: center;
