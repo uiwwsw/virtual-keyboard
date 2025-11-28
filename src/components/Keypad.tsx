@@ -270,6 +270,11 @@ export function VirtualKeypad({
                 event.preventDefault();
         }, []);
         if (!focusId || !isMobileAgent()) return null;
+
+        const compactRatio = useMemo(
+                () => Math.max(0, Math.min(1, (viewport.width - 260) / 140)),
+                [viewport.width],
+        );
         return (
                 <ShadowWrapper
                         tagName={"virtual-keypad" as "div"}
@@ -279,9 +284,9 @@ export function VirtualKeypad({
           flex-direction: column;
           position: fixed;
           background-color: #e8eaee;
-          padding: calc(12px / var(--scale-factor));
+          padding: var(--keypad-padding, calc(10px / var(--scale-factor)));
           box-sizing: border-box;
-          gap: calc(10px / var(--scale-factor));
+          gap: var(--keypad-gap, calc(8px / var(--scale-factor)));
           border-radius: calc(18px / var(--scale-factor));
           box-shadow: 0 calc(-6px / var(--scale-factor)) calc(30px / var(--scale-factor)) rgba(15, 23, 42, 0.2);
           user-select: none;
@@ -293,7 +298,8 @@ export function VirtualKeypad({
         .keypad-row {
           display: flex;
           flex: 1;
-          gap: calc(10px / var(--scale-factor));
+          gap: var(--keypad-gap, calc(8px / var(--scale-factor)));
+          min-width: 0;
         }
         @keyframes key-pop {
           from {
@@ -312,15 +318,21 @@ export function VirtualKeypad({
         .keypad-button {
           position: relative;
           flex: 1;
+          min-width: 0;
           display: flex;
           justify-content: center;
           align-items: center;
           background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, #dfe3eb 100%);
           border: calc(1px / var(--scale-factor)) solid rgba(148, 163, 184, 0.7);
           border-radius: calc(12px / var(--scale-factor));
+          padding: var(--keypad-button-padding-y, calc(8px / var(--scale-factor)))
+            var(--keypad-button-padding-x, calc(6px / var(--scale-factor)));
           font-size: calc(18px / var(--scale-factor));
           font-weight: 600;
           letter-spacing: 0.01em;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
           color: #1f2933;
           cursor: pointer;
           box-shadow:
@@ -344,7 +356,7 @@ export function VirtualKeypad({
           left: 50%;
           bottom: 80%;
           min-width: 100%;
-          padding: calc(8px / var(--scale-factor)) calc(12px / var(--scale-factor));
+          padding: calc(8px / var(--scale-factor)) var(--key-popup-padding-x, calc(12px / var(--scale-factor)));
           background-color: rgba(248, 250, 252, 0.98);
           color: #0f172a;
           border-radius: calc(10px / var(--scale-factor));
@@ -391,14 +403,19 @@ export function VirtualKeypad({
                                 onContextMenu={preventContextMenu}
                                 onPointerDown={handlePointerDown}
                                 onSelect={preventSelection}
-                                style={{
-                                        left: viewport.offsetLeft,
-                                        width: viewport.width,
-					top: Math.round(
-						viewport.offsetTop + viewport.height - 200 / viewport.scale,
-					),
-					height: Math.round(200 / viewport.scale),
-					"--scale-factor": viewport.scale,
+                        style={{
+                                left: viewport.offsetLeft,
+                                width: viewport.width,
+                                top: Math.round(
+                                        viewport.offsetTop + viewport.height - 200 / viewport.scale,
+                                ),
+                                height: Math.round(200 / viewport.scale),
+                                "--scale-factor": viewport.scale,
+                                "--keypad-padding": `${(2 + (10 - 2) * compactRatio) / viewport.scale}px`,
+                                "--keypad-gap": `${(2 + (8 - 2) * compactRatio) / viewport.scale}px`,
+                                "--keypad-button-padding-y": `${(4 + (8 - 4) * compactRatio) / viewport.scale}px`,
+                                "--keypad-button-padding-x": `${(4 + (6 - 4) * compactRatio) / viewport.scale}px`,
+                                "--key-popup-padding-x": `${(6 + (12 - 6) * compactRatio) / viewport.scale}px`,
 				}}
 			>
                                 {layout?.map((row, i) => (
