@@ -4,7 +4,7 @@
 /** biome-ignore-all lint/a11y/noStaticElementInteractions: <explanation> */
 import { isMobileAgent } from "../utils/isMobileAgent";
 import { useVirtualInputContext } from "./Context";
-import { useCallback, type MouseEvent, type CSSProperties } from "react";
+import { useCallback, type MouseEvent, type CSSProperties, type SyntheticEvent } from "react";
 import { ShadowWrapper } from "./ShadowWrapper";
 import { convertQwertyToHangul } from "es-hangul";
 
@@ -106,10 +106,18 @@ export function VirtualKeypad({
 				shiftKey: shift,
 			});
 			inputRef.current?.handleKeyDown(event);
-		},
-		[inputRef, shift, toggleShift, toggleKorean, getTransformedValue],
-	);
-	if (!focusId || !isMobileAgent()) return null;
+                },
+                [inputRef, shift, toggleShift, toggleKorean, getTransformedValue],
+        );
+
+        const preventContextMenu = useCallback((event: MouseEvent<HTMLDivElement>) => {
+                event.preventDefault();
+        }, []);
+
+        const preventSelection = useCallback((event: SyntheticEvent) => {
+                event.preventDefault();
+        }, []);
+        if (!focusId || !isMobileAgent()) return null;
         return (
                 <ShadowWrapper
                         tagName={"virtual-keypad" as "div"}
@@ -216,12 +224,14 @@ export function VirtualKeypad({
                 >
                         <div
                                 onFocus={handleFocus}
-				onBlur={onBlur}
-				tabIndex={-1}
-				className="keypad-container"
-				style={{
-					left: viewport.offsetLeft,
-					width: viewport.width,
+                                onBlur={onBlur}
+                                tabIndex={-1}
+                                className="keypad-container"
+                                onContextMenu={preventContextMenu}
+                                onSelect={preventSelection}
+                                style={{
+                                        left: viewport.offsetLeft,
+                                        width: viewport.width,
 					top: Math.round(
 						viewport.offsetTop + viewport.height - 200 / viewport.scale,
 					),
