@@ -136,7 +136,11 @@ export function VirtualKeypad({
 
         const startRepeat = useCallback(
                 (press: ActivePress) => {
-                        if (!repeatableKeys.has(press.type ?? press.value)) return;
+                        const canRepeat =
+                                (press.type && repeatableKeys.has(press.type)) ||
+                                repeatableKeys.has(press.value);
+
+                        if (!canRepeat) return;
 
                         const firstDelay = 300;
                         const repeatInterval = 60;
@@ -250,9 +254,11 @@ export function VirtualKeypad({
         }, [endPress, findButtonFromPointer, startPress]);
 
         useEffect(() => {
+                const presses = activePresses.current;
+
                 return () => {
-                        activePresses.current.forEach((press) => clearRepeat(press));
-                        activePresses.current.clear();
+                        presses.forEach((press) => clearRepeat(press));
+                        presses.clear();
                 };
         }, [clearRepeat]);
 
@@ -279,6 +285,8 @@ export function VirtualKeypad({
           border-radius: calc(18px / var(--scale-factor));
           box-shadow: 0 calc(-6px / var(--scale-factor)) calc(30px / var(--scale-factor)) rgba(15, 23, 42, 0.2);
           user-select: none;
+          -webkit-user-select: none;
+          -webkit-touch-callout: none;
           touch-action: none;
           z-index: 9999;
         }
@@ -319,6 +327,10 @@ export function VirtualKeypad({
             0 calc(2px / var(--scale-factor)) calc(4px / var(--scale-factor)) rgba(15, 23, 42, 0.12),
             inset 0 calc(1px / var(--scale-factor)) calc(1px / var(--scale-factor)) rgba(255, 255, 255, 0.65);
           transition: transform 80ms ease, box-shadow 80ms ease, background 120ms ease;
+          user-select: none;
+          -webkit-user-select: none;
+          -webkit-touch-callout: none;
+          touch-action: manipulation;
         }
         .keypad-button:active,
         .keypad-button.pressed {
