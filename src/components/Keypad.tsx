@@ -4,7 +4,16 @@
 /** biome-ignore-all lint/a11y/noStaticElementInteractions: <explanation> */
 import { isMobileAgent } from "../utils/isMobileAgent";
 import { useVirtualInputContext } from "./Context";
-import { useCallback, type MouseEvent, type CSSProperties, type SyntheticEvent } from "react";
+import {
+        useCallback,
+        useEffect,
+        useMemo,
+        useRef,
+        type PointerEvent as ReactPointerEvent,
+        type MouseEvent,
+        type CSSProperties,
+        type SyntheticEvent,
+} from "react";
 import { ShadowWrapper } from "./ShadowWrapper";
 import { convertQwertyToHangul } from "es-hangul";
 
@@ -23,11 +32,19 @@ export type KeypadLayout = {
 }[][];
 
 export type Viewport = {
-	width: number;
-	height: number;
-	scale: number;
-	offsetLeft: number;
-	offsetTop: number;
+        width: number;
+        height: number;
+        scale: number;
+        offsetLeft: number;
+        offsetTop: number;
+};
+
+type ActivePress = {
+        pointerId: number;
+        button: HTMLButtonElement;
+        value: string;
+        type?: string;
+        repeatTimeout?: number;
 };
 
 export function VirtualKeypad({
@@ -37,21 +54,29 @@ export function VirtualKeypad({
 	layout: KeypadLayout;
 	viewport: Viewport;
 }) {
-	const {
-		focusId,
-		onBlur,
-		onFocus,
-		inputRef,
+        const {
+                focusId,
+                onBlur,
+                onFocus,
+                inputRef,
 		shift,
 		hangulMode,
 		toggleShift,
 		toggleKorean,
 	} = useVirtualInputContext();
 
-	const handleFocus = useCallback(() => {
-		if (!focusId) return;
-		onFocus(focusId);
-	}, [onFocus, focusId]);
+        const handleFocus = useCallback(() => {
+                if (!focusId) return;
+                onFocus(focusId);
+        }, [onFocus, focusId]);
+
+        const activePresses = useRef<Map<number, ActivePress>>(new Map());
+        const keypadRef = useRef<HTMLDivElement>(null);
+
+        const repeatableKeys = useMemo(
+                () => new Set(["char", "Backspace", "Delete", "Space", "ArrowLeft", "ArrowRight"]),
+                [],
+        );
         const getTransformedValue = useCallback(
                 (cell: { label?: string; value: string; type?: string }) => {
                         if (cell.type === "char") {
@@ -72,14 +97,8 @@ export function VirtualKeypad({
                 [hangulMode, shift],
         );
 
-        const insertCharacter = useCallback(
-                (e: MouseEvent<HTMLButtonElement>) => {
-                        const target = e.target;
-                        if (!(target instanceof HTMLButtonElement)) return;
-
-                        const { value, dataset } = target;
-                        const type = dataset.type as "char" | "action";
-
+        const dispatchKeyEvent = useCallback(
+                (value: string, type?: string) => {
                         if (typeof navigator !== "undefined" && "vibrate" in navigator) {
                                 navigator.vibrate?.(10);
                         }
@@ -88,27 +107,154 @@ export function VirtualKeypad({
                                 if (value === "Shift") {
                                         toggleShift();
                                         return;
-				}
-				if (value === "HangulMode") {
-					toggleKorean();
-					return;
-				}
-			}
+                                }
+                                if (value === "HangulMode") {
+                                        toggleKorean();
+                                        return;
+                                }
+                        }
 
-			const event = new KeyboardEvent("keydown", {
-				key: getTransformedValue({
-					value,
-					type,
-				}),
-				code: `Key${value.toUpperCase()}`,
-				bubbles: true,
-				cancelable: true,
-				shiftKey: shift,
-			});
-			inputRef.current?.handleKeyDown(event);
+                        const event = new KeyboardEvent("keydown", {
+                                key: getTransformedValue({
+                                        value,
+                                        type,
+                                }),
+                                code: `Key${value.toUpperCase()}`,
+                                bubbles: true,
+                                cancelable: true,
+                                shiftKey: shift,
+                        });
+                        inputRef.current?.handleKeyDown(event);
                 },
-                [inputRef, shift, toggleShift, toggleKorean, getTransformedValue],
+                [getTransformedValue, inputRef, shift, toggleKorean, toggleShift],
         );
+
+        const clearRepeat = useCallback((press: ActivePress | undefined) => {
+                if (!press?.repeatTimeout) return;
+                window.clearTimeout(press.repeatTimeout);
+        }, []);
+
+        const startRepeat = useCallback(
+                (press: ActivePress) => {
+                        if (!repeatableKeys.has(press.type ?? press.value)) return;
+
+                        const firstDelay = 300;
+                        const repeatInterval = 60;
+
+                        const tick = () => {
+                                const storedPress = activePresses.current.get(press.pointerId);
+                                if (!storedPress) return;
+                                dispatchKeyEvent(storedPress.value, storedPress.type);
+                                storedPress.repeatTimeout = window.setTimeout(tick, repeatInterval);
+                                activePresses.current.set(press.pointerId, storedPress);
+                        };
+
+                        press.repeatTimeout = window.setTimeout(tick, firstDelay);
+                        activePresses.current.set(press.pointerId, press);
+                },
+                [dispatchKeyEvent, repeatableKeys],
+        );
+
+        const endPress = useCallback(
+                (pointerId: number) => {
+                        const press = activePresses.current.get(pointerId);
+                        if (!press) return;
+
+                        clearRepeat(press);
+                        press.button.classList.remove("pressed");
+                        activePresses.current.delete(pointerId);
+                },
+                [clearRepeat],
+        );
+
+        const startPress = useCallback(
+                (button: HTMLButtonElement, pointerId: number) => {
+                        const { value, dataset } = button;
+                        const type = dataset.type;
+
+                        dispatchKeyEvent(value, type);
+                        button.classList.add("pressed");
+
+                        const press: ActivePress = {
+                                pointerId,
+                                button,
+                                value,
+                                type,
+                        };
+
+                        activePresses.current.set(pointerId, press);
+                        startRepeat(press);
+                },
+                [dispatchKeyEvent, startRepeat],
+        );
+
+        const findButtonFromPointer = useCallback(
+                (event: PointerEvent | ReactPointerEvent) => {
+                        const root = keypadRef.current;
+                        if (!root) return null;
+
+                        const element = document.elementFromPoint(event.clientX, event.clientY);
+                        if (!element) return null;
+
+                        if (!root.contains(element)) return null;
+
+                        return element.closest(".keypad-button") as HTMLButtonElement | null;
+                },
+                [],
+        );
+
+        const handlePointerDown = useCallback(
+                (event: ReactPointerEvent<HTMLDivElement>) => {
+                        const button = (event.target as HTMLElement).closest(
+                                ".keypad-button",
+                        ) as HTMLButtonElement | null;
+                        if (!button) return;
+
+                        event.preventDefault();
+                        startPress(button, event.pointerId);
+                },
+                [startPress],
+        );
+
+        useEffect(() => {
+                const handlePointerMove = (event: PointerEvent) => {
+                        if (!activePresses.current.has(event.pointerId)) return;
+
+                        const nextButton = findButtonFromPointer(event);
+                        const currentPress = activePresses.current.get(event.pointerId);
+
+                        if (!nextButton) {
+                                endPress(event.pointerId);
+                                return;
+                        }
+
+                        if (currentPress?.button === nextButton) return;
+
+                        endPress(event.pointerId);
+                        startPress(nextButton, event.pointerId);
+                };
+
+                const handlePointerEnd = (event: PointerEvent) => {
+                        endPress(event.pointerId);
+                };
+
+                window.addEventListener("pointermove", handlePointerMove);
+                window.addEventListener("pointerup", handlePointerEnd);
+                window.addEventListener("pointercancel", handlePointerEnd);
+
+                return () => {
+                        window.removeEventListener("pointermove", handlePointerMove);
+                        window.removeEventListener("pointerup", handlePointerEnd);
+                        window.removeEventListener("pointercancel", handlePointerEnd);
+                };
+        }, [endPress, findButtonFromPointer, startPress]);
+
+        useEffect(() => {
+                return () => {
+                        activePresses.current.forEach((press) => clearRepeat(press));
+                        activePresses.current.clear();
+                };
+        }, [clearRepeat]);
 
         const preventContextMenu = useCallback((event: MouseEvent<HTMLDivElement>) => {
                 event.preventDefault();
@@ -133,7 +279,7 @@ export function VirtualKeypad({
           border-radius: calc(18px / var(--scale-factor));
           box-shadow: 0 calc(-6px / var(--scale-factor)) calc(30px / var(--scale-factor)) rgba(15, 23, 42, 0.2);
           user-select: none;
-          touch-action: manipulation;
+          touch-action: none;
           z-index: 9999;
         }
         .keypad-row {
@@ -174,7 +320,8 @@ export function VirtualKeypad({
             inset 0 calc(1px / var(--scale-factor)) calc(1px / var(--scale-factor)) rgba(255, 255, 255, 0.65);
           transition: transform 80ms ease, box-shadow 80ms ease, background 120ms ease;
         }
-        .keypad-button:active {
+        .keypad-button:active,
+        .keypad-button.pressed {
           animation: key-press 0.05s forwards;
           box-shadow: 0 calc(1px / var(--scale-factor)) calc(2px / var(--scale-factor)) rgba(15, 23, 42, 0.18);
           background: linear-gradient(180deg, rgba(248, 249, 251, 0.95) 0%, #c9d2df 100%);
@@ -199,7 +346,8 @@ export function VirtualKeypad({
           z-index: 10;
           line-height: 1.2;
         }
-        .keypad-button:active .key-popup {
+        .keypad-button:active .key-popup,
+        .keypad-button.pressed .key-popup {
           display: block;
           animation: key-pop 0.1s ease-out forwards;
         }
@@ -227,7 +375,9 @@ export function VirtualKeypad({
                                 onBlur={onBlur}
                                 tabIndex={-1}
                                 className="keypad-container"
+                                ref={keypadRef}
                                 onContextMenu={preventContextMenu}
+                                onPointerDown={handlePointerDown}
                                 onSelect={preventSelection}
                                 style={{
                                         left: viewport.offsetLeft,
@@ -266,7 +416,6 @@ export function VirtualKeypad({
                                                                 type="button"
                                                                 value={cell.value}
                                                                 data-type={cell.type}
-                                                                onClick={insertCharacter}
                                                                 className={buttonClasses.join(" ")}
                                                                 style={style}
                                                                 key={`${i}-${j}`}
