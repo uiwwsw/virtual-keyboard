@@ -365,16 +365,19 @@ export function VirtualInput({
 		return inputRef.current!;
 	}, [isFocused, handleKeyDown, inputRef]);
 
-	return (
-		<ShadowWrapper
-			tagName={"virtual-input" as "input"}
-			css={`
+        return (
+                <ShadowWrapper
+                        tagName={"virtual-input" as "input"}
+                        css={`
         .wrap {
           white-space: pre;
           position: relative;
           cursor: text;
           border-radius: 4px;
           user-select: none;
+          -webkit-user-select: none;
+          -webkit-touch-callout: none;
+          touch-action: manipulation;
         }
         .wrap::after {
           content: " ";
