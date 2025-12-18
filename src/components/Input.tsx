@@ -44,6 +44,10 @@ export function VirtualInput({
 		() => (controlledValue ?? defaultValue ?? "").length,
 	);
 
+	// Refs for synchronous access in event handlers
+	const internalValueRef = useRef(internalValue);
+	const caretIndexRef = useRef(caretIndex);
+
 	const [selection, setSelection] = useState<{
 		start: number | null;
 		end: number | null;
@@ -80,6 +84,7 @@ export function VirtualInput({
 	useEffect(() => {
 		if (controlledValue !== undefined && controlledValue !== internalValue) {
 			setInternalValue(controlledValue);
+			internalValueRef.current = controlledValue;
 		}
 	}, [controlledValue, internalValue]);
 
@@ -112,18 +117,19 @@ export function VirtualInput({
 	}, []);
 
 	const deleteSelectedText = useCallback(() => {
+		// Use refs for latest state
+		const currentVal = internalValueRef.current;
+
 		if (!hasSelection || selection.start === null || selection.end === null) {
-			return { newString: internalValue, finalCaretIndex: caretIndex };
+			return { newString: currentVal, finalCaretIndex: caretIndexRef.current };
 		}
 
 		const [start, end] = [selection.start, selection.end].sort((a, b) => a - b);
-		const newString = internalValue.slice(0, start) + internalValue.slice(end);
+		const newString = currentVal.slice(0, start) + currentVal.slice(end);
 
 		clearSelection();
 		return { newString, finalCaretIndex: start };
 	}, [
-		internalValue,
-		caretIndex,
 		hasSelection,
 		selection,
 		clearSelection,
@@ -248,6 +254,10 @@ export function VirtualInput({
 
 	const updateValue = useCallback(
 		(newValue: string, newCaretIndex: number) => {
+			// Update refs immediately
+			internalValueRef.current = newValue;
+			caretIndexRef.current = newCaretIndex;
+
 			if (controlledValue === undefined) {
 				setInternalValue(newValue);
 			}
@@ -306,7 +316,11 @@ export function VirtualInput({
 
 	const handleCanvasClick = useCallback((e: React.MouseEvent) => {
 		const index = getCharIndexFromX(e.clientX);
+
+		// Update helpers
+		caretIndexRef.current = index;
 		setCaretIndex(index);
+
 		clearSelection();
 		onFocus(id);
 	}, [getCharIndexFromX, clearSelection, onFocus, id]);
@@ -314,6 +328,9 @@ export function VirtualInput({
 	// Reuse handleKeyDown from old Input, adapted
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent | KeyboardEvent) => {
+			// Use refs for current state
+			const currentVal = internalValueRef.current;
+			const currentCaret = caretIndexRef.current;
 
 			if (e.key === "HangulMode") {
 				setHangulMode(!hangulMode);
@@ -324,34 +341,42 @@ export function VirtualInput({
 			// Let's implement basic Shift+Arrow
 			if (e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
 				const newIndex = e.key === "ArrowLeft"
-					? Math.max(0, caretIndex - 1)
-					: Math.min(internalValue.length, caretIndex + 1);
+					? Math.max(0, currentCaret - 1)
+					: Math.min(currentVal.length, currentCaret + 1);
 
 				setSelection((prev: { start: number | null; end: number | null }) => ({
-					start: prev.start ?? caretIndex,
+					start: prev.start ?? currentCaret,
 					end: newIndex
 				}));
+
+				caretIndexRef.current = newIndex;
 				setCaretIndex(newIndex);
 				return;
 			}
 
 			switch (e.key) {
-				case "ArrowLeft":
-					setCaretIndex(prev => Math.max(0, prev - 1));
+				case "ArrowLeft": {
+					const newIndex = Math.max(0, currentCaret - 1);
+					caretIndexRef.current = newIndex;
+					setCaretIndex(newIndex);
 					clearSelection();
 					return;
-				case "ArrowRight":
-					setCaretIndex(prev => Math.min(internalValue.length, prev + 1));
+				}
+				case "ArrowRight": {
+					const newIndex = Math.min(currentVal.length, currentCaret + 1);
+					caretIndexRef.current = newIndex;
+					setCaretIndex(newIndex);
 					clearSelection();
 					return;
+				}
 				case "Backspace": {
 					isCompositionRef.current = false;
 					if (hasSelection) {
 						const { newString, finalCaretIndex } = deleteSelectedText();
 						updateValue(newString, finalCaretIndex);
-					} else if (caretIndex > 0) {
-						const newString = internalValue.slice(0, caretIndex - 1) + internalValue.slice(caretIndex);
-						updateValue(newString, caretIndex - 1);
+					} else if (currentCaret > 0) {
+						const newString = currentVal.slice(0, currentCaret - 1) + currentVal.slice(currentCaret);
+						updateValue(newString, currentCaret - 1);
 					}
 					return;
 				}
@@ -377,7 +402,7 @@ export function VirtualInput({
 
 			const { newString, finalCaretIndex } = hasSelection
 				? deleteSelectedText()
-				: { newString: internalValue, finalCaretIndex: caretIndex };
+				: { newString: currentVal, finalCaretIndex: currentCaret };
 
 			const prevChar = newString[finalCaretIndex - 1];
 			if (composing && isHangul(prevChar) && isCompositionRef.current) {
@@ -391,7 +416,7 @@ export function VirtualInput({
 			isCompositionRef.current = composing;
 
 		},
-		[internalValue, caretIndex, hangulMode, setHangulMode, isCompositionRef, shift, updateValue, hasSelection, deleteSelectedText, clearSelection]
+		[hangulMode, setHangulMode, isCompositionRef, shift, updateValue, hasSelection, deleteSelectedText, clearSelection]
 	);
 
 	useImperativeHandle(inputRef, () => {
@@ -406,12 +431,12 @@ export function VirtualInput({
 		<ShadowWrapper
 			tagName={"virtual-input-canvas" as "input"}
 			css={`
-               canvas {
-                   width: 100%;
-                   height: 100%;
-                   cursor: text;
-                   display: block;
-               }
+                canvas {
+                    width: 100%;
+                    height: 100%;
+                    cursor: text;
+                    display: block;
+                }
             `}
 		>
 			<div

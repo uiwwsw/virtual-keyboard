@@ -237,6 +237,7 @@ export function VirtualKeypad({
                                 onFocus={() => { if (focusId) onFocus(focusId) }}
                                 onBlur={onBlur}
                                 onContextMenu={(e) => e.preventDefault()}
+                                onPointerDown={(e) => e.preventDefault()} // Prevent focus loss on background tap
                                 style={{
                                         left: viewport.offsetLeft,
                                         width: viewport.width,
