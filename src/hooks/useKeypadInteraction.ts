@@ -126,6 +126,7 @@ export function useKeypadInteraction({
     }, [dispatchKeyEvent, startRepeat, keyBoundsRef]);
 
     const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+        e.preventDefault(); // Prevent scrolling/gestures on iOS
         const press = activePresses.current.get(e.pointerId);
         if (!press) return;
 
@@ -165,6 +166,7 @@ export function useKeypadInteraction({
     }, [clearRepeat, dispatchKeyEvent, startRepeat, keyBoundsRef]);
 
     const handlePointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+        e.preventDefault(); // Prevent ghost clicks/focus changes
         const press = activePresses.current.get(e.pointerId);
         if (press) {
             clearRepeat(press);
