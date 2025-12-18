@@ -1,25 +1,19 @@
-// components/Input.tsx
-/** biome-ignore-all lint/a11y/useFocusableInteractive: <explanation> */
-/** biome-ignore-all lint/suspicious/noArrayIndexKey: <explanation> */
-/** biome-ignore-all assist/source/organizeImports: <explanation> */
-/** biome-ignore-all lint/a11y/useSemanticElements: <explanation> */
-/** biome-ignore-all lint/a11y/useKeyWithClickEvents: <explanation> */
 import {
-	useState,
-	type ClipboardEvent,
-	useMemo,
 	useCallback,
-	useId,
-	useImperativeHandle,
 	useEffect,
+	useMemo,
 	useRef,
+	useState,
+	useImperativeHandle,
+	useId,
 } from "react";
-import { assemble } from "es-hangul";
-import { isHangul } from "../utils/isHangul";
+import React from "react";
 import { ShadowWrapper } from "./ShadowWrapper";
-import { BlinkingCaret } from "./BlinkingCaret";
 import { useVirtualInputContext } from "./Context";
 import { parseKeyInput } from "../utils/parseKeyInput";
+import { assemble } from "es-hangul";
+import { isHangul } from "../utils/isHangul";
+
 
 export interface VirtualInputHandle {
 	handleKeyDown: (e: KeyboardEvent | React.KeyboardEvent) => void;
@@ -40,19 +34,217 @@ export function VirtualInput({
 	...props
 }: VirtualInputProps) {
 	const id = useId();
+	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
+
 	const [internalValue, setInternalValue] = useState(
 		controlledValue ?? defaultValue ?? "",
 	);
 	const [caretIndex, setCaretIndex] = useState<number>(
 		() => (controlledValue ?? defaultValue ?? "").length,
 	);
+
 	const [selection, setSelection] = useState<{
 		start: number | null;
 		end: number | null;
 	}>({ start: null, end: null });
-	const divRef = useRef<HTMLDivElement>(null);
 
-	const letters = useMemo(() => internalValue.split(""), [internalValue]);
+	// State for blinking cursor
+	const [showCursor, setShowCursor] = useState(true);
+
+	// Cache for character positions to avoid re-measuring text every frame
+	const charPositionsRef = useRef<number[]>([]);
+
+	// Invalidate cache when value changes
+	useEffect(() => {
+		// Resetting cache so it rebuilds on next draw.
+		// We set it to empty array or size 0 to indicate invalidation.
+		charPositionsRef.current = [];
+	}, [internalValue]);
+
+
+	const {
+		focusId,
+		onFocus,
+		onBlur,
+		hangulMode,
+		setHangulMode,
+		isCompositionRef,
+		inputRef,
+		shift,
+	} = useVirtualInputContext();
+
+	const isFocused = focusId === id;
+
+	// Sync controlled value
+	useEffect(() => {
+		if (controlledValue !== undefined && controlledValue !== internalValue) {
+			setInternalValue(controlledValue);
+		}
+	}, [controlledValue, internalValue]);
+
+	// Blinking cursor effect
+	useEffect(() => {
+		if (!isFocused) return;
+		const interval = setInterval(() => {
+			setShowCursor((prev: boolean) => !prev);
+		}, 530); // Standard blink rate
+		return () => clearInterval(interval);
+	}, [isFocused]);
+
+	// Force cursor visible on typing/moving
+	useEffect(() => {
+		setShowCursor(true);
+	}, [caretIndex, internalValue]);
+
+
+	// Selection Helper
+	const hasSelection = useMemo(
+		() =>
+			selection.start !== null &&
+			selection.end !== null &&
+			selection.start !== selection.end,
+		[selection],
+	);
+
+	const clearSelection = useCallback(() => {
+		setSelection({ start: null, end: null });
+	}, []);
+
+	const deleteSelectedText = useCallback(() => {
+		if (!hasSelection || selection.start === null || selection.end === null) {
+			return { newString: internalValue, finalCaretIndex: caretIndex };
+		}
+
+		const [start, end] = [selection.start, selection.end].sort((a, b) => a - b);
+		const newString = internalValue.slice(0, start) + internalValue.slice(end);
+
+		clearSelection();
+		return { newString, finalCaretIndex: start };
+	}, [
+		internalValue,
+		caretIndex,
+		hasSelection,
+		selection,
+		clearSelection,
+	]);
+
+	const draw = useCallback(() => {
+		const canvas = canvasRef.current;
+		const container = containerRef.current;
+		if (!canvas || !container) return;
+
+		const ctx = canvas.getContext("2d");
+		if (!ctx) return;
+
+		// Handle resize
+		const dpr = window.devicePixelRatio || 1;
+		const rect = container.getBoundingClientRect();
+
+		// Check if resize needed
+		if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
+			canvas.width = rect.width * dpr;
+			canvas.height = rect.height * dpr;
+			ctx.scale(dpr, dpr);
+			// Invalidate cache if resized? 
+			// Text measurements (width) depend on font, which depends on CSS, 
+			// which might change on resize (responsive font).
+			charPositionsRef.current = [];
+		}
+
+		const width = rect.width;
+		const height = rect.height;
+
+		// Clear
+		ctx.clearRect(0, 0, width, height);
+
+		// Font styles - inherit or default
+		const computedStyle = window.getComputedStyle(container);
+		const font = `${computedStyle.fontSize} ${computedStyle.fontFamily}`;
+
+		// Optimisation: only set font if changed? 
+		// ctx.font lookup is fast, but let's just set it.
+		ctx.font = font;
+		ctx.textBaseline = "middle";
+
+		const fontSize = parseFloat(computedStyle.fontSize);
+		const y = height / 2;
+		const x = 0; // standard padding?
+
+		// Placeholder
+		if (!internalValue && placeholder) {
+			ctx.fillStyle = "#aaa";
+			ctx.fillText(placeholder, x, y);
+			if (isFocused && showCursor) {
+				ctx.beginPath();
+				ctx.moveTo(x, y - fontSize / 2);
+				ctx.lineTo(x, y + fontSize / 2);
+				ctx.strokeStyle = "black";
+				ctx.lineWidth = 1.5;
+				ctx.stroke();
+			}
+			return;
+		}
+
+		ctx.fillStyle = "black";
+
+		// Measure for Selection (Optimized)
+		// Check if cache is valid (simple length check + cache existence)
+		// NOTE: We invalidate cache on internalValue change in useEffect, but here we can double check.
+		// Also if invalid, rebuild.
+		if (charPositionsRef.current.length !== internalValue.length + 1) {
+			let currentX = x;
+			const positions = [x];
+			for (let i = 0; i < internalValue.length; i++) {
+				// Measure char logic
+				const w = ctx.measureText(internalValue[i]).width;
+				currentX += w;
+				positions.push(currentX);
+			}
+			charPositionsRef.current = positions;
+		}
+		const charX = charPositionsRef.current;
+
+		// Draw Selection
+		if (hasSelection && selection.start !== null && selection.end !== null) {
+			const [start, end] = [selection.start, selection.end].sort((a, b) => a - b);
+
+			// Safe access
+			const startX = charX[start] ?? x;
+			const endX = charX[end] ?? charX[charX.length - 1];
+
+			ctx.fillStyle = "#b4d5fe";
+			ctx.fillRect(startX, 0, endX - startX, height);
+			ctx.fillStyle = "black"; // reset for text
+		}
+
+		// Draw text
+		ctx.fillText(internalValue, x, y);
+
+		// Draw Cursor
+		if (isFocused && showCursor && !hasSelection) {
+			const caretX = charX[caretIndex] ?? x;
+
+			ctx.beginPath();
+			ctx.moveTo(caretX, y - fontSize / 2);
+			ctx.lineTo(caretX, y + fontSize / 2);
+			ctx.strokeStyle = "black";
+			ctx.lineWidth = 1.5;
+			ctx.stroke();
+		}
+	}, [internalValue, caretIndex, isFocused, showCursor, placeholder, hasSelection, selection]);
+
+	// Animation Loop
+	useEffect(() => {
+		let animationFrameId: number;
+		const loop = () => {
+			draw();
+			animationFrameId = requestAnimationFrame(loop);
+		};
+		loop();
+		return () => cancelAnimationFrame(animationFrameId);
+	}, [draw]);
+
 
 	const updateValue = useCallback(
 		(newValue: string, newCaretIndex: number) => {
@@ -60,6 +252,7 @@ export function VirtualInput({
 				setInternalValue(newValue);
 			}
 
+			// Mock event for compatibility
 			const fakeInput = { value: newValue } as HTMLInputElement;
 			const changeEvent = {
 				target: fakeInput,
@@ -72,386 +265,174 @@ export function VirtualInput({
 		[controlledValue, onChange],
 	);
 
-	useEffect(() => {
-		if (controlledValue !== undefined && controlledValue !== internalValue) {
-			setInternalValue(controlledValue);
-		}
-	}, [controlledValue, internalValue]);
+	const getCharIndexFromX = useCallback((clientX: number) => {
+		const canvas = canvasRef.current;
+		if (!canvas) return 0;
 
-	const {
-		focusId,
-		onFocus,
-		onBlur,
-		hangulMode,
-		setHangulMode,
-		isCompositionRef,
-		inputRef,
-		shift,
-	} = useVirtualInputContext();
-	const isFocused = focusId === id;
-	const selectionStart = selection.start;
-	const selectionEnd = selection.end;
+		const rect = canvas.getBoundingClientRect();
+		const x = clientX - rect.left;
 
-	const hasSelection = useMemo(
-		() =>
-			selectionStart !== null &&
-			selectionEnd !== null &&
-			selectionStart !== selectionEnd,
-		[selectionStart, selectionEnd],
-	);
+		// We can try to use cache if we are sure it's valid, but safe to measure again for click
+		// Or if we want strict consistency, we use the cache used in draw.
+		// But draw might not have run yet if component just mounted (unlikely for click).
+		// Let's use cache if available and valid length.
 
-	const clearSelection = useCallback(() => {
-		setSelection({ start: null, end: null });
-	}, []);
-
-	const deleteSelectedText = useCallback(() => {
-		if (!hasSelection || selectionStart === null || selectionEnd === null) {
-			return { newString: internalValue, finalCaretIndex: caretIndex };
+		if (charPositionsRef.current.length === internalValue.length + 1) {
+			const charX = charPositionsRef.current;
+			// Find closest
+			for (let i = 0; i < charX.length - 1; i++) {
+				const center = (charX[i] + charX[i + 1]) / 2;
+				if (x < center) return i;
+			}
+			return internalValue.length;
 		}
 
-		const [start, end] = [selectionStart, selectionEnd].sort((a, b) => a - b);
-		const newString = internalValue.slice(0, start) + internalValue.slice(end);
+		// Fallback: re-measure
+		const ctx = canvas.getContext("2d");
+		if (!ctx) return 0;
+		const computedStyle = window.getComputedStyle(containerRef.current!);
+		ctx.font = `${computedStyle.fontSize} ${computedStyle.fontFamily}`;
 
+		let currentX = 0;
+		for (let i = 0; i < internalValue.length; i++) {
+			const w = ctx.measureText(internalValue[i]).width;
+			if (x < currentX + w / 2) {
+				return i;
+			}
+			currentX += w;
+		}
+		return internalValue.length;
+	}, [internalValue]);
+
+	const handleCanvasClick = useCallback((e: React.MouseEvent) => {
+		const index = getCharIndexFromX(e.clientX);
+		setCaretIndex(index);
 		clearSelection();
-		return { newString, finalCaretIndex: start };
-	}, [
-		internalValue,
-		caretIndex,
-		hasSelection,
-		selectionStart,
-		selectionEnd,
-		clearSelection,
-	]);
+		onFocus(id);
+	}, [getCharIndexFromX, clearSelection, onFocus, id]);
 
-	const handlePaste = useCallback(
-		(e: ClipboardEvent<HTMLDivElement>) => {
-			e.preventDefault();
-			const pastedText = e.clipboardData.getData("text/plain");
-			if (!pastedText) return;
-
-			const { newString, finalCaretIndex } = hasSelection
-				? deleteSelectedText()
-				: { newString: internalValue, finalCaretIndex: caretIndex };
-
-			const finalString =
-				newString.slice(0, finalCaretIndex) +
-				pastedText +
-				newString.slice(finalCaretIndex);
-			const newCaretPosition = finalCaretIndex + pastedText.length;
-
-			updateValue(finalString, newCaretPosition);
-			clearSelection();
-		},
-		[
-			internalValue,
-			caretIndex,
-			hasSelection,
-			clearSelection,
-			deleteSelectedText,
-			updateValue,
-		],
-	);
-
+	// Reuse handleKeyDown from old Input, adapted
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent | KeyboardEvent) => {
-			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
-				e.preventDefault();
-				setSelection({ start: 0, end: letters.length });
-				return;
-			}
+
 			if (e.key === "HangulMode") {
 				setHangulMode(!hangulMode);
 				return;
 			}
 
-			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
-				if (hasSelection && selectionStart !== null && selectionEnd !== null) {
-					e.preventDefault();
-					const [start, end] = [selectionStart, selectionEnd].sort(
-						(a, b) => a - b,
-					);
-					const textToCopy = letters.slice(start, end).join("");
-					navigator.clipboard.writeText(textToCopy).catch((err) => {
-						console.error("Failed to copy text: ", err);
-					});
-				}
+			// Selection keys (Shift + Arrow) - simplify for now or implement?
+			// Let's implement basic Shift+Arrow
+			if (e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+				const newIndex = e.key === "ArrowLeft"
+					? Math.max(0, caretIndex - 1)
+					: Math.min(internalValue.length, caretIndex + 1);
+
+				setSelection((prev: { start: number | null; end: number | null }) => ({
+					start: prev.start ?? caretIndex,
+					end: newIndex
+				}));
+				setCaretIndex(newIndex);
 				return;
 			}
 
-			if (
-				(e.ctrlKey || e.metaKey) &&
-				(e.key.toLowerCase() === "c" || e.key.toLowerCase() === "v")
-			)
-				return;
-
 			switch (e.key) {
+				case "ArrowLeft":
+					setCaretIndex(prev => Math.max(0, prev - 1));
+					clearSelection();
+					return;
+				case "ArrowRight":
+					setCaretIndex(prev => Math.min(internalValue.length, prev + 1));
+					clearSelection();
+					return;
 				case "Backspace": {
 					isCompositionRef.current = false;
 					if (hasSelection) {
 						const { newString, finalCaretIndex } = deleteSelectedText();
 						updateValue(newString, finalCaretIndex);
 					} else if (caretIndex > 0) {
-						const newString =
-							internalValue.slice(0, caretIndex - 1) +
-							internalValue.slice(caretIndex);
+						const newString = internalValue.slice(0, caretIndex - 1) + internalValue.slice(caretIndex);
 						updateValue(newString, caretIndex - 1);
 					}
-					break;
-				}
-				case "Delete": {
-					isCompositionRef.current = false;
-					if (hasSelection) {
-						const { newString, finalCaretIndex } = deleteSelectedText();
-						updateValue(newString, finalCaretIndex);
-					} else if (caretIndex < letters.length) {
-						const newString =
-							internalValue.slice(0, caretIndex) +
-							internalValue.slice(caretIndex + 1);
-						updateValue(newString, caretIndex);
-					}
-					break;
-				}
-				case "ArrowLeft": {
-					isCompositionRef.current = false;
-					const newCaretIndex = Math.max(0, caretIndex - 1);
-					if (e.shiftKey) {
-						setSelection((prev) => ({
-							start: prev.start ?? caretIndex,
-							end: newCaretIndex,
-						}));
-					} else {
-						clearSelection();
-					}
-					setCaretIndex(newCaretIndex);
-					break;
-				}
-				case "ArrowRight": {
-					isCompositionRef.current = false;
-					const newCaretIndex = Math.min(letters.length, caretIndex + 1);
-					if (e.shiftKey) {
-						setSelection((prev) => ({
-							start: prev.start ?? caretIndex,
-							end: newCaretIndex,
-						}));
-					} else {
-						clearSelection();
-					}
-					setCaretIndex(newCaretIndex);
-					break;
-				}
-				case "Unidentified":
-				case "Shift":
-				case "Control":
-				case "Alt":
-				case "Meta":
-				case "CapsLock":
-				case "Enter":
-				case "Tab":
-				case "ArrowUp":
-				case "ArrowDown":
-					e.stopPropagation();
-					break;
-				case "End": {
-					const newCaretIndex = letters.length;
-					if (e.shiftKey) {
-						setSelection((prev) => ({
-							...prev,
-							end: newCaretIndex,
-						}));
-					}
-					setCaretIndex(newCaretIndex);
-					break;
-				}
-
-				default: {
-					const result = parseKeyInput(e, hangulMode);
-
-					if (result.toggleHangulMode) {
-						setHangulMode(!hangulMode);
-						return;
-					}
-
-					if (!result.handled || !result.text) return;
-					const { composing } = result;
-					let { text } = result;
-
-					if (shift && text.length === 1 && text.match(/[a-z]/i)) {
-						text = text.toUpperCase();
-					}
-
-					const { newString, finalCaretIndex } = hasSelection
-						? deleteSelectedText()
-						: { newString: internalValue, finalCaretIndex: caretIndex };
-
-					const prevChar = newString[finalCaretIndex - 1];
-
-					if (composing && isHangul(prevChar) && isCompositionRef.current) {
-						const combined = assemble([prevChar, text]);
-						const finalString =
-							newString.slice(0, finalCaretIndex - 1) +
-							combined +
-							newString.slice(finalCaretIndex);
-						updateValue(finalString, finalCaretIndex - 1 + combined.length);
-					} else {
-						const finalString =
-							newString.slice(0, finalCaretIndex) +
-							text +
-							newString.slice(finalCaretIndex);
-						updateValue(finalString, finalCaretIndex + text.length);
-					}
-
-					isCompositionRef.current = composing;
-					break;
+					return;
 				}
 			}
-		},
-		[
-			letters,
-			caretIndex,
-			hasSelection,
-			selectionStart,
-			selectionEnd,
-			clearSelection,
-			deleteSelectedText,
-			hangulMode,
-			setHangulMode,
-			isCompositionRef,
-			shift,
-			updateValue,
-			internalValue,
-		],
-	);
-	const handleFocus = useCallback(() => {
-		onFocus(id);
-	}, [onFocus, id]);
 
-	const handleBlur = useCallback(() => {
-		onBlur();
-	}, [onBlur]);
-	const handleClickWrap = useCallback(() => {
-		clearSelection();
-		setCaretIndex(letters.length);
-	}, [clearSelection, letters.length]);
+			// Typing
+			const result = parseKeyInput(e, hangulMode);
+			if (result.toggleHangulMode) {
+				setHangulMode(!hangulMode);
+				return;
+			}
 
-	const handleClickLetter = useCallback(
-		(index: number) => {
-			clearSelection();
-			setCaretIndex(index);
-		},
-		[clearSelection],
-	);
+			if (!result.handled || !result.text) return;
+			// Ignore modifiers
+			if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-	const isSelected = useCallback(
-		(index: number) => {
-			if (!hasSelection || selectionStart === null || selectionEnd === null)
-				return false;
-			const [start, end] = [selectionStart, selectionEnd].sort((a, b) => a - b);
-			return index >= start && index < end;
+			const { composing } = result;
+			let { text } = result;
+
+			if (shift && text.length === 1 && text.match(/[a-z]/i)) {
+				text = text.toUpperCase();
+			}
+
+			const { newString, finalCaretIndex } = hasSelection
+				? deleteSelectedText()
+				: { newString: internalValue, finalCaretIndex: caretIndex };
+
+			const prevChar = newString[finalCaretIndex - 1];
+			if (composing && isHangul(prevChar) && isCompositionRef.current) {
+				const combined = assemble([prevChar, text]);
+				const finalString = newString.slice(0, finalCaretIndex - 1) + combined + newString.slice(finalCaretIndex);
+				updateValue(finalString, finalCaretIndex - 1 + combined.length);
+			} else {
+				const finalString = newString.slice(0, finalCaretIndex) + text + newString.slice(finalCaretIndex);
+				updateValue(finalString, finalCaretIndex + text.length);
+			}
+			isCompositionRef.current = composing;
+
 		},
-		[hasSelection, selectionStart, selectionEnd],
+		[internalValue, caretIndex, hangulMode, setHangulMode, isCompositionRef, shift, updateValue, hasSelection, deleteSelectedText, clearSelection]
 	);
 
-	const handleClickLetterEvent = (e: React.MouseEvent<HTMLSpanElement>) => {
-		e.stopPropagation();
-		handleClickLetter(Number(e.currentTarget.dataset.value));
-	};
 	useImperativeHandle(inputRef, () => {
 		if (isFocused) {
-			return {
-				handleKeyDown,
-			};
+			return { handleKeyDown };
 		}
-		// biome-ignore lint/style/noNonNullAssertion: <explanation>
 		return inputRef.current!;
 	}, [isFocused, handleKeyDown, inputRef]);
 
-        return (
-                <ShadowWrapper
-                        tagName={"virtual-input" as "input"}
-                        css={`
-        .wrap {
-          white-space: pre;
-          position: relative;
-          cursor: text;
-          border-radius: 4px;
-          user-select: none;
-          -webkit-user-select: none;
-          -webkit-touch-callout: none;
-          touch-action: manipulation;
-        }
-        .wrap::after {
-          content: " ";
-        }
-        .placeholder {
-          position: absolute;
-          left: 0;
-          top: 0;
-          color: #aaa;
-          pointer-events: none;
-        }
-        .letter {
-          position: relative;
-          outline: none;
-        }
-        .letter.selected {
-          background-color: #b4d5fe;
-        }
-        @keyframes blink {
-          0%,
-          49% {
-            opacity: 1;
-          }
-          50%,
-          100% {
-            opacity: 0;
-          }
-        }
-        .blink {
-          animation: blink 1s step-start infinite;
-        }
-      `}
+
+	return (
+		<ShadowWrapper
+			tagName={"virtual-input-canvas" as "input"}
+			css={`
+               canvas {
+                   width: 100%;
+                   height: 100%;
+                   cursor: text;
+                   display: block;
+               }
+            `}
 		>
 			<div
+				ref={containerRef}
 				{...props}
-				ref={divRef}
-				className="wrap"
 				role="textbox"
-				aria-placeholder={placeholder}
 				tabIndex={0}
 				style={{
-					minHeight: "1.5em", // Standard input height
-					lineHeight: "1.5em", // Standard input line height
-					outline: "none", // Remove default outline
+					minHeight: "1.5em",
+					height: "1.5em",
+					outline: "none",
 					font: "inherit",
 					width: "100%",
+					position: "relative"
 				}}
-				onFocus={handleFocus}
-				onBlur={handleBlur}
+				onFocus={() => onFocus(id)}
+				onBlur={onBlur}
 				onKeyDown={handleKeyDown}
-				onClick={handleClickWrap}
-				onPaste={handlePaste}
+				onClick={handleCanvasClick}
 			>
-				{!internalValue && placeholder && (
-					<span className="placeholder">{placeholder}</span>
-				)}
-				{letters.map((char, i) => (
-					<span key={`char-${char}-${i}`}>
-						{caretIndex === i && isFocused && !hasSelection && (
-							<BlinkingCaret />
-						)}
-						<span
-							role="button"
-							data-value={i}
-							onClick={handleClickLetterEvent}
-							className={`letter ${isSelected(i) ? "selected" : ""}`}
-						>
-							{char}
-						</span>
-					</span>
-				))}
-				{caretIndex === letters.length && isFocused && !hasSelection && (
-					<BlinkingCaret />
-				)}
+				<canvas ref={canvasRef} />
 			</div>
 		</ShadowWrapper>
 	);
