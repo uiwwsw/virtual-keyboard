@@ -23,6 +23,7 @@ export function VirtualInputProvider({
 }) {
 	const inputRef = useRef<VirtualInputHandle>(null);
 	const sti = useRef(setTimeout(() => null, 0));
+	const isCompositionRef = useRef<boolean | undefined>(undefined);
 	const [focusId, setFocusId] = useState<string | undefined>();
 	const [shift, setShift] = useState(false);
 	const [hangulMode, setHangulMode] = useStorage(
@@ -46,12 +47,24 @@ export function VirtualInputProvider({
 		clearTimeout(sti.current);
 		setFocusId(id);
 	};
-	const onBlur = () => {
-		sti.current = setTimeout(() => {
-			setFocusId(undefined);
-			isCompositionRef.current = false;
-		}, 0);
-	};
+	const onBlur = useCallback((e?: React.FocusEvent) => {
+		// If explicit blur to another element
+		if (e?.relatedTarget) {
+			// If related target is a virtual input, don't close (let new input focus handle it)
+			if ((e.relatedTarget as HTMLElement).getAttribute("data-virtual-input")) {
+				return;
+			}
+			// If focused to valid non-virtual element, close
+			sti.current = setTimeout(() => {
+				setFocusId(undefined);
+				isCompositionRef.current = false;
+			}, 0);
+			return;
+		}
+
+		// If tapped background (no related target or body), KEEP OPEN (User request)
+		// This is CRITICAL for iOS fast input where focus can be lost transiently.
+	}, [setFocusId, isCompositionRef]);
 	const toggleShift = useCallback(() => {
 		setShift((prev) => !prev);
 	}, []);
@@ -59,7 +72,6 @@ export function VirtualInputProvider({
 	const toggleKorean = useCallback(() => {
 		setHangulMode((prev) => !prev);
 	}, [setHangulMode]);
-	const isCompositionRef = useRef<boolean | undefined>(undefined);
 	return (
 		<VirtualInputContext.Provider
 			value={{
