@@ -49,7 +49,8 @@ export function VirtualKeypad({
                 activePresses,
                 handlePointerDown,
                 handlePointerMove,
-                handlePointerUp
+                handlePointerUp,
+                handlePointerCancel
         } = useKeypadInteraction({
                 inputRef,
                 toggleShift,
@@ -193,6 +194,12 @@ export function VirtualKeypad({
         }, [calculateLayout, hangulMode, shift, viewport.scale, activePresses, keyBoundsRef]); // Added deps
 
 
+        // Explicitly reset layout on mode change to force redraw
+        useEffect(() => {
+                keyBoundsRef.current = [];
+        }, [hangulMode, shift, keyBoundsRef]);
+
+
         // --- Interactions ---
 
         // Animation Loop for smooth pressing
@@ -220,7 +227,9 @@ export function VirtualKeypad({
                    box-shadow: 0 calc(-6px / var(--scale-factor)) calc(30px / var(--scale-factor)) rgba(15, 23, 42, 0.2);
                    user-select: none;
                    -webkit-user-select: none;
-                   touch-action: none;
+                   touch-action: none; /* Critical for iOS */
+                   -webkit-touch-callout: none; /* Disable magnifier/menu */
+                   -webkit-tap-highlight-color: transparent; /* No gray tap box */
                    z-index: 9999;
                    overflow: hidden; /* Canvas containment */
                }
@@ -228,6 +237,7 @@ export function VirtualKeypad({
                    display: block;
                    width: 100%;
                    height: 100%;
+                   touch-action: none; /* Extra safety */
                }
             `}
                 >
@@ -238,6 +248,7 @@ export function VirtualKeypad({
                                 onBlur={onBlur}
                                 onContextMenu={(e) => e.preventDefault()}
                                 onPointerDown={(e) => e.preventDefault()} // Prevent focus loss on background tap
+                                onClickCapture={(e) => { e.preventDefault(); e.stopPropagation(); }} // Stop Ghost Clicks
                                 style={{
                                         left: viewport.offsetLeft,
                                         width: viewport.width,
@@ -255,7 +266,7 @@ export function VirtualKeypad({
                                         onPointerMove={handlePointerMove}
                                         onPointerUp={handlePointerUp}
                                         onPointerLeave={handlePointerUp}
-                                        onPointerCancel={handlePointerUp}
+                                        onPointerCancel={handlePointerCancel}
                                 />
                         </div>
                 </ShadowWrapper>
