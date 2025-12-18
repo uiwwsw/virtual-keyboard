@@ -1,4 +1,4 @@
-import { useCallback, useRef, useMemo } from "react";
+import { useCallback, useRef, useMemo, useEffect } from "react";
 import type { KeyBounds } from "./useKeypadLayout";
 import type { VirtualInputHandle } from "../components/Input";
 
@@ -60,6 +60,7 @@ export function useKeypadInteraction({
                 shiftKey: shift,
             });
             inputRef.current?.handleKeyDown(event);
+            inputRef.current?.scrollIntoView();
         },
         [getTransformedValue, inputRef, shift, toggleKorean, toggleShift],
     );
@@ -99,6 +100,9 @@ export function useKeypadInteraction({
         const canvas = e.currentTarget;
         if (!canvas) return;
 
+        // Capture pointer to ensure we receive move/up events even if finger leaves elements
+        canvas.setPointerCapture(e.pointerId);
+
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -122,6 +126,13 @@ export function useKeypadInteraction({
 
             activePresses.current.set(e.pointerId, press);
             startRepeat(press);
+        } else {
+            // Track "void" press to allow sliding ONTO a key later
+            activePresses.current.set(e.pointerId, {
+                pointerId: e.pointerId,
+                value: "",
+                keyIndex: -1 // Void sentinel
+            });
         }
     }, [dispatchKeyEvent, startRepeat, keyBoundsRef]);
 
@@ -144,7 +155,7 @@ export function useKeypadInteraction({
         if (hitKey) {
             const newKeyIndex = hitKey.rowIndex * 100 + hitKey.colIndex;
             if (newKeyIndex !== press.keyIndex) {
-                // Switch key
+                // Transition: KeyA -> KeyB  OR  Void -> KeyB
                 clearRepeat(press);
 
                 // Start new
@@ -159,9 +170,16 @@ export function useKeypadInteraction({
                 startRepeat(newPress);
             }
         } else {
-            // Moved to void
-            clearRepeat(press);
-            activePresses.current.delete(e.pointerId); // Remove press tracking if moved out
+            // Transition: Key -> Void
+            if (press.keyIndex !== -1) {
+                clearRepeat(press);
+                // Mark as void but keep tracking
+                activePresses.current.set(e.pointerId, {
+                    pointerId: e.pointerId,
+                    value: "",
+                    keyIndex: -1
+                });
+            }
         }
     }, [clearRepeat, dispatchKeyEvent, startRepeat, keyBoundsRef]);
 
@@ -174,10 +192,27 @@ export function useKeypadInteraction({
         }
     }, [clearRepeat]);
 
+    // Cleanup on unmount (e.g., keypad close)
+    useEffect(() => {
+        return () => {
+            activePresses.current.forEach((press) => {
+                if (press.repeatTimeout) {
+                    window.clearTimeout(press.repeatTimeout);
+                }
+            });
+            activePresses.current.clear();
+        };
+    }, []);
+
+    const handlePointerCancel = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+        handlePointerUp(e);
+    }, [handlePointerUp]);
+
     return {
         activePresses,
         handlePointerDown,
         handlePointerMove,
-        handlePointerUp
+        handlePointerUp,
+        handlePointerCancel
     };
 }

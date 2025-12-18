@@ -17,6 +17,7 @@ import { isHangul } from "../utils/isHangul";
 
 export interface VirtualInputHandle {
 	handleKeyDown: (e: KeyboardEvent | React.KeyboardEvent) => void;
+	scrollIntoView: () => void;
 }
 
 export interface VirtualInputProps {
@@ -421,7 +422,15 @@ export function VirtualInput({
 
 	useImperativeHandle(inputRef, () => {
 		if (isFocused) {
-			return { handleKeyDown };
+			return {
+				handleKeyDown,
+				scrollIntoView: () => {
+					containerRef.current?.scrollIntoView({
+						behavior: "smooth",
+						block: "nearest",
+					});
+				}
+			};
 		}
 		return inputRef.current!;
 	}, [isFocused, handleKeyDown, inputRef]);
@@ -453,9 +462,10 @@ export function VirtualInput({
 					position: "relative"
 				}}
 				onFocus={() => onFocus(id)}
-				onBlur={onBlur}
+				onBlur={(e) => onBlur(e)}
 				onKeyDown={handleKeyDown}
 				onClick={handleCanvasClick}
+				data-virtual-input="true"
 			>
 				<canvas ref={canvasRef} />
 			</div>
