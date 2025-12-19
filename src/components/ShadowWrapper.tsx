@@ -12,10 +12,11 @@ export const ShadowWrapper = memo(
     children: React.ReactNode;
     css?: string;
     tagName: string;
+    hostRef?: React.MutableRefObject<HTMLElement | null>;
   } & React.HTMLAttributes<HTMLElement>) => {
     const [host, setHost] = useState<HTMLElement | null>(null);
     const [shadowRoot, setShadowRoot] = useState<ShadowRoot | null>(null);
-    const { tagName, css, children, ...rest } = props;
+    const { tagName, css, children, hostRef, ...rest } = props;
     const Component = tagName as any;
 
     // host div가 마운트되면 shadowRoot를 생성합니다. 이 작업은 한 번만 실행됩니다.
@@ -24,7 +25,10 @@ export const ShadowWrapper = memo(
         const shadow = host.attachShadow({ mode: "open" });
         setShadowRoot(shadow);
       }
-    }, [host, shadowRoot]); // host가 설정될 때만 실행
+      if (hostRef) {
+        hostRef.current = host;
+      }
+    }, [host, shadowRoot, hostRef]); // host가 설정될 때만 실행
 
     return (
       <Component ref={setHost} {...rest}>

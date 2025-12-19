@@ -515,40 +515,46 @@ export function VirtualInput({
 
 	return (
 		<ShadowWrapper
-			tagName={"virtual-input-canvas" as "input"}
+			tagName={"virtual-input-canvas" as any}
+			hostRef={containerRef}
+			// Host Props
+			id={id}
+			className={props.className}
+			role="textbox"
+			tabIndex={0}
+			{...props}
+			// Styles
+			style={{
+				display: "inline-block", // Behaves like an input
+				minHeight: "1.5em",
+				height: "1.5em",
+				outline: "none",
+				font: "inherit",
+				width: "100%",
+				position: "relative",
+				cursor: "text",
+				...props.style
+			}}
+			// Interaction Handlers
+			onFocus={() => onFocus(id, containerRef.current)}
+			onBlur={(e) => onBlur(e)}
+			onKeyDown={handleKeyDown}
+			onClick={handleCanvasClick}
+			data-virtual-input="true"
+			// Shadow DOM Styles
 			css={`
+				:host {
+					display: inline-block;
+					position: relative;
+				}
                 canvas {
                     width: 100%;
                     height: 100%;
-                    cursor: text;
                     display: block;
                 }
             `}
 		>
-			<div
-				id={id}
-				ref={containerRef}
-				className={props.className}
-				{...props}
-				role="textbox"
-				tabIndex={0}
-				style={{
-					minHeight: "1.5em",
-					height: "1.5em",
-					outline: "none",
-					font: "inherit",
-					width: "100%",
-					position: "relative",
-					...props.style
-				}}
-				onFocus={() => onFocus(id, containerRef.current)}
-				onBlur={(e) => onBlur(e)}
-				onKeyDown={handleKeyDown}
-				onClick={handleCanvasClick}
-				data-virtual-input="true"
-			>
-				<canvas ref={canvasRef} />
-			</div>
+			<canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
 		</ShadowWrapper>
 	);
 }
