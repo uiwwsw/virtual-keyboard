@@ -1,8 +1,5 @@
-import {
-        useCallback,
-        useEffect,
-        useRef,
-} from "react";
+import { useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { ShadowWrapper } from "./ShadowWrapper";
 import { useVirtualInputContext } from "./Context";
 import { isMobileAgent } from "../utils/isMobileAgent";
@@ -262,60 +259,60 @@ export function VirtualKeypad({
 
         if (!focusId || !isMobileAgent()) return null;
 
-        return (
+        // Render Portal to Body
+        return createPortal(
                 <ShadowWrapper
-                        tagName={"virtual-keypad-canvas" as "div"}
+                        tagName={"virtual-keypad-canvas" as any}
+                        hostRef={containerRef}
+                        // Host Element Styles (The actual container)
+                        style={{
+                                position: "fixed",
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                margin: "0 auto",
+                                width: viewport.width,
+                                height: Math.round(200 / viewport.scale),
+                                backgroundColor: theme === "dark" ? "#0f172a" : "#e2e8f0",
+                                borderRadius: `calc(18px / ${viewport.scale}) calc(18px / ${viewport.scale}) 0 0`,
+                                boxShadow: `0 calc(-6px / ${viewport.scale}) calc(30px / ${viewport.scale}) rgba(15, 23, 42, 0.2)`,
+                                zIndex: 9999,
+                                overflow: "hidden",
+                                userSelect: "none",
+                                touchAction: "none",
+                                // CSS Variables for internal usage if needed
+                                "--scale-factor": viewport.scale,
+                                "--keypad-bg": theme === "dark" ? "#0f172a" : "#e2e8f0",
+                        } as React.CSSProperties}
+                        // Event Handlers on Host
+                        onFocus={() => { if (focusId) onFocus(focusId) }}
+                        onBlur={onBlur}
+                        onContextMenu={(e) => e.preventDefault()}
+                        onPointerDown={(e) => e.preventDefault()}
+                        onClickCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        // Internal Shadow DOM Styles
                         css={`
-               .keypad-wrapper {
-                   position: fixed;
-                   bottom: 0;
-                   left: 0; 
-                   right: 0;
-                   margin: 0 auto; /* Center horizontal if width < 100% */
-                   background-color: var(--keypad-bg);
-                   border-radius: calc(18px / var(--scale-factor)) calc(18px / var(--scale-factor)) 0 0; /* Only top corners */
-                   box-shadow: 0 calc(-6px / var(--scale-factor)) calc(30px / var(--scale-factor)) rgba(15, 23, 42, 0.2);
-                   user-select: none;
-                   -webkit-user-select: none;
-                   touch-action: none; /* Critical for iOS */
-                   -webkit-touch-callout: none; /* Disable magnifier/menu */
-                   -webkit-tap-highlight-color: transparent; /* No gray tap box */
-                   z-index: 9999;
-                   overflow: hidden; /* Canvas containment */
-               }
-               canvas {
-                   display: block;
-                   width: 100%;
-                   height: 100%;
-                   touch-action: none; /* Extra safety */
-               }
-            `}
+				:host {
+					display: block;
+				}
+				canvas {
+					display: block;
+					width: 100%;
+					height: 100%;
+					touch-action: none;
+				}
+			`}
                 >
-                        <div
-                                ref={containerRef}
-                                className="keypad-wrapper"
-                                onFocus={() => { if (focusId) onFocus(focusId) }}
-                                onBlur={onBlur}
-                                onContextMenu={(e) => e.preventDefault()}
-                                onPointerDown={(e) => e.preventDefault()} // Prevent focus loss on background tap
-                                onClickCapture={(e) => { e.preventDefault(); e.stopPropagation(); }} // Stop Ghost Clicks
-                                style={{
-                                        width: viewport.width,
-                                        height: Math.round(200 / viewport.scale),
-
-                                        "--scale-factor": viewport.scale,
-                                        "--keypad-bg": theme === "dark" ? "#0f172a" : "#e2e8f0",
-                                } as React.CSSProperties}
-                        >
-                                <canvas
-                                        ref={canvasRef}
-                                        onPointerDown={handlePointerDown}
-                                        onPointerMove={handlePointerMove}
-                                        onPointerUp={handlePointerUp}
-                                        onPointerLeave={handlePointerUp}
-                                        onPointerCancel={handlePointerCancel}
-                                />
-                        </div>
-                </ShadowWrapper>
+                        <canvas
+                                ref={canvasRef}
+                                onPointerDown={handlePointerDown}
+                                onPointerMove={handlePointerMove}
+                                onPointerUp={handlePointerUp}
+                                onPointerLeave={handlePointerUp}
+                                onPointerCancel={handlePointerCancel}
+                                style={{ width: '100%', height: '100%', display: 'block' }}
+                        />
+                </ShadowWrapper>,
+                document.body
         );
 }
