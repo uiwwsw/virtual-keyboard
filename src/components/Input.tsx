@@ -56,6 +56,17 @@ export function VirtualInput({
 
 	// State for blinking cursor
 	const [showCursor, setShowCursor] = useState(true);
+	const showCursorRef = useRef(showCursor);
+
+	useEffect(() => {
+		showCursorRef.current = showCursor;
+	}, [showCursor]);
+
+	// Long Press Logic
+	const longPressTimerRef = useRef<number | null>(null);
+	const [showCopyFeedback, setShowCopyFeedback] = useState(false);
+	const pointerStartedRef = useRef(false);
+	const pointerStartPositionRef = useRef<{ x: number; y: number } | null>(null);
 
 	// Cache for character positions to avoid re-measuring text every frame
 	const charPositionsRef = useRef<number[]>([]);
@@ -63,8 +74,6 @@ export function VirtualInput({
 
 	// Invalidate cache when value changes
 	useEffect(() => {
-		// Resetting cache so it rebuilds on next draw.
-		// We set it to empty array or size 0 to indicate invalidation.
 		charPositionsRef.current = [];
 	}, [internalValue]);
 
@@ -149,30 +158,21 @@ export function VirtualInput({
 		const dpr = window.devicePixelRatio || 1;
 		const rect = container.getBoundingClientRect();
 
-		// Check if resize needed
 		if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
 			canvas.width = rect.width * dpr;
 			canvas.height = rect.height * dpr;
 			ctx.scale(dpr, dpr);
-			// Invalidate cache if resized? 
-			// Text measurements (width) depend on font, which depends on CSS, 
-			// which might change on resize (responsive font).
 			charPositionsRef.current = [];
 		}
 
 		const width = rect.width;
 		const height = rect.height;
 
-		// Clear
 		ctx.clearRect(0, 0, width, height);
 
-		// Font styles - inherit or default
 		const computedStyle = window.getComputedStyle(container);
-		// precise font construction
 		const font = `${computedStyle.fontStyle} ${computedStyle.fontVariant} ${computedStyle.fontWeight} ${computedStyle.fontSize} ${computedStyle.fontFamily}`;
 
-		// Optimisation: only set font if changed? 
-		// ctx.font lookup is fast, but let's just set it.
 		ctx.font = font;
 		ctx.textBaseline = "middle";
 
@@ -184,13 +184,17 @@ export function VirtualInput({
 		const color = computedStyle.color || "black";
 		const caretColor = (computedStyle.caretColor !== "auto" ? computedStyle.caretColor : color) || "black";
 		const y = height / 2;
-		const x = borderLeft + paddingLeft; // Start text after border and padding
+		const x = borderLeft + paddingLeft;
 
-		// Placeholder
-		if (!internalValue && placeholder) {
+		// Optimize: Use refs to avoid re-creating draw function
+		const text = internalValueRef.current;
+		const cIndex = caretIndexRef.current;
+		const isCursorVisible = showCursorRef.current;
+
+		if (!text && placeholder) {
 			ctx.fillStyle = "#aaa";
 			ctx.fillText(placeholder, x, y);
-			if (isFocused && showCursor) {
+			if (isFocused && isCursorVisible) {
 				ctx.beginPath();
 				ctx.moveTo(x, y - fontSize / 2);
 				ctx.lineTo(x, y + fontSize / 2);
@@ -201,84 +205,40 @@ export function VirtualInput({
 			return;
 		}
 
-
 		ctx.fillStyle = color;
 
-		// Measure for Selection (Optimized)
-		if (charPositionsRef.current.length !== internalValue.length + 1) {
+		if (charPositionsRef.current.length !== text.length + 1) {
 			const positions = [x];
-			for (let i = 0; i < internalValue.length; i++) {
-				// Measure cumulative width to account for kerning/ligatures
-				const w = ctx.measureText(internalValue.slice(0, i + 1)).width;
+			for (let i = 0; i < text.length; i++) {
+				const w = ctx.measureText(text.slice(0, i + 1)).width;
 				positions.push(x + w);
 			}
 			charPositionsRef.current = positions;
 		}
 		const charX = charPositionsRef.current;
 
-		// --- Scroll Logic ---
-		// We calculate desired scroll based on caret position
-		const caretPos = charX[caretIndex] ?? x; // This includes 'x' (paddingLeft)
-
-		// Viewport logic:
-		// Visible area is from 0 to width.
-		// Content area starts at scrollXRef.current.
-		// We want caretPos - scrollX to be within [paddingLeft + padding, width - paddingRight - padding]
+		// Scroll Logic
+		const caretPos = charX[cIndex] ?? x;
 
 		const viewLeft = paddingLeft;
-		// viewRight is the right edge of the content area.
-		// width (from getBoundingClientRect) includes borders.
-		// So we must subtract borderRight as well.
 		const viewRight = width - paddingRight - borderLeft - borderRight;
-		// Actually, if x starts at paddingLeft, is x relative to border-box or content-box?
-		// Canvas creates a context where (0,0) is top-left of the canvas element.
-		// If canvas is size of clientRect (border-box), then 0 is the left border edge.
-		// So content starts at borderLeft + paddingLeft.
 
-		// If I set `x = paddingLeft`, I am assuming 0 is the start of padding box.
-		// But 0 is start of border box.
-		// So x should be borderLeft + paddingLeft.
-		// And viewRight should be width - borderRight - paddingRight.
-
-		// Let's Correct `x` first.
-		const safety = 2; // Minimal safety to prevent exact edge clipping
-
-		// If total text fits in available container width, snap to 0
-		const totalTextWidth = (charX[charX.length - 1] ?? x) - x; // Pure text width
+		const safety = 2;
+		const totalTextWidth = (charX[charX.length - 1] ?? x) - x;
 		const availableWidth = viewRight - viewLeft;
 
 		if (totalTextWidth < availableWidth) {
 			scrollXRef.current = 0;
 		} else {
 			let s = scrollXRef.current;
-
-			// If caret is too far right (hidden):
-			// caretPos - s > viewRight - safety
-			// s < caretPos - viewRight + safety
-			// -> move s up (scroll right)
 			if (caretPos - s > viewRight - safety) {
 				s = caretPos - viewRight + safety;
 			}
-
-			// If caret is too far left (hidden):
-			// caretPos - s < viewLeft + safety
-			// s > caretPos - viewLeft - safety
-			// -> move s down (scroll left)
 			if (caretPos - s < viewLeft + safety) {
 				s = caretPos - viewLeft - safety;
 			}
-
-			// Clamp
-			// Max scroll: contentEnd - viewRight + safety?
-			// Actually max scroll is such that the end of text touches right side?
-			// Let's stick to standard behavior: max scroll = totalContentWidth (including padding) - viewportWidth
-			// Total content content logic: starting at x=paddingLeft.
-			// Last char at charX[last].
-			// We want charX[last] - s >= viewRight - safety at least?
-
 			const contentEnd = charX[charX.length - 1] ?? x;
 			const maxScroll = Math.max(0, contentEnd - viewRight + safety);
-
 			s = Math.max(0, Math.min(s, maxScroll));
 			scrollXRef.current = s;
 		}
@@ -289,23 +249,20 @@ export function VirtualInput({
 		// Draw Selection
 		if (hasSelection && selection.start !== null && selection.end !== null) {
 			const [start, end] = [selection.start, selection.end].sort((a, b) => a - b);
-
-			// Safe access
 			const startX = charX[start] ?? x;
 			const endX = charX[end] ?? charX[charX.length - 1];
 
 			ctx.fillStyle = "#b4d5fe";
 			ctx.fillRect(startX, 0, endX - startX, height);
-			ctx.fillStyle = color; // reset for text
+			ctx.fillStyle = color;
 		}
 
 		// Draw text
-		ctx.fillText(internalValue, x, y);
+		ctx.fillText(text, x, y);
 
 		// Draw Cursor
-		if (isFocused && showCursor && !hasSelection) {
-			const caretX = charX[caretIndex] ?? x;
-
+		if (isFocused && isCursorVisible && !hasSelection) {
+			const caretX = charX[cIndex] ?? x;
 			ctx.beginPath();
 			ctx.moveTo(caretX, y - fontSize / 2);
 			ctx.lineTo(caretX, y + fontSize / 2);
@@ -314,8 +271,39 @@ export function VirtualInput({
 			ctx.stroke();
 		}
 
+		// Draw Copy Feedback Overlay
+		if (showCopyFeedback) {
+			ctx.save();
+			ctx.translate(scrollXRef.current, 0); // Undo scroll
+			ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+			const msg = "Copied!";
+			const msgWidth = ctx.measureText(msg).width + 20;
+			const msgHeight = fontSize + 10;
+
+			const cx = width / 2;
+			const cy = height / 2;
+			const r = 6;
+			const rw = msgWidth;
+			const rh = msgHeight;
+			const rx = cx - rw / 2;
+			const ry = cy - rh / 2;
+
+			ctx.beginPath();
+			ctx.fillStyle = "rgba(30, 41, 59, 0.9)";
+			ctx.roundRect(rx, ry, rw, rh, r);
+			ctx.fill();
+
+			ctx.fillStyle = "#ffffff";
+			ctx.font = `bold ${fontSize * 0.8}px system-ui`;
+			ctx.textAlign = "center";
+			ctx.textBaseline = "middle";
+			ctx.fillText(msg, cx, cy);
+
+			ctx.restore();
+		}
+
 		ctx.restore();
-	}, [internalValue, caretIndex, isFocused, showCursor, placeholder, hasSelection, selection]);
+	}, [isFocused, placeholder, hasSelection, selection, showCopyFeedback]);
 
 	// Animation Loop
 	useEffect(() => {
@@ -331,7 +319,6 @@ export function VirtualInput({
 
 	const updateValue = useCallback(
 		(newValue: string, newCaretIndex: number) => {
-			// Update refs immediately
 			internalValueRef.current = newValue;
 			caretIndexRef.current = newCaretIndex;
 
@@ -339,7 +326,6 @@ export function VirtualInput({
 				setInternalValue(newValue);
 			}
 
-			// Mock event for compatibility
 			const fakeInput = { value: newValue } as HTMLInputElement;
 			const changeEvent = {
 				target: fakeInput,
@@ -357,17 +343,10 @@ export function VirtualInput({
 		if (!canvas) return 0;
 
 		const rect = canvas.getBoundingClientRect();
-
-		const x = clientX - rect.left + scrollXRef.current; // Account for scroll
-
-		// We can try to use cache if we are sure it's valid, but safe to measure again for click
-		// Or if we want strict consistency, we use the cache used in draw.
-		// But draw might not have run yet if component just mounted (unlikely for click).
-		// Let's use cache if available and valid length.
+		const x = clientX - rect.left + scrollXRef.current;
 
 		if (charPositionsRef.current.length === internalValue.length + 1) {
 			const charX = charPositionsRef.current;
-			// Find closest
 			for (let i = 0; i < charX.length - 1; i++) {
 				const center = (charX[i] + charX[i + 1]) / 2;
 				if (x < center) return i;
@@ -375,7 +354,6 @@ export function VirtualInput({
 			return internalValue.length;
 		}
 
-		// Fallback: re-measure
 		const ctx = canvas.getContext("2d");
 		if (!ctx) return 0;
 		const computedStyle = window.getComputedStyle(containerRef.current!);
@@ -384,29 +362,121 @@ export function VirtualInput({
 		let currentX = 0;
 		for (let i = 0; i < internalValue.length; i++) {
 			const w = ctx.measureText(internalValue[i]).width;
-			if (x < currentX + w / 2) {
-				return i;
-			}
+			if (x < currentX + w / 2) return i;
 			currentX += w;
 		}
 		return internalValue.length;
 	}, [internalValue]);
 
 	const handleCanvasClick = useCallback((e: React.MouseEvent) => {
+		if (showCopyFeedback) return;
 		const index = getCharIndexFromX(e.clientX);
-
-		// Update helpers
 		caretIndexRef.current = index;
 		setCaretIndex(index);
-
 		clearSelection();
 		onFocus(id);
-	}, [getCharIndexFromX, clearSelection, onFocus, id]);
+	}, [getCharIndexFromX, clearSelection, onFocus, id, showCopyFeedback]);
 
-	// Reuse handleKeyDown from old Input, adapted
+	// --- Clipboard Handlers (Native Events) ---
+
+	const handleCopy = useCallback((e: React.ClipboardEvent) => {
+		e.preventDefault();
+		const currentVal = internalValueRef.current;
+		const sel = selection;
+
+		if (sel.start !== null && sel.end !== null && sel.start !== sel.end) {
+			const [start, end] = [sel.start, sel.end].sort((a, b) => a - b);
+			const textToCopy = currentVal.slice(start, end);
+			e.clipboardData.setData('text/plain', textToCopy);
+
+			if (navigator.vibrate) navigator.vibrate(50);
+			setShowCopyFeedback(true);
+			setTimeout(() => setShowCopyFeedback(false), 1500);
+		}
+	}, [selection]);
+
+	const handleCut = useCallback((e: React.ClipboardEvent) => {
+		e.preventDefault();
+		const currentVal = internalValueRef.current;
+		if (hasSelection && selection.start !== null && selection.end !== null) {
+			const [start, end] = [selection.start, selection.end].sort((a, b) => a - b);
+			const textToCopy = currentVal.slice(start, end);
+			e.clipboardData.setData('text/plain', textToCopy);
+
+			if (navigator.vibrate) navigator.vibrate(50);
+			setShowCopyFeedback(true);
+			setTimeout(() => setShowCopyFeedback(false), 1500);
+
+			const { newString, finalCaretIndex } = deleteSelectedText();
+			updateValue(newString, finalCaretIndex);
+		}
+	}, [hasSelection, selection, deleteSelectedText, updateValue]);
+
+	const handlePaste = useCallback((e: React.ClipboardEvent) => {
+		e.preventDefault();
+		const text = e.clipboardData.getData('text/plain');
+		if (!text) return;
+
+		const currentVal = internalValueRef.current;
+		const currentCaret = caretIndexRef.current;
+
+		const { newString, finalCaretIndex } = hasSelection
+			? deleteSelectedText()
+			: { newString: currentVal, finalCaretIndex: currentCaret };
+
+		const finalString = newString.slice(0, finalCaretIndex) + text + newString.slice(finalCaretIndex);
+		updateValue(finalString, finalCaretIndex + text.length);
+	}, [hasSelection, deleteSelectedText, updateValue]);
+
+	// --- Long Press Handlers ---
+
+	const cancelLongPress = useCallback(() => {
+		if (longPressTimerRef.current) {
+			clearTimeout(longPressTimerRef.current);
+			longPressTimerRef.current = null;
+		}
+		pointerStartedRef.current = false;
+		pointerStartPositionRef.current = null;
+	}, []);
+
+	const handlePointerDown = useCallback((e: React.PointerEvent) => {
+		if (e.button !== 0) return;
+		cancelLongPress();
+		pointerStartedRef.current = true;
+		pointerStartPositionRef.current = { x: e.clientX, y: e.clientY };
+
+		longPressTimerRef.current = window.setTimeout(async () => {
+			if (!pointerStartedRef.current) return;
+			pointerStartedRef.current = false;
+
+			try {
+				if (internalValueRef.current) {
+					await navigator.clipboard.writeText(internalValueRef.current);
+					if (navigator.vibrate) navigator.vibrate(50);
+					setShowCopyFeedback(true);
+					setTimeout(() => setShowCopyFeedback(false), 1500);
+				}
+			} catch (err) {
+				console.error("Failed to copy", err);
+			}
+
+		}, 600);
+	}, [cancelLongPress]);
+
+	const handlePointerMove = useCallback((e: React.PointerEvent) => {
+		if (!pointerStartedRef.current || !pointerStartPositionRef.current) return;
+		const dx = Math.abs(e.clientX - pointerStartPositionRef.current.x);
+		const dy = Math.abs(e.clientY - pointerStartPositionRef.current.y);
+		if (dx > 10 || dy > 10) cancelLongPress();
+	}, [cancelLongPress]);
+
+	const handlePointerUp = useCallback(() => {
+		cancelLongPress();
+	}, [cancelLongPress]);
+
+
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent | KeyboardEvent) => {
-			// Use refs for current state
 			const currentVal = internalValueRef.current;
 			const currentCaret = caretIndexRef.current;
 
@@ -415,8 +485,63 @@ export function VirtualInput({
 				return;
 			}
 
-			// Selection keys (Shift + Arrow) - simplify for now or implement?
-			// Let's implement basic Shift+Arrow
+			const isCmd = e.ctrlKey || e.metaKey;
+
+			// --- Navigation & Selection ---
+
+			// Cmd+Left or ArrowUp -> Start
+			// Cmd+Right or ArrowDown -> End
+			const isHome = e.key === "ArrowUp" || (isCmd && e.key === "ArrowLeft") || e.key === "Home";
+			const isEnd = e.key === "ArrowDown" || (isCmd && e.key === "ArrowRight") || e.key === "End";
+
+			if (isHome) {
+				e.preventDefault();
+				const newIndex = 0;
+
+				if (e.shiftKey) {
+					setSelection((prev: { start: number | null; end: number | null }) => ({
+						start: prev.start ?? currentCaret,
+						end: newIndex
+					}));
+				} else {
+					clearSelection();
+				}
+
+				caretIndexRef.current = newIndex;
+				setCaretIndex(newIndex);
+				return;
+			}
+
+			if (isEnd) {
+				e.preventDefault();
+				const newIndex = currentVal.length;
+
+				if (e.shiftKey) {
+					setSelection((prev: { start: number | null; end: number | null }) => ({
+						start: prev.start ?? currentCaret,
+						end: newIndex
+					}));
+				} else {
+					clearSelection();
+				}
+
+				caretIndexRef.current = newIndex;
+				setCaretIndex(newIndex);
+				return;
+			}
+
+			if (e.ctrlKey || e.metaKey) {
+				const key = e.key.toLowerCase();
+				if (key === 'a') {
+					e.preventDefault();
+					setSelection({ start: 0, end: currentVal.length });
+					caretIndexRef.current = currentVal.length;
+					setCaretIndex(currentVal.length);
+					return;
+				}
+				// Do not prevent default for c, v, x to allow native events (copy/paste)
+			}
+
 			if (e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
 				const newIndex = e.key === "ArrowLeft"
 					? Math.max(0, currentCaret - 1)
@@ -460,7 +585,6 @@ export function VirtualInput({
 				}
 			}
 
-			// Typing
 			const result = parseKeyInput(e, hangulMode);
 			if (result.toggleHangulMode) {
 				setHangulMode(!hangulMode);
@@ -468,7 +592,8 @@ export function VirtualInput({
 			}
 
 			if (!result.handled || !result.text) return;
-			// Ignore modifiers
+			// Ignore keys if ctrl/meta/alt is pressed (except simple shift)
+			// But we already checked ctrl/meta above.
 			if (e.ctrlKey || e.metaKey || e.altKey) return;
 
 			const { composing } = result;
@@ -492,7 +617,6 @@ export function VirtualInput({
 				updateValue(finalString, finalCaretIndex + text.length);
 			}
 			isCompositionRef.current = composing;
-
 		},
 		[hangulMode, setHangulMode, isCompositionRef, shift, updateValue, hasSelection, deleteSelectedText, clearSelection]
 	);
@@ -517,15 +641,13 @@ export function VirtualInput({
 		<ShadowWrapper
 			tagName={"virtual-input-canvas" as any}
 			hostRef={containerRef}
-			// Host Props
 			id={id}
 			className={props.className}
 			role="textbox"
 			tabIndex={0}
 			{...props}
-			// Styles
 			style={{
-				display: "inline-block", // Behaves like an input
+				display: "inline-block",
 				minHeight: "1.5em",
 				height: "1.5em",
 				outline: "none",
@@ -535,13 +657,20 @@ export function VirtualInput({
 				cursor: "text",
 				...props.style
 			}}
-			// Interaction Handlers
 			onFocus={() => onFocus(id, containerRef.current)}
 			onBlur={(e) => onBlur(e)}
 			onKeyDown={handleKeyDown}
+			onContextMenu={(e) => e.preventDefault()}
+			onCopy={handleCopy}
+			onCut={handleCut}
+			onPaste={handlePaste}
 			onClick={handleCanvasClick}
+			onPointerDown={handlePointerDown}
+			onPointerMove={handlePointerMove}
+			onPointerUp={handlePointerUp}
+			onPointerLeave={handlePointerUp}
+			onPointerCancel={handlePointerUp}
 			data-virtual-input="true"
-			// Shadow DOM Styles
 			css={`
 				:host {
 					display: inline-block;
