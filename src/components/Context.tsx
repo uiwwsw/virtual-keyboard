@@ -10,7 +10,7 @@ interface VirtualInputContextValue {
 	inputRef: RefObject<VirtualInputHandle | null>;
 	isCompositionRef: RefObject<boolean | undefined>;
 	onFocus: (id: string) => void;
-	onBlur: (e?: React.FocusEvent) => void;
+	onBlur: (e?: React.FocusEvent | boolean) => void;
 	focusId: string | undefined;
 	setHangulMode: Dispatch<SetStateAction<boolean>>;
 	hangulMode: boolean;

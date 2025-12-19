@@ -59,6 +59,7 @@ export function VirtualInput({
 
 	// Cache for character positions to avoid re-measuring text every frame
 	const charPositionsRef = useRef<number[]>([]);
+	const scrollXRef = useRef(0); // Viewport scroll offset
 
 	// Invalidate cache when value changes
 	useEffect(() => {
@@ -167,7 +168,8 @@ export function VirtualInput({
 
 		// Font styles - inherit or default
 		const computedStyle = window.getComputedStyle(container);
-		const font = `${computedStyle.fontSize} ${computedStyle.fontFamily}`;
+		// precise font construction
+		const font = `${computedStyle.fontStyle} ${computedStyle.fontVariant} ${computedStyle.fontWeight} ${computedStyle.fontSize} ${computedStyle.fontFamily}`;
 
 		// Optimisation: only set font if changed? 
 		// ctx.font lookup is fast, but let's just set it.
@@ -175,8 +177,12 @@ export function VirtualInput({
 		ctx.textBaseline = "middle";
 
 		const fontSize = parseFloat(computedStyle.fontSize);
+		const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
+		const paddingRight = parseFloat(computedStyle.paddingRight) || 0;
+		const borderLeft = parseFloat(computedStyle.borderLeftWidth) || 0;
+		const borderRight = parseFloat(computedStyle.borderRightWidth) || 0;
 		const y = height / 2;
-		const x = 0; // standard padding?
+		const x = borderLeft + paddingLeft; // Start text after border and padding
 
 		// Placeholder
 		if (!internalValue && placeholder) {
@@ -196,21 +202,90 @@ export function VirtualInput({
 		ctx.fillStyle = "black";
 
 		// Measure for Selection (Optimized)
-		// Check if cache is valid (simple length check + cache existence)
-		// NOTE: We invalidate cache on internalValue change in useEffect, but here we can double check.
-		// Also if invalid, rebuild.
 		if (charPositionsRef.current.length !== internalValue.length + 1) {
-			let currentX = x;
+			let currentX = x; // Keep for now if logic needs it? No, loop below doesn't use it.
+			// Wait, previous loop used it. New loop uses slice.
+			// The variable 'currentX' is defined at line 201: let currentX = x;
+			// We can just remove it.
 			const positions = [x];
 			for (let i = 0; i < internalValue.length; i++) {
-				// Measure char logic
-				const w = ctx.measureText(internalValue[i]).width;
-				currentX += w;
-				positions.push(currentX);
+				// Measure cumulative width to account for kerning/ligatures
+				const w = ctx.measureText(internalValue.slice(0, i + 1)).width;
+				positions.push(x + w);
 			}
 			charPositionsRef.current = positions;
 		}
 		const charX = charPositionsRef.current;
+
+		// --- Scroll Logic ---
+		// We calculate desired scroll based on caret position
+		const caretPos = charX[caretIndex] ?? x; // This includes 'x' (paddingLeft)
+
+		// Viewport logic:
+		// Visible area is from 0 to width.
+		// Content area starts at scrollXRef.current.
+		// We want caretPos - scrollX to be within [paddingLeft + padding, width - paddingRight - padding]
+
+		const viewLeft = paddingLeft;
+		// viewRight is the right edge of the content area.
+		// width (from getBoundingClientRect) includes borders.
+		// So we must subtract borderRight as well.
+		const viewRight = width - paddingRight - borderLeft - borderRight;
+		// Actually, if x starts at paddingLeft, is x relative to border-box or content-box?
+		// Canvas creates a context where (0,0) is top-left of the canvas element.
+		// If canvas is size of clientRect (border-box), then 0 is the left border edge.
+		// So content starts at borderLeft + paddingLeft.
+
+		// If I set `x = paddingLeft`, I am assuming 0 is the start of padding box.
+		// But 0 is start of border box.
+		// So x should be borderLeft + paddingLeft.
+		// And viewRight should be width - borderRight - paddingRight.
+
+		// Let's Correct `x` first.
+		const safety = 2; // Minimal safety to prevent exact edge clipping
+
+		// If total text fits in available container width, snap to 0
+		const totalTextWidth = (charX[charX.length - 1] ?? x) - x; // Pure text width
+		const availableWidth = viewRight - viewLeft;
+
+		if (totalTextWidth < availableWidth) {
+			scrollXRef.current = 0;
+		} else {
+			let s = scrollXRef.current;
+
+			// If caret is too far right (hidden):
+			// caretPos - s > viewRight - safety
+			// s < caretPos - viewRight + safety
+			// -> move s up (scroll right)
+			if (caretPos - s > viewRight - safety) {
+				s = caretPos - viewRight + safety;
+			}
+
+			// If caret is too far left (hidden):
+			// caretPos - s < viewLeft + safety
+			// s > caretPos - viewLeft - safety
+			// -> move s down (scroll left)
+			if (caretPos - s < viewLeft + safety) {
+				s = caretPos - viewLeft - safety;
+			}
+
+			// Clamp
+			// Max scroll: contentEnd - viewRight + safety?
+			// Actually max scroll is such that the end of text touches right side?
+			// Let's stick to standard behavior: max scroll = totalContentWidth (including padding) - viewportWidth
+			// Total content content logic: starting at x=paddingLeft.
+			// Last char at charX[last].
+			// We want charX[last] - s >= viewRight - safety at least?
+
+			const contentEnd = charX[charX.length - 1] ?? x;
+			const maxScroll = Math.max(0, contentEnd - viewRight + safety);
+
+			s = Math.max(0, Math.min(s, maxScroll));
+			scrollXRef.current = s;
+		}
+
+		ctx.save();
+		ctx.translate(-scrollXRef.current, 0);
 
 		// Draw Selection
 		if (hasSelection && selection.start !== null && selection.end !== null) {
@@ -239,6 +314,8 @@ export function VirtualInput({
 			ctx.lineWidth = 1.5;
 			ctx.stroke();
 		}
+
+		ctx.restore();
 	}, [internalValue, caretIndex, isFocused, showCursor, placeholder, hasSelection, selection]);
 
 	// Animation Loop
@@ -281,7 +358,8 @@ export function VirtualInput({
 		if (!canvas) return 0;
 
 		const rect = canvas.getBoundingClientRect();
-		const x = clientX - rect.left;
+
+		const x = clientX - rect.left + scrollXRef.current; // Account for scroll
 
 		// We can try to use cache if we are sure it's valid, but safe to measure again for click
 		// Or if we want strict consistency, we use the cache used in draw.

@@ -47,9 +47,16 @@ export function VirtualInputProvider({
 		clearTimeout(sti.current);
 		setFocusId(id);
 	};
-	const onBlur = useCallback((e?: React.FocusEvent) => {
+	const onBlur = useCallback((e?: React.FocusEvent | boolean) => {
+		// Force close (from Keypad outside click)
+		if (e === true) {
+			setFocusId(undefined);
+			isCompositionRef.current = false;
+			return;
+		}
+
 		// If explicit blur to another element
-		if (e?.relatedTarget) {
+		if (e && typeof e === 'object' && 'relatedTarget' in e && e.relatedTarget) {
 			// If related target is a virtual input, don't close (let new input focus handle it)
 			if ((e.relatedTarget as HTMLElement).getAttribute("data-virtual-input")) {
 				return;
@@ -64,6 +71,7 @@ export function VirtualInputProvider({
 
 		// If tapped background (no related target or body), KEEP OPEN (User request)
 		// This is CRITICAL for iOS fast input where focus can be lost transiently.
+		// However, Keypad.tsx now handles explicit outside clicks and calls onBlur(true).
 	}, [setFocusId, isCompositionRef]);
 	const toggleShift = useCallback(() => {
 		setShift((prev) => !prev);
