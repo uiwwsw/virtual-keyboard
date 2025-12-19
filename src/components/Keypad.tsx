@@ -63,20 +63,78 @@ export function VirtualKeypad({
 
         // --- Layout & Rendering ---
 
-        const drawRoundedRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
-                ctx.beginPath();
-                ctx.moveTo(x + r, y);
-                ctx.lineTo(x + w - r, y);
-                ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-                ctx.lineTo(x + w, y + h - r);
-                ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-                ctx.lineTo(x + r, y + h);
-                ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-                ctx.lineTo(x, y + r);
-                ctx.quadraticCurveTo(x, y, x + r, y);
-                ctx.closePath();
+        const drawKey = (
+                ctx: CanvasRenderingContext2D,
+                key: { x: number; y: number; w: number; h: number; value: string; label: string; isAction: boolean; type?: string },
+                isPressed: boolean,
+                isActiveModifier: boolean,
+                scale: number
+        ) => {
+                const r = 8 / scale; // Rounded corners
+                const { x, y, w, h } = key;
+
+                // Colors
+                const colors = {
+                        bg: "#d1d5db", // Page bg
+                        keyBg: isPressed ? "#E5E7EB" : "#FFFFFF",
+                        keyShadow: "#899499",
+                        text: "#111827",
+                        actionBg: isPressed ? "#cbd5e1" : "#e2e8f0", // slate-300 / slate-200
+                        activeModBg: isPressed ? "#bfdbfe" : "#dbeafe", // blue-200 / blue-100
+                        activeModText: "#1d4ed8",
+                };
+
+                if (key.isAction) {
+                        colors.keyBg = colors.actionBg;
+                }
+                if (isActiveModifier) {
+                        colors.keyBg = colors.activeModBg;
+                }
+
+                // Shadow (3D effect)
+                ctx.fillStyle = colors.keyShadow;
+                roundRect(ctx, x, y + (1 / scale), w, h, r);
+                ctx.fill();
+
+                // Key Face
+                // When pressed, translate down slightly to simulate depth
+                const pressOffset = isPressed ? (1 / scale) : 0;
+                const shadowOffset = isPressed ? 0 : (2 / scale);
+
+                ctx.fillStyle = colors.keyBg;
+                // We draw the key face slightly higher than the shadow
+                roundRect(ctx, x, y + pressOffset, w, h - shadowOffset, r);
+                ctx.fill();
+
+                // Text
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+
+                let fontSize = 20 / scale;
+                if (key.label.length > 1) fontSize = 16 / scale; // Smaller for "Enter", "Shift"
+
+                ctx.font = `500 ${fontSize}px "Inter", "system-ui", sans-serif`;
+
+                if (isActiveModifier) {
+                        ctx.fillStyle = colors.activeModText;
+                } else {
+                        ctx.fillStyle = colors.text;
+                }
+
+                ctx.fillText(key.label, x + w / 2, y + (h - shadowOffset) / 2 + pressOffset + (1 / scale)); // +1 for visual centering
         };
 
+        const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
+                if (w < 2 * r) r = w / 2;
+                if (h < 2 * r) r = h / 2;
+                ctx.beginPath();
+                ctx.moveTo(x + r, y);
+                ctx.arcTo(x + w, y, x + w, y + h, r);
+                ctx.arcTo(x + w, y + h, x, y + h, r);
+                ctx.arcTo(x, y + h, x, y, r);
+                ctx.arcTo(x, y, x + w, y, r);
+                ctx.closePath();
+        };
         const draw = useCallback(() => {
                 const canvas = canvasRef.current;
                 if (!canvas) return;
@@ -103,7 +161,7 @@ export function VirtualKeypad({
                 const height = rect.height;
 
                 // Background
-                ctx.fillStyle = "#e8eaee";
+                ctx.fillStyle = "#d1d5db"; // Tailwind Gray 300
                 ctx.fillRect(0, 0, width, height);
 
                 const scale = viewport.scale; // use for font scaling
@@ -113,6 +171,8 @@ export function VirtualKeypad({
                         // Check active state
                         let isPressed = false;
                         for (const press of activePresses.current.values()) {
+                                // Using loose match for better responsiveness on edges if needed
+                                // But strict index match is safest for visuals
                                 const keyIndex = key.rowIndex * 100 + key.colIndex;
                                 if (press.keyIndex === keyIndex) {
                                         isPressed = true;
@@ -122,87 +182,52 @@ export function VirtualKeypad({
                         // Modifiers active state
                         const isActiveModifier = (key.value === "Shift" && shift) || (key.value === "HangulMode" && hangulMode);
 
-                        // Draw Key Shape
-                        const radius = 12 / scale;
-
-                        // Pressed animation logic? 
-                        let drawX = key.x;
-                        let drawY = key.y;
-                        let drawW = key.w;
-                        let drawH = key.h;
-
-                        if (isPressed) {
-                                const shrink = 2; // px
-                                drawX += shrink;
-                                drawY += shrink;
-                                drawW -= shrink * 2;
-                                drawH -= shrink * 2;
-                        }
-
-                        drawRoundedRect(ctx, drawX, drawY, drawW, drawH, radius);
-
-                        // Fill
-                        if (isPressed) {
-                                const gradient = ctx.createLinearGradient(drawX, drawY, drawX, drawY + drawH);
-                                gradient.addColorStop(0, "rgba(248, 249, 251, 0.95)");
-                                gradient.addColorStop(1, "#c9d2df");
-                                ctx.fillStyle = gradient;
-                        } else if (isActiveModifier) {
-                                const gradient = ctx.createLinearGradient(drawX, drawY, drawX, drawY + drawH);
-                                gradient.addColorStop(0, "#e0ecff");
-                                gradient.addColorStop(1, "#99b7ff");
-                                ctx.fillStyle = gradient;
-                        } else if (key.isAction) {
-                                const gradient = ctx.createLinearGradient(drawX, drawY, drawX, drawY + drawH);
-                                gradient.addColorStop(0, "#f8fafc");
-                                gradient.addColorStop(1, "#cbd5f5");
-                                ctx.fillStyle = gradient;
-                        } else {
-                                const gradient = ctx.createLinearGradient(drawX, drawY, drawX, drawY + drawH);
-                                gradient.addColorStop(0, "rgba(255, 255, 255, 0.95)");
-                                gradient.addColorStop(1, "#dfe3eb");
-                                ctx.fillStyle = gradient;
-                        }
-                        ctx.fill();
-
-                        // Stroke/Shadow
-                        ctx.lineWidth = 1 / scale;
-                        if (isActiveModifier) {
-                                ctx.strokeStyle = "rgba(37, 99, 235, 0.25)";
-                        } else if (key.isAction) {
-                                ctx.strokeStyle = "rgba(59, 130, 246, 0.55)";
-                        } else {
-                                ctx.strokeStyle = "rgba(148, 163, 184, 0.7)";
-                        }
-                        ctx.stroke();
-
-                        // Text
-                        ctx.textAlign = "center";
-                        ctx.textBaseline = "middle";
-                        const fontSize = 18 / scale; // px
-                        ctx.font = `600 ${fontSize}px sans-serif`; // Approximation of system font
-
-                        if (isActiveModifier || key.isAction) {
-                                ctx.fillStyle = "#1e3a8a";
-                        } else {
-                                ctx.fillStyle = "#1f2933";
-                        }
-
-                        ctx.fillText(key.label, drawX + drawW / 2, drawY + drawH / 2);
+                        drawKey(ctx, key, isPressed, isActiveModifier, scale);
                 });
-
         }, [calculateLayout, hangulMode, shift, viewport.scale, activePresses, keyBoundsRef]); // Added deps
 
+
+
+        // --- Interactions ---
 
         // Explicitly reset layout on mode change to force redraw
         useEffect(() => {
                 keyBoundsRef.current = [];
         }, [hangulMode, shift, keyBoundsRef]);
 
+        // Outside Click / PointerDown Handler
+        useEffect(() => {
+                const handleGlobalPointerDown = (e: PointerEvent) => {
+                        if (!containerRef.current || !focusId) return;
 
-        // --- Interactions ---
+                        // Check if target is inside keypad
+                        // Since we use Shadow DOM, we must check composedPath
+                        const path = e.composedPath();
+                        if (path.includes(containerRef.current)) {
+                                return;
+                        }
+
+                        // Check if target is inside the Virtual Input
+                        // Scan path for data-virtual-input
+                        const isInput = path.some(node => {
+                                return node instanceof Element && node.getAttribute("data-virtual-input") === "true";
+                        });
+
+                        if (isInput) return;
+
+                        // If click is outside Keypad AND outside Input, we blur.
+                        onBlur(true);
+                };
+
+                // Use 'true' for capture to ensure we catch the event even if propagation is stopped
+                window.addEventListener("pointerdown", handleGlobalPointerDown, { capture: true });
+                return () => {
+                        window.removeEventListener("pointerdown", handleGlobalPointerDown, { capture: true });
+                };
+        }, [focusId, onBlur]);
 
         // Animation Loop for smooth pressing
+
         useEffect(() => {
                 let handle: number;
                 const loop = () => {
@@ -222,7 +247,7 @@ export function VirtualKeypad({
                         css={`
                .keypad-wrapper {
                    position: fixed;
-                   background-color: #e8eaee;
+                   background-color: #d1d5db;
                    border-radius: calc(18px / var(--scale-factor));
                    box-shadow: 0 calc(-6px / var(--scale-factor)) calc(30px / var(--scale-factor)) rgba(15, 23, 42, 0.2);
                    user-select: none;
