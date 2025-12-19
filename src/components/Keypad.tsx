@@ -27,6 +27,7 @@ export function VirtualKeypad({
                 hangulMode,
                 toggleShift,
                 toggleKorean,
+                theme,
         } = useVirtualInputContext();
 
         // Canvas & Container
@@ -63,65 +64,86 @@ export function VirtualKeypad({
 
         // --- Layout & Rendering ---
 
+        // --- Layout & Rendering ---
+
         const drawKey = (
                 ctx: CanvasRenderingContext2D,
                 key: { x: number; y: number; w: number; h: number; value: string; label: string; isAction: boolean; type?: string },
                 isPressed: boolean,
                 isActiveModifier: boolean,
-                scale: number
+                scale: number,
+                currentTheme: "light" | "dark"
         ) => {
-                const r = 8 / scale; // Rounded corners
+                const r = 10 / scale; // More rounded (squircle-ish)
                 const { x, y, w, h } = key;
 
-                // Colors
-                const colors = {
-                        bg: "#d1d5db", // Page bg
-                        keyBg: isPressed ? "#E5E7EB" : "#FFFFFF",
-                        keyShadow: "#899499",
-                        text: "#111827",
-                        actionBg: isPressed ? "#cbd5e1" : "#e2e8f0", // slate-300 / slate-200
-                        activeModBg: isPressed ? "#bfdbfe" : "#dbeafe", // blue-200 / blue-100
-                        activeModText: "#1d4ed8",
-                };
+                // --- Color Palettes ---
+                const colors = currentTheme === "dark"
+                        ? {
+                                // DARK THEME (Inspired by reference image)
+                                shadow: "#0f172a", // Deep slate shadow
+                                keyFace: isPressed ? "#334155" : "#1e293b", // Slate-700 pressed / Slate-800 normal
+                                text: "#f8fafc", // Slate-50 (White-ish)
+                                actionFace: isPressed ? "#475569" : "#334155", // Lighter slate for actions
+                                activeModFace: isPressed ? "#f8fafc" : "#e2e8f0", // Light when active
+                                activeModText: "#0f172a", // Dark text when active
+                        }
+                        : {
+                                // LIGHT THEME
+                                shadow: "#cbd5e1", // Slate-300 shadow
+                                keyFace: isPressed ? "#f1f5f9" : "#ffffff", // Slate-100 pressed / White normal
+                                text: "#1e293b", // Slate-800
+                                actionFace: isPressed ? "#e2e8f0" : "#f1f5f9", // Very light gray
+                                activeModFace: isPressed ? "#bfdbfe" : "#dbeafe", // Blue hint
+                                activeModText: "#1d4ed8",
+                        };
+
+                let faceColor = colors.keyFace;
+                let textColor = colors.text;
 
                 if (key.isAction) {
-                        colors.keyBg = colors.actionBg;
+                        faceColor = colors.actionFace;
                 }
                 if (isActiveModifier) {
-                        colors.keyBg = colors.activeModBg;
+                        faceColor = colors.activeModFace;
+                        textColor = colors.activeModText;
                 }
 
-                // Shadow (3D effect)
-                ctx.fillStyle = colors.keyShadow;
-                roundRect(ctx, x, y + (1 / scale), w, h, r);
+                // --- 3D / Depth Logic ---
+                // We simulate depth by drawing the shadow lower, and the face higher.
+                // When pressed, the face moves down towards the shadow.
+
+                const depth = 4 / scale; // Maximum depth (shadow height)
+                const pressOffset = isPressed ? depth * 0.6 : 0; // Move down when pressed
+
+                // 1. Draw Shadow (Base)
+                ctx.fillStyle = colors.shadow;
+                // Shadow is fixed at the bottom
+                roundRect(ctx, x, y + depth, w, h, r);
                 ctx.fill();
 
-                // Key Face
-                // When pressed, translate down slightly to simulate depth
-                const pressOffset = isPressed ? (1 / scale) : 0;
-                const shadowOffset = isPressed ? 0 : (2 / scale);
+                // 2. Draw Key Face (Floating)
+                // y position = original y + pressOffset.
+                // Height is same as shadow rect? Visual trick:
+                // We actually want the face to cover the top part of the shadow.
+                // Let's just draw the face rect at the animated position.
 
-                ctx.fillStyle = colors.keyBg;
-                // We draw the key face slightly higher than the shadow
-                roundRect(ctx, x, y + pressOffset, w, h - shadowOffset, r);
+                ctx.fillStyle = faceColor;
+                roundRect(ctx, x, y + pressOffset, w, h, r);
                 ctx.fill();
 
-                // Text
+                // 3. Text
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
 
                 let fontSize = 20 / scale;
-                if (key.label.length > 1) fontSize = 16 / scale; // Smaller for "Enter", "Shift"
+                if (key.label.length > 1) fontSize = 16 / scale;
+                const fontFamily = currentTheme === "dark" ? "Inter, system-ui, sans-serif" : "Inter, system-ui, sans-serif";
+                ctx.font = `500 ${fontSize}px "${fontFamily}"`;
+                ctx.fillStyle = textColor;
 
-                ctx.font = `500 ${fontSize}px "Inter", "system-ui", sans-serif`;
-
-                if (isActiveModifier) {
-                        ctx.fillStyle = colors.activeModText;
-                } else {
-                        ctx.fillStyle = colors.text;
-                }
-
-                ctx.fillText(key.label, x + w / 2, y + (h - shadowOffset) / 2 + pressOffset + (1 / scale)); // +1 for visual centering
+                // Center text on the FACE (moved by pressOffset)
+                ctx.fillText(key.label, x + w / 2, y + h / 2 + pressOffset);
         };
 
         const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
@@ -135,10 +157,11 @@ export function VirtualKeypad({
                 ctx.arcTo(x, y, x + w, y, r);
                 ctx.closePath();
         };
+
         const draw = useCallback(() => {
                 const canvas = canvasRef.current;
                 if (!canvas) return;
-                const ctx = canvas.getContext("2d", { alpha: false }); // Optimize
+                const ctx = canvas.getContext("2d", { alpha: false });
                 if (!ctx) return;
 
                 // Resize check
@@ -148,11 +171,9 @@ export function VirtualKeypad({
                         canvas.width = rect.width * dpr;
                         canvas.height = rect.height * dpr;
                         ctx.scale(dpr, dpr);
-                        // Update layout on resize if needed
                         keyBoundsRef.current = calculateLayout();
                 }
 
-                // If layout empty, calc
                 if (keyBoundsRef.current.length === 0) {
                         keyBoundsRef.current = calculateLayout();
                 }
@@ -160,31 +181,31 @@ export function VirtualKeypad({
                 const width = rect.width;
                 const height = rect.height;
 
-                // Background
-                ctx.fillStyle = "#d1d5db"; // Tailwind Gray 300
+                // Background Theme Color
+                const bgColors = {
+                        dark: "#0f172a", // Slate-950 (Dark background from image)
+                        light: "#e2e8f0", // Slate-200 (Light background)
+                };
+                ctx.fillStyle = bgColors[theme] || bgColors.light;
                 ctx.fillRect(0, 0, width, height);
 
-                const scale = viewport.scale; // use for font scaling
+                const scale = viewport.scale;
 
                 // Draw keys
                 keyBoundsRef.current.forEach(key => {
-                        // Check active state
                         let isPressed = false;
                         for (const press of activePresses.current.values()) {
-                                // Using loose match for better responsiveness on edges if needed
-                                // But strict index match is safest for visuals
                                 const keyIndex = key.rowIndex * 100 + key.colIndex;
                                 if (press.keyIndex === keyIndex) {
                                         isPressed = true;
                                         break;
                                 }
                         }
-                        // Modifiers active state
                         const isActiveModifier = (key.value === "Shift" && shift) || (key.value === "HangulMode" && hangulMode);
 
-                        drawKey(ctx, key, isPressed, isActiveModifier, scale);
+                        drawKey(ctx, key, isPressed, isActiveModifier, scale, theme);
                 });
-        }, [calculateLayout, hangulMode, shift, viewport.scale, activePresses, keyBoundsRef]); // Added deps
+        }, [calculateLayout, hangulMode, shift, viewport.scale, activePresses, keyBoundsRef, theme]);
 
 
 
@@ -247,7 +268,7 @@ export function VirtualKeypad({
                         css={`
                .keypad-wrapper {
                    position: fixed;
-                   background-color: #d1d5db;
+                   background-color: var(--keypad-bg);
                    border-radius: calc(18px / var(--scale-factor));
                    box-shadow: 0 calc(-6px / var(--scale-factor)) calc(30px / var(--scale-factor)) rgba(15, 23, 42, 0.2);
                    user-select: none;
@@ -283,6 +304,7 @@ export function VirtualKeypad({
                                         height: Math.round(200 / viewport.scale),
 
                                         "--scale-factor": viewport.scale,
+                                        "--keypad-bg": theme === "dark" ? "#0f172a" : "#e2e8f0",
                                 } as React.CSSProperties}
                         >
                                 <canvas

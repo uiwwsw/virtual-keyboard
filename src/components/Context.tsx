@@ -15,6 +15,7 @@ interface VirtualInputContextValue {
 	setHangulMode: Dispatch<SetStateAction<boolean>>;
 	hangulMode: boolean;
 	shift: boolean;
+	theme: "light" | "dark";
 	toggleShift: () => void;
 	toggleKorean: () => void;
 }
