@@ -20,7 +20,7 @@ export interface VirtualInputHandle {
 	scrollIntoView: () => void;
 }
 
-export interface VirtualInputProps {
+export interface VirtualInputProps extends React.HTMLAttributes<HTMLDivElement> {
 	value?: string;
 	defaultValue?: string;
 	placeholder?: string;
