@@ -78,7 +78,8 @@ export function useKeypadInteraction({
 
             if (!canRepeat) return;
 
-            const firstDelay = 300;
+            // Increased hold delay to prevent accidental repeats during rapid typing
+            const firstDelay = 500;
             const repeatInterval = 60;
 
             const tick = () => {
@@ -102,6 +103,12 @@ export function useKeypadInteraction({
 
         // Capture pointer to ensure we receive move/up events even if finger leaves elements
         canvas.setPointerCapture(e.pointerId);
+
+        // Cancel existing repeats (Hold logic exclusion)
+        // When a new key is pressed, stop repeating/holding any previous keys
+        activePresses.current.forEach((press) => {
+            clearRepeat(press);
+        });
 
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
