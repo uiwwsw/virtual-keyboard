@@ -206,10 +206,6 @@ export function VirtualInput({
 
 		// Measure for Selection (Optimized)
 		if (charPositionsRef.current.length !== internalValue.length + 1) {
-			let currentX = x; // Keep for now if logic needs it? No, loop below doesn't use it.
-			// Wait, previous loop used it. New loop uses slice.
-			// The variable 'currentX' is defined at line 201: let currentX = x;
-			// We can just remove it.
 			const positions = [x];
 			for (let i = 0; i < internalValue.length; i++) {
 				// Measure cumulative width to account for kerning/ligatures
