@@ -12,14 +12,17 @@ import { VirtualInputContext } from "./Context";
 import type { VirtualInputHandle } from "./Input";
 import qwerty from "../assets/qwerty.json";
 import { useVisualViewport } from "../hooks/useVisualViewport";
+import { useSystemTheme } from "../hooks/useSystemTheme";
 export function VirtualInputProvider({
 	children,
 	layout = qwerty,
 	defaultHangulMode = true,
+	theme, // undefined = auto (defaults to system preference)
 }: {
 	layout?: KeypadLayout;
 	children: ReactNode;
 	defaultHangulMode?: boolean;
+	theme?: "light" | "dark";
 }) {
 	const inputRef = useRef<VirtualInputHandle>(null);
 	const sti = useRef(setTimeout(() => null, 0));
@@ -31,6 +34,14 @@ export function VirtualInputProvider({
 		defaultHangulMode,
 	);
 	const viewport = useVisualViewport();
+
+	// Resolve Theme
+	const systemTheme = useSystemTheme();
+	const effectiveTheme = theme ?? systemTheme;
+
+	useEffect(() => {
+		console.log("[Provider] Theme Debug:", { prop: theme, system: systemTheme, effective: effectiveTheme });
+	}, [theme, systemTheme, effectiveTheme]);
 
 	useEffect(() => {
 		if (focusId) {
@@ -83,16 +94,17 @@ export function VirtualInputProvider({
 	return (
 		<VirtualInputContext.Provider
 			value={{
-				inputRef,
-				isCompositionRef,
-				onFocus,
-				onBlur,
 				focusId,
-				setHangulMode,
 				hangulMode,
 				shift,
+				theme: effectiveTheme,
+				onFocus,
+				onBlur,
+				setHangulMode,
 				toggleShift,
 				toggleKorean,
+				isCompositionRef,
+				inputRef,
 			}}
 		>
 			{children}
@@ -100,3 +112,4 @@ export function VirtualInputProvider({
 		</VirtualInputContext.Provider>
 	);
 }
+
