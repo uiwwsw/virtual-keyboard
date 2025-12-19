@@ -181,6 +181,8 @@ export function VirtualInput({
 		const paddingRight = parseFloat(computedStyle.paddingRight) || 0;
 		const borderLeft = parseFloat(computedStyle.borderLeftWidth) || 0;
 		const borderRight = parseFloat(computedStyle.borderRightWidth) || 0;
+		const color = computedStyle.color || "black";
+		const caretColor = (computedStyle.caretColor !== "auto" ? computedStyle.caretColor : color) || "black";
 		const y = height / 2;
 		const x = borderLeft + paddingLeft; // Start text after border and padding
 
@@ -192,14 +194,15 @@ export function VirtualInput({
 				ctx.beginPath();
 				ctx.moveTo(x, y - fontSize / 2);
 				ctx.lineTo(x, y + fontSize / 2);
-				ctx.strokeStyle = "black";
+				ctx.strokeStyle = caretColor;
 				ctx.lineWidth = 1.5;
 				ctx.stroke();
 			}
 			return;
 		}
 
-		ctx.fillStyle = "black";
+
+		ctx.fillStyle = color;
 
 		// Measure for Selection (Optimized)
 		if (charPositionsRef.current.length !== internalValue.length + 1) {
@@ -297,7 +300,7 @@ export function VirtualInput({
 
 			ctx.fillStyle = "#b4d5fe";
 			ctx.fillRect(startX, 0, endX - startX, height);
-			ctx.fillStyle = "black"; // reset for text
+			ctx.fillStyle = color; // reset for text
 		}
 
 		// Draw text
@@ -310,7 +313,7 @@ export function VirtualInput({
 			ctx.beginPath();
 			ctx.moveTo(caretX, y - fontSize / 2);
 			ctx.lineTo(caretX, y + fontSize / 2);
-			ctx.strokeStyle = "black";
+			ctx.strokeStyle = caretColor;
 			ctx.lineWidth = 1.5;
 			ctx.stroke();
 		}
@@ -537,7 +540,8 @@ export function VirtualInput({
 					outline: "none",
 					font: "inherit",
 					width: "100%",
-					position: "relative"
+					position: "relative",
+					...props.style
 				}}
 				onFocus={() => onFocus(id)}
 				onBlur={(e) => onBlur(e)}
