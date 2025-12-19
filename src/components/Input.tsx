@@ -526,7 +526,9 @@ export function VirtualInput({
             `}
 		>
 			<div
+				id={id}
 				ref={containerRef}
+				className={props.className}
 				{...props}
 				role="textbox"
 				tabIndex={0}
@@ -539,7 +541,7 @@ export function VirtualInput({
 					position: "relative",
 					...props.style
 				}}
-				onFocus={() => onFocus(id)}
+				onFocus={() => onFocus(id, containerRef.current)}
 				onBlur={(e) => onBlur(e)}
 				onKeyDown={handleKeyDown}
 				onClick={handleCanvasClick}

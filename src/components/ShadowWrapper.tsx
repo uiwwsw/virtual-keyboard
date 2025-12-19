@@ -8,18 +8,16 @@ import ReactDOM from "react-dom";
  * @returns Shadow DOM 안에 children과 style을 렌더링
  */
 export const ShadowWrapper = memo(
-  ({
-    children,
-    css,
-    tagName,
-  }: {
+  (props: {
     children: React.ReactNode;
     css?: string;
-    tagName: "input" | "div";
-  }) => {
-    const [host, setHost] = useState<HTMLDivElement | null>(null);
+    tagName: string;
+  } & React.HTMLAttributes<HTMLElement>) => {
+    const [host, setHost] = useState<HTMLElement | null>(null);
     const [shadowRoot, setShadowRoot] = useState<ShadowRoot | null>(null);
-    const Component = tagName;
+    const { tagName, css, children, ...rest } = props;
+    const Component = tagName as any;
+
     // host div가 마운트되면 shadowRoot를 생성합니다. 이 작업은 한 번만 실행됩니다.
     useEffect(() => {
       if (host && !shadowRoot) {
@@ -29,7 +27,7 @@ export const ShadowWrapper = memo(
     }, [host, shadowRoot]); // host가 설정될 때만 실행
 
     return (
-      <Component ref={setHost}>
+      <Component ref={setHost} {...rest}>
         {shadowRoot &&
           ReactDOM.createPortal(
             <>

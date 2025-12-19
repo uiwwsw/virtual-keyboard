@@ -9,7 +9,7 @@ import type { VirtualInputHandle } from "./Input";
 interface VirtualInputContextValue {
 	inputRef: RefObject<VirtualInputHandle | null>;
 	isCompositionRef: RefObject<boolean | undefined>;
-	onFocus: (id: string) => void;
+	onFocus: (id: string, target?: HTMLElement | null) => void;
 	onBlur: (e?: React.FocusEvent | boolean) => void;
 	focusId: string | undefined;
 	setHangulMode: Dispatch<SetStateAction<boolean>>;

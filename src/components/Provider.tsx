@@ -38,24 +38,45 @@ export function VirtualInputProvider({
 	// Resolve Theme
 	const systemTheme = useSystemTheme();
 	const effectiveTheme = theme ?? systemTheme;
+	const focusedElementRef = useRef<HTMLElement | null>(null);
 
 	useEffect(() => {
-		console.log("[Provider] Theme Debug:", { prop: theme, system: systemTheme, effective: effectiveTheme });
-	}, [theme, systemTheme, effectiveTheme]);
+		if (focusId && focusedElementRef.current) {
+			const paddingBottom = Math.round(200 / viewport.scale);
+			document.body.style.paddingBottom = `${paddingBottom}px`;
 
-	useEffect(() => {
-		if (focusId) {
-			document.body.style.paddingBottom = `${Math.round(200 / viewport.scale)}px`;
+			// Vertical Focus: Scroll input into view (centered in available space)
+			setTimeout(() => {
+				const el = focusedElementRef.current;
+				if (el) {
+					const rect = el.getBoundingClientRect();
+					const scrollTop = window.scrollY || document.documentElement.scrollTop;
+					const elementTop = rect.top + scrollTop;
+
+					// Calculate available height (Visual Viewport - Keypad)
+					const availableHeight = viewport.height - paddingBottom;
+
+					// Target: Center the element in the available space
+					// ScrollTop = (Element Top) - (Half Available Height) + (Half Element Height)
+					const targetScroll = elementTop - (availableHeight / 2) + (rect.height / 2);
+
+					window.scrollTo({
+						top: targetScroll,
+						behavior: "smooth",
+					});
+				}
+			}, 100);
 		} else {
 			document.body.style.paddingBottom = '0px';
 		}
 		return () => {
 			document.body.style.paddingBottom = '0px';
 		};
-	}, [focusId, viewport.scale]);
+	}, [focusId, viewport.scale, viewport.height, viewport.offsetTop]);
 
-	const onFocus = (id: string) => {
+	const onFocus = (id: string, target?: HTMLElement | null) => {
 		clearTimeout(sti.current);
+		if (target) focusedElementRef.current = target;
 		setFocusId(id);
 	};
 	const onBlur = useCallback((e?: React.FocusEvent | boolean) => {
