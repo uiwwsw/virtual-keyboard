@@ -268,8 +268,12 @@ export function VirtualKeypad({
                         css={`
                .keypad-wrapper {
                    position: fixed;
+                   bottom: 0;
+                   left: 0; 
+                   right: 0;
+                   margin: 0 auto; /* Center horizontal if width < 100% */
                    background-color: var(--keypad-bg);
-                   border-radius: calc(18px / var(--scale-factor));
+                   border-radius: calc(18px / var(--scale-factor)) calc(18px / var(--scale-factor)) 0 0; /* Only top corners */
                    box-shadow: 0 calc(-6px / var(--scale-factor)) calc(30px / var(--scale-factor)) rgba(15, 23, 42, 0.2);
                    user-select: none;
                    -webkit-user-select: none;
@@ -296,11 +300,7 @@ export function VirtualKeypad({
                                 onPointerDown={(e) => e.preventDefault()} // Prevent focus loss on background tap
                                 onClickCapture={(e) => { e.preventDefault(); e.stopPropagation(); }} // Stop Ghost Clicks
                                 style={{
-                                        left: viewport.offsetLeft,
                                         width: viewport.width,
-                                        top: Math.round(
-                                                viewport.offsetTop + viewport.height - 200 / viewport.scale,
-                                        ),
                                         height: Math.round(200 / viewport.scale),
 
                                         "--scale-factor": viewport.scale,
