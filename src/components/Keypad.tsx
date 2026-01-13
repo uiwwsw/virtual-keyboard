@@ -55,7 +55,8 @@ export function VirtualKeypad({
                 toggleKorean,
                 shift,
                 getTransformedValue,
-                keyBoundsRef
+                keyBoundsRef,
+                calculateLayout,
         });
 
 
@@ -63,7 +64,19 @@ export function VirtualKeypad({
 
         // --- Layout & Rendering ---
 
-        const drawKey = (
+        const roundRect = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
+                if (w < 2 * r) r = w / 2;
+                if (h < 2 * r) r = h / 2;
+                ctx.beginPath();
+                ctx.moveTo(x + r, y);
+                ctx.arcTo(x + w, y, x + w, y + h, r);
+                ctx.arcTo(x + w, y + h, x, y + h, r);
+                ctx.arcTo(x, y + h, x, y, r);
+                ctx.arcTo(x, y, x + w, y, r);
+                ctx.closePath();
+        }, []);
+
+        const drawKey = useCallback((
                 ctx: CanvasRenderingContext2D,
                 key: { x: number; y: number; w: number; h: number; value: string; label: string; isAction: boolean; type?: string },
                 isPressed: boolean,
@@ -106,30 +119,17 @@ export function VirtualKeypad({
                         textColor = colors.activeModText;
                 }
 
-                // --- 3D / Depth Logic ---
-                // We simulate depth by drawing the shadow lower, and the face higher.
-                // When pressed, the face moves down towards the shadow.
+                const depth = 4 / scale;
+                const pressOffset = isPressed ? depth * 0.6 : 0;
 
-                const depth = 4 / scale; // Maximum depth (shadow height)
-                const pressOffset = isPressed ? depth * 0.6 : 0; // Move down when pressed
-
-                // 1. Draw Shadow (Base)
                 ctx.fillStyle = colors.shadow;
-                // Shadow is fixed at the bottom
                 roundRect(ctx, x, y + depth, w, h, r);
                 ctx.fill();
-
-                // 2. Draw Key Face (Floating)
-                // y position = original y + pressOffset.
-                // Height is same as shadow rect? Visual trick:
-                // We actually want the face to cover the top part of the shadow.
-                // Let's just draw the face rect at the animated position.
 
                 ctx.fillStyle = faceColor;
                 roundRect(ctx, x, y + pressOffset, w, h, r);
                 ctx.fill();
 
-                // 3. Text
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
 
@@ -139,21 +139,8 @@ export function VirtualKeypad({
                 ctx.font = `500 ${fontSize}px "${fontFamily}"`;
                 ctx.fillStyle = textColor;
 
-                // Center text on the FACE (moved by pressOffset)
                 ctx.fillText(key.label, x + w / 2, y + h / 2 + pressOffset);
-        };
-
-        const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
-                if (w < 2 * r) r = w / 2;
-                if (h < 2 * r) r = h / 2;
-                ctx.beginPath();
-                ctx.moveTo(x + r, y);
-                ctx.arcTo(x + w, y, x + w, y + h, r);
-                ctx.arcTo(x + w, y + h, x, y + h, r);
-                ctx.arcTo(x, y + h, x, y, r);
-                ctx.arcTo(x, y, x + w, y, r);
-                ctx.closePath();
-        };
+        }, [roundRect]);
 
         const draw = useCallback(() => {
                 const canvas = canvasRef.current;
@@ -202,7 +189,7 @@ export function VirtualKeypad({
 
                         drawKey(ctx, key, isPressed, isActiveModifier, scale, theme);
                 });
-        }, [calculateLayout, hangulMode, shift, viewport.scale, activePresses, keyBoundsRef, theme]);
+        }, [calculateLayout, drawKey, hangulMode, shift, viewport.scale, activePresses, keyBoundsRef, theme]);
 
 
 
@@ -213,34 +200,49 @@ export function VirtualKeypad({
                 keyBoundsRef.current = [];
         }, [hangulMode, shift, keyBoundsRef]);
 
-        // Outside Click / PointerDown Handler
+        // Outside tap closes keypad; drags/scrolls keep it open
+        const outsideTapRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
         useEffect(() => {
-                const handleGlobalPointerDown = (e: PointerEvent) => {
+                const isInsideVirtual = (path: EventTarget[], keypadEl: HTMLElement) => {
+                        const inKeypad = path.includes(keypadEl);
+                        const inInput = path.some(node => node instanceof Element && node.getAttribute("data-virtual-input") === "true");
+                        return inKeypad || inInput;
+                };
+
+                const handlePointerDown = (e: PointerEvent) => {
                         if (!containerRef.current || !focusId) return;
-
-                        // Check if target is inside keypad
-                        // Since we use Shadow DOM, we must check composedPath
                         const path = e.composedPath();
-                        if (path.includes(containerRef.current)) {
-                                return;
+                        if (isInsideVirtual(path, containerRef.current)) {
+                            outsideTapRef.current = null;
+                            return;
                         }
+                        outsideTapRef.current = { pointerId: e.pointerId, x: e.clientX, y: e.clientY };
+                };
 
-                        // Check if target is inside the Virtual Input
-                        // Scan path for data-virtual-input
-                        const isInput = path.some(node => {
-                                return node instanceof Element && node.getAttribute("data-virtual-input") === "true";
-                        });
+                const handlePointerUp = (e: PointerEvent) => {
+                        if (!containerRef.current || !focusId) return;
+                        const tap = outsideTapRef.current;
+                        outsideTapRef.current = null;
+                        if (!tap || tap.pointerId !== e.pointerId) return;
 
-                        if (isInput) return;
+                        const dx = Math.abs(e.clientX - tap.x);
+                        const dy = Math.abs(e.clientY - tap.y);
+                        const moved = Math.hypot(dx, dy) > 10;
+                        if (moved) return; // drag/scroll -> keep open
 
-                        // If click is outside Keypad AND outside Input, we blur.
+                        const path = e.composedPath();
+                        if (isInsideVirtual(path, containerRef.current)) return;
+
                         onBlur(true);
                 };
 
-                // Use 'true' for capture to ensure we catch the event even if propagation is stopped
-                window.addEventListener("pointerdown", handleGlobalPointerDown, { capture: true });
+                window.addEventListener("pointerdown", handlePointerDown, { capture: true });
+                window.addEventListener("pointerup", handlePointerUp, { capture: true });
+                window.addEventListener("pointercancel", handlePointerUp, { capture: true });
                 return () => {
-                        window.removeEventListener("pointerdown", handleGlobalPointerDown, { capture: true });
+                        window.removeEventListener("pointerdown", handlePointerDown, { capture: true });
+                        window.removeEventListener("pointerup", handlePointerUp, { capture: true });
+                        window.removeEventListener("pointercancel", handlePointerUp, { capture: true });
                 };
         }, [focusId, onBlur]);
 
