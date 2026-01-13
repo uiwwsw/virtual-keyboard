@@ -23,10 +23,12 @@ export function useKeypadInteraction({
     toggleKorean,
     shift,
     getTransformedValue,
-    keyBoundsRef
+    keyBoundsRef,
+    calculateLayout,
 }: VirtualInputContextType & {
     getTransformedValue: (cell: { label?: string; value: string; type?: string }) => string;
     keyBoundsRef: React.MutableRefObject<KeyBounds[]>;
+    calculateLayout: () => KeyBounds[];
 }) {
     const activePresses = useRef<Map<number, ActivePress>>(new Map());
 
@@ -60,7 +62,6 @@ export function useKeypadInteraction({
                 shiftKey: shift,
             });
             inputRef.current?.handleKeyDown(event);
-            inputRef.current?.scrollIntoView();
         },
         [getTransformedValue, inputRef, shift, toggleKorean, toggleShift],
     );
@@ -101,11 +102,12 @@ export function useKeypadInteraction({
         const canvas = e.currentTarget;
         if (!canvas) return;
 
-        // Capture pointer to ensure we receive move/up events even if finger leaves elements
-        canvas.setPointerCapture(e.pointerId);
+        // Ensure layout exists for very first fast tap
+        if (!keyBoundsRef.current.length) {
+            keyBoundsRef.current = calculateLayout();
+        }
 
         // Cancel existing repeats (Hold logic exclusion)
-        // When a new key is pressed, stop repeating/holding any previous keys
         activePresses.current.forEach((press) => {
             clearRepeat(press);
         });
@@ -141,7 +143,7 @@ export function useKeypadInteraction({
                 keyIndex: -1 // Void sentinel
             });
         }
-    }, [dispatchKeyEvent, startRepeat, keyBoundsRef]);
+    }, [calculateLayout, clearRepeat, dispatchKeyEvent, startRepeat, keyBoundsRef]);
 
     const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
         e.preventDefault(); // Prevent scrolling/gestures on iOS
