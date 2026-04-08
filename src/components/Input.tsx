@@ -58,6 +58,7 @@ export function VirtualInput({
 	// State for blinking cursor
 	const [showCursor, setShowCursor] = useState(true);
 	const showCursorRef = useRef(showCursor);
+	const hasSelectionRef = useRef(false);
 
 	useEffect(() => {
 		showCursorRef.current = showCursor;
@@ -65,6 +66,10 @@ export function VirtualInput({
 
 	useEffect(() => {
 		selectionRef.current = selection;
+		hasSelectionRef.current =
+			selection.start !== null &&
+			selection.end !== null &&
+			selection.start !== selection.end;
 	}, [selection]);
 
 	// Long Press Logic
@@ -597,7 +602,7 @@ export function VirtualInput({
 				case "Backspace": {
 					preventDefault();
 					isCompositionRef.current = false;
-					if (hasSelection) {
+					if (hasSelectionRef.current) {
 						const { newString, finalCaretIndex } = deleteSelectedText();
 						updateValue(newString, finalCaretIndex);
 					} else if (currentCaret > 0) {
@@ -609,7 +614,7 @@ export function VirtualInput({
 				case "Delete": {
 					preventDefault();
 					isCompositionRef.current = false;
-					if (hasSelection) {
+					if (hasSelectionRef.current) {
 						const { newString, finalCaretIndex } = deleteSelectedText();
 						updateValue(newString, finalCaretIndex);
 					} else if (currentCaret < currentVal.length) {
