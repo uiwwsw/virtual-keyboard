@@ -18,6 +18,12 @@ import { isHangul } from "../utils/isHangul";
 export interface VirtualInputHandle {
 	handleKeyDown: (e: KeyboardEvent | React.KeyboardEvent) => void;
 	scrollIntoView: () => void;
+	moveCaret: (direction: "left" | "right", extendSelection?: boolean) => void;
+	startSelection: () => void;
+	endSelection: () => void;
+	copySelection: () => Promise<void>;
+	pasteClipboard: () => Promise<void>;
+	cutSelection: () => Promise<void>;
 }
 
 export interface VirtualInputProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -97,6 +103,7 @@ export function VirtualInput({
 		isCompositionRef,
 		inputRef,
 		shift,
+		enterSelectionMode,
 	} = useVirtualInputContext();
 
 	const isFocused = focusId === id;
@@ -476,23 +483,12 @@ export function VirtualInput({
 		pointerStartedRef.current = true;
 		pointerStartPositionRef.current = { x: e.clientX, y: e.clientY };
 
-		longPressTimerRef.current = window.setTimeout(async () => {
+		longPressTimerRef.current = window.setTimeout(() => {
 			if (!pointerStartedRef.current) return;
 			pointerStartedRef.current = false;
-
-			try {
-				if (internalValueRef.current) {
-					await navigator.clipboard.writeText(internalValueRef.current);
-					if (navigator.vibrate) navigator.vibrate(50);
-					setShowCopyFeedback(true);
-					setTimeout(() => setShowCopyFeedback(false), 1500);
-				}
-			} catch (err) {
-				console.error("Failed to copy", err);
-			}
-
+			enterSelectionMode();
 		}, 600);
-	}, [cancelLongPress]);
+	}, [cancelLongPress, enterSelectionMode]);
 
 	const handlePointerMove = useCallback((e: React.PointerEvent) => {
 		if (!pointerStartedRef.current || !pointerStartPositionRef.current) return;
@@ -672,6 +668,63 @@ export function VirtualInput({
 		[hangulMode, setHangulMode, isCompositionRef, shift, updateValue, deleteSelectedText, clearSelection, setSelectionRange]
 	);
 
+	const moveCaret = useCallback((direction: "left" | "right", extendSelection = false) => {
+		const currentVal = internalValueRef.current;
+		const currentCaret = caretIndexRef.current;
+		const newIndex = direction === "left"
+			? Math.max(0, currentCaret - 1)
+			: Math.min(currentVal.length, currentCaret + 1);
+
+		if (extendSelection) {
+			const currentSelection = selectionRef.current;
+			setSelectionRange(currentSelection.start ?? currentCaret, newIndex);
+		} else {
+			clearSelection();
+		}
+
+		caretIndexRef.current = newIndex;
+		setCaretIndex(newIndex);
+	}, [clearSelection, setSelectionRange]);
+
+	const startSelection = useCallback(() => {
+		setSelectionRange(caretIndexRef.current, caretIndexRef.current);
+	}, [setSelectionRange]);
+
+	const endSelection = useCallback(() => {
+		const start = selectionRef.current.start ?? caretIndexRef.current;
+		setSelectionRange(start, caretIndexRef.current);
+	}, [setSelectionRange]);
+
+	const copySelection = useCallback(async () => {
+		const currentVal = internalValueRef.current;
+		const sel = selectionRef.current;
+		if (sel.start === null || sel.end === null || sel.start === sel.end) return;
+		const [start, end] = [sel.start, sel.end].sort((a, b) => a - b);
+		await navigator.clipboard.writeText(currentVal.slice(start, end));
+		setShowCopyFeedback(true);
+		setTimeout(() => setShowCopyFeedback(false), 1500);
+	}, []);
+
+	const pasteClipboard = useCallback(async () => {
+		const text = await navigator.clipboard.readText();
+		if (!text) return;
+		const currentVal = internalValueRef.current;
+		const currentCaret = caretIndexRef.current;
+		const sel = selectionRef.current;
+		const hasActiveSelection = sel.start !== null && sel.end !== null && sel.start !== sel.end;
+		const { newString, finalCaretIndex } = hasActiveSelection
+			? deleteSelectedText()
+			: { newString: currentVal, finalCaretIndex: currentCaret };
+		const finalString = newString.slice(0, finalCaretIndex) + text + newString.slice(finalCaretIndex);
+		updateValue(finalString, finalCaretIndex + text.length);
+	}, [deleteSelectedText, updateValue]);
+
+	const cutSelection = useCallback(async () => {
+		await copySelection();
+		const { newString, finalCaretIndex } = deleteSelectedText();
+		updateValue(newString, finalCaretIndex);
+	}, [copySelection, deleteSelectedText, updateValue]);
+
 	useImperativeHandle(inputRef, () => {
 		if (isFocused) {
 			return {
@@ -681,11 +734,17 @@ export function VirtualInput({
 						behavior: "smooth",
 						block: "nearest",
 					});
-				}
+				},
+				moveCaret,
+				startSelection,
+				endSelection,
+				copySelection,
+				pasteClipboard,
+				cutSelection,
 			};
 		}
 		return inputRef.current!;
-	}, [isFocused, handleKeyDown, inputRef]);
+	}, [isFocused, handleKeyDown, inputRef, moveCaret, startSelection, endSelection, copySelection, pasteClipboard, cutSelection]);
 
 
 	return (

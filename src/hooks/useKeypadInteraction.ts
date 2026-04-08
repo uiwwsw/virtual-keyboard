@@ -15,6 +15,8 @@ type VirtualInputContextType = {
     toggleShift: () => void;
     consumeShift: () => void;
     toggleKorean: () => void;
+    enterSelectionMode: () => void;
+    exitSelectionMode: () => void;
     shift: boolean;
     shiftLocked: boolean;
 };
@@ -24,6 +26,8 @@ export function useKeypadInteraction({
     toggleShift,
     consumeShift,
     toggleKorean,
+    enterSelectionMode,
+    exitSelectionMode,
     shift,
     shiftLocked,
     getTransformedValue,
@@ -56,6 +60,42 @@ export function useKeypadInteraction({
                     toggleKorean();
                     return;
                 }
+                if (value === "EnterSelectionMode") {
+                    enterSelectionMode();
+                    return;
+                }
+                if (value === "ExitSelectionMode") {
+                    exitSelectionMode();
+                    return;
+                }
+                if (value === "SelectionStart") {
+                    inputRef.current?.startSelection();
+                    return;
+                }
+                if (value === "SelectionEnd") {
+                    inputRef.current?.endSelection();
+                    return;
+                }
+                if (value === "Copy") {
+                    void inputRef.current?.copySelection();
+                    return;
+                }
+                if (value === "Paste") {
+                    void inputRef.current?.pasteClipboard();
+                    return;
+                }
+                if (value === "Cut") {
+                    void inputRef.current?.cutSelection();
+                    return;
+                }
+                if (value === "ArrowLeft") {
+                    inputRef.current?.moveCaret("left", true);
+                    return;
+                }
+                if (value === "ArrowRight") {
+                    inputRef.current?.moveCaret("right", true);
+                    return;
+                }
             }
 
             const event = new KeyboardEvent("keydown", {
@@ -71,7 +111,7 @@ export function useKeypadInteraction({
                 consumeShift();
             }
         },
-        [consumeShift, getTransformedValue, inputRef, shift, shiftLocked, toggleKorean, toggleShift],
+        [consumeShift, enterSelectionMode, exitSelectionMode, getTransformedValue, inputRef, shift, shiftLocked, toggleKorean, toggleShift],
     );
 
     const clearRepeat = useCallback((press: ActivePress | undefined) => {
