@@ -12,6 +12,8 @@ import { VirtualInputContext } from "./Context";
 import type { VirtualInputHandle } from "./Input";
 import qwerty from "../assets/qwerty.json";
 import selectionModeLayout from "../assets/selectionModeLayout.json";
+import { resolveInputPolicy } from "../utils/inputPolicy";
+import type { InputPolicy } from "../types/inputPolicy";
 import { useVisualViewport } from "../hooks/useVisualViewport";
 import { useSystemTheme } from "../hooks/useSystemTheme";
 export function VirtualInputProvider({
@@ -38,6 +40,7 @@ export function VirtualInputProvider({
 		defaultHangulMode,
 	);
 	const viewport = useVisualViewport();
+	const [activeInputPolicy, setActiveInputPolicy] = useState(() => resolveInputPolicy({ layout }));
 
 	// Resolve Theme
 	const systemTheme = useSystemTheme();
@@ -78,9 +81,10 @@ export function VirtualInputProvider({
 		};
 	}, [focusId, viewport.scale, viewport.height, viewport.offsetTop]);
 
-	const onFocus = (id: string, target?: HTMLElement | null) => {
+	const onFocus = (id: string, target?: HTMLElement | null, policy?: InputPolicy) => {
 		clearTimeout(sti.current);
 		if (target) focusedElementRef.current = target;
+		if (policy) setActiveInputPolicy(resolveInputPolicy(policy));
 		setFocusId(id);
 	};
 	const resetKeyboardModes = useCallback(() => {
@@ -179,10 +183,11 @@ export function VirtualInputProvider({
 				toggleKorean,
 				isCompositionRef,
 				inputRef,
+				activeInputPolicy,
 			}}
 		>
 			{children}
-			<VirtualKeypad layout={selectionMode ? selectionModeLayout : layout} viewport={viewport} />
+			<VirtualKeypad layout={selectionMode ? (selectionModeLayout as KeypadLayout) : activeInputPolicy.layout} viewport={viewport} />
 		</VirtualInputContext.Provider>
 	);
 }

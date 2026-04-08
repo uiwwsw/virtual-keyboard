@@ -13,6 +13,9 @@ import { useVirtualInputContext } from "./Context";
 import { parseKeyInput } from "../utils/parseKeyInput";
 import { assemble } from "es-hangul";
 import { isHangul } from "../utils/isHangul";
+import type { InputMode } from "../types/inputPolicy";
+import type { KeypadLayout } from "../hooks/useKeypadLayout";
+import { isSpecialKey, resolveInputPolicy } from "../utils/inputPolicy";
 
 
 export interface VirtualInputHandle {
@@ -29,6 +32,10 @@ export interface VirtualInputProps extends React.HTMLAttributes<HTMLDivElement> 
 	defaultValue?: string;
 	placeholder?: string;
 	onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+	mode?: InputMode;
+	layout?: KeypadLayout;
+	filterKey?: (key: string) => boolean;
+	sanitizeValue?: (value: string) => string;
 }
 
 export function VirtualInput({
@@ -36,6 +43,10 @@ export function VirtualInput({
 	defaultValue,
 	placeholder,
 	onChange,
+	mode = "text",
+	layout,
+	filterKey,
+	sanitizeValue,
 	...props
 }: VirtualInputProps) {
 	const id = useId();
@@ -103,6 +114,11 @@ export function VirtualInput({
 		shift,
 		enterSelectionMode,
 	} = useVirtualInputContext();
+
+	const inputPolicy = useMemo(
+		() => resolveInputPolicy({ mode, layout, filterKey, sanitizeValue }),
+		[mode, layout, filterKey, sanitizeValue],
+	);
 
 	const isFocused = focusId === id;
 
@@ -351,23 +367,25 @@ export function VirtualInput({
 
 	const updateValue = useCallback(
 		(newValue: string, newCaretIndex: number) => {
-			internalValueRef.current = newValue;
-			caretIndexRef.current = newCaretIndex;
+			const sanitizedValue = inputPolicy.sanitizeValue(newValue);
+			const safeCaretIndex = Math.min(newCaretIndex, sanitizedValue.length);
+			internalValueRef.current = sanitizedValue;
+			caretIndexRef.current = safeCaretIndex;
 
 			if (controlledValue === undefined) {
-				setInternalValue(newValue);
+				setInternalValue(sanitizedValue);
 			}
 
-			const fakeInput = { value: newValue } as HTMLInputElement;
+			const fakeInput = { value: sanitizedValue } as HTMLInputElement;
 			const changeEvent = {
 				target: fakeInput,
 				currentTarget: fakeInput,
 			} as React.ChangeEvent<HTMLInputElement>;
 
 			onChange?.(changeEvent);
-			setCaretIndex(newCaretIndex);
+			setCaretIndex(safeCaretIndex);
 		},
-		[controlledValue, onChange],
+		[controlledValue, inputPolicy, onChange],
 	);
 
 	const getCharIndexFromX = useCallback((clientX: number) => {
@@ -406,8 +424,8 @@ export function VirtualInput({
 		caretIndexRef.current = index;
 		setCaretIndex(index);
 		clearSelection();
-		onFocus(id);
-	}, [getCharIndexFromX, clearSelection, onFocus, id, showCopyFeedback]);
+		onFocus(id, containerRef.current, inputPolicy);
+	}, [getCharIndexFromX, clearSelection, onFocus, id, showCopyFeedback, inputPolicy]);
 
 	// --- Clipboard Handlers (Native Events) ---
 
@@ -447,7 +465,7 @@ export function VirtualInput({
 
 	const handlePaste = useCallback((e: React.ClipboardEvent) => {
 		e.preventDefault();
-		const text = e.clipboardData.getData('text/plain');
+		const text = inputPolicy.sanitizeValue(e.clipboardData.getData('text/plain'));
 		if (!text) return;
 
 		const currentVal = internalValueRef.current;
@@ -462,7 +480,7 @@ export function VirtualInput({
 
 		const finalString = newString.slice(0, finalCaretIndex) + text + newString.slice(finalCaretIndex);
 		updateValue(finalString, finalCaretIndex + text.length);
-	}, [deleteSelectedText, updateValue]);
+	}, [deleteSelectedText, inputPolicy, updateValue]);
 
 	// --- Long Press Handlers ---
 
@@ -638,6 +656,8 @@ export function VirtualInput({
 			const { composing } = result;
 			let { text } = result;
 
+			if (!isSpecialKey(text) && !inputPolicy.filterKey(text)) return;
+
 			if (shift && text.length === 1 && text.match(/[a-z]/i)) {
 				text = text.toUpperCase();
 			}
@@ -663,7 +683,7 @@ export function VirtualInput({
 			}
 			isCompositionRef.current = composing;
 		},
-		[hangulMode, setHangulMode, isCompositionRef, shift, updateValue, deleteSelectedText, clearSelection, setSelectionRange]
+		[hangulMode, inputPolicy, setHangulMode, isCompositionRef, shift, updateValue, deleteSelectedText, clearSelection, setSelectionRange]
 	);
 
 	const moveCaret = useCallback((direction: "left" | "right", extendSelection = false) => {

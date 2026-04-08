@@ -6,10 +6,11 @@ import {
 	useContext,
 } from "react";
 import type { VirtualInputHandle } from "./Input";
+import type { InputPolicy } from "../types/inputPolicy";
 interface VirtualInputContextValue {
 	inputRef: RefObject<VirtualInputHandle | null>;
 	isCompositionRef: RefObject<boolean | undefined>;
-	onFocus: (id: string, target?: HTMLElement | null) => void;
+	onFocus: (id: string, target?: HTMLElement | null, policy?: InputPolicy) => void;
 	onBlur: (e?: React.FocusEvent | boolean) => void;
 	focusId: string | undefined;
 	setHangulMode: Dispatch<SetStateAction<boolean>>;
@@ -25,6 +26,7 @@ interface VirtualInputContextValue {
 	selectionAdjusting: boolean;
 	toggleSelectionAdjust: () => void;
 	toggleKorean: () => void;
+	activeInputPolicy: Required<InputPolicy>;
 }
 export const VirtualInputContext =
 	createContext<VirtualInputContextValue | null>(null);
