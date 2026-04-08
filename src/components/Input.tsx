@@ -53,6 +53,7 @@ export function VirtualInput({
 		start: number | null;
 		end: number | null;
 	}>({ start: null, end: null });
+	const selectionRef = useRef(selection);
 
 	// State for blinking cursor
 	const [showCursor, setShowCursor] = useState(true);
@@ -61,6 +62,10 @@ export function VirtualInput({
 	useEffect(() => {
 		showCursorRef.current = showCursor;
 	}, [showCursor]);
+
+	useEffect(() => {
+		selectionRef.current = selection;
+	}, [selection]);
 
 	// Long Press Logic
 	const longPressTimerRef = useRef<number | null>(null);
@@ -124,18 +129,27 @@ export function VirtualInput({
 	);
 
 	const clearSelection = useCallback(() => {
-		setSelection({ start: null, end: null });
+		const nextSelection = { start: null, end: null };
+		selectionRef.current = nextSelection;
+		setSelection(nextSelection);
 	}, []);
 
 	const deleteSelectedText = useCallback(() => {
 		// Use refs for latest state
 		const currentVal = internalValueRef.current;
 
-		if (!hasSelection || selection.start === null || selection.end === null) {
+		const currentSelection = selectionRef.current;
+
+		if (
+			!currentSelection ||
+			currentSelection.start === null ||
+			currentSelection.end === null ||
+			currentSelection.start === currentSelection.end
+		) {
 			return { newString: currentVal, finalCaretIndex: caretIndexRef.current };
 		}
 
-		const [start, end] = [selection.start, selection.end].sort((a, b) => a - b);
+		const [start, end] = [currentSelection.start, currentSelection.end].sort((a, b) => a - b);
 		const newString = currentVal.slice(0, start) + currentVal.slice(end);
 
 		clearSelection();
@@ -382,7 +396,7 @@ export function VirtualInput({
 	const handleCopy = useCallback((e: React.ClipboardEvent) => {
 		e.preventDefault();
 		const currentVal = internalValueRef.current;
-		const sel = selection;
+		const sel = selectionRef.current;
 
 		if (sel.start !== null && sel.end !== null && sel.start !== sel.end) {
 			const [start, end] = [sel.start, sel.end].sort((a, b) => a - b);
@@ -393,13 +407,14 @@ export function VirtualInput({
 			setShowCopyFeedback(true);
 			setTimeout(() => setShowCopyFeedback(false), 1500);
 		}
-	}, [selection]);
+	}, []);
 
 	const handleCut = useCallback((e: React.ClipboardEvent) => {
 		e.preventDefault();
 		const currentVal = internalValueRef.current;
-		if (hasSelection && selection.start !== null && selection.end !== null) {
-			const [start, end] = [selection.start, selection.end].sort((a, b) => a - b);
+		const sel = selectionRef.current;
+		if (sel.start !== null && sel.end !== null && sel.start !== sel.end) {
+			const [start, end] = [sel.start, sel.end].sort((a, b) => a - b);
 			const textToCopy = currentVal.slice(start, end);
 			e.clipboardData.setData('text/plain', textToCopy);
 
@@ -410,7 +425,7 @@ export function VirtualInput({
 			const { newString, finalCaretIndex } = deleteSelectedText();
 			updateValue(newString, finalCaretIndex);
 		}
-	}, [hasSelection, selection, deleteSelectedText, updateValue]);
+	}, [deleteSelectedText, updateValue]);
 
 	const handlePaste = useCallback((e: React.ClipboardEvent) => {
 		e.preventDefault();
@@ -419,14 +434,17 @@ export function VirtualInput({
 
 		const currentVal = internalValueRef.current;
 		const currentCaret = caretIndexRef.current;
+		const sel = selectionRef.current;
+		const hasActiveSelection =
+			sel.start !== null && sel.end !== null && sel.start !== sel.end;
 
-		const { newString, finalCaretIndex } = hasSelection
+		const { newString, finalCaretIndex } = hasActiveSelection
 			? deleteSelectedText()
 			: { newString: currentVal, finalCaretIndex: currentCaret };
 
 		const finalString = newString.slice(0, finalCaretIndex) + text + newString.slice(finalCaretIndex);
 		updateValue(finalString, finalCaretIndex + text.length);
-	}, [hasSelection, deleteSelectedText, updateValue]);
+	}, [deleteSelectedText, updateValue]);
 
 	// --- Long Press Handlers ---
 
@@ -539,7 +557,9 @@ export function VirtualInput({
 				const key = e.key.toLowerCase();
 				if (key === 'a') {
 					preventDefault();
-					setSelection({ start: 0, end: currentVal.length });
+					const nextSelection = { start: 0, end: currentVal.length };
+					selectionRef.current = nextSelection;
+					setSelection(nextSelection);
 					caretIndexRef.current = currentVal.length;
 					setCaretIndex(currentVal.length);
 					return;
@@ -553,10 +573,14 @@ export function VirtualInput({
 					? Math.max(0, currentCaret - 1)
 					: Math.min(currentVal.length, currentCaret + 1);
 
-				setSelection((prev: { start: number | null; end: number | null }) => ({
-					start: prev.start ?? currentCaret,
-					end: newIndex
-				}));
+				setSelection((prev: { start: number | null; end: number | null }) => {
+					const nextSelection = {
+						start: prev.start ?? currentCaret,
+						end: newIndex,
+					};
+					selectionRef.current = nextSelection;
+					return nextSelection;
+				});
 
 				caretIndexRef.current = newIndex;
 				setCaretIndex(newIndex);
