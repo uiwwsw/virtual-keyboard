@@ -206,7 +206,7 @@ export function VirtualKeypad({
 
                         drawKey(ctx, key, isPressed, isActiveModifier, scale, theme);
                 });
-        }, [calculateLayout, drawKey, hangulMode, selectionMode, shift, viewport.scale, activePresses, keyBoundsRef, theme]);
+        }, [calculateLayout, drawKey, hangulMode, selectionAdjusting, selectionMode, shift, shiftLocked, viewport.scale, activePresses, keyBoundsRef, theme]);
 
 
 
@@ -215,7 +215,7 @@ export function VirtualKeypad({
         // Explicitly reset layout on mode change to force redraw
         useEffect(() => {
                 keyBoundsRef.current = [];
-        }, [hangulMode, shift, keyBoundsRef]);
+        }, [hangulMode, shift, selectionMode, selectionAdjusting, layout, keyBoundsRef]);
 
         // Outside tap closes keypad; drags/scrolls keep it open
         const outsideTapRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
