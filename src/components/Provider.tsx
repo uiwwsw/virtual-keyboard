@@ -83,12 +83,18 @@ export function VirtualInputProvider({
 		if (target) focusedElementRef.current = target;
 		setFocusId(id);
 	};
+	const resetKeyboardModes = useCallback(() => {
+		setShift(false);
+		setShiftLocked(false);
+		setSelectionMode(false);
+		setSelectionAdjusting(false);
+	}, []);
+
 	const onBlur = useCallback((e?: React.FocusEvent | boolean) => {
 		// Force close (from Keypad outside click)
 		if (e === true) {
 			setFocusId(undefined);
-			setSelectionMode(false);
-			setSelectionAdjusting(false);
+			resetKeyboardModes();
 			isCompositionRef.current = false;
 			return;
 		}
@@ -102,8 +108,7 @@ export function VirtualInputProvider({
 			// If focused to valid non-virtual element, close
 			sti.current = setTimeout(() => {
 				setFocusId(undefined);
-				setSelectionMode(false);
-				setSelectionAdjusting(false);
+				resetKeyboardModes();
 				isCompositionRef.current = false;
 			}, 0);
 			return;
@@ -112,9 +117,13 @@ export function VirtualInputProvider({
 		// If tapped background (no related target or body), KEEP OPEN (User request)
 		// This is CRITICAL for iOS fast input where focus can be lost transiently.
 		// However, Keypad.tsx now handles explicit outside clicks and calls onBlur(true).
-	}, [setFocusId, isCompositionRef]);
+	}, [resetKeyboardModes, setFocusId, isCompositionRef]);
 	const toggleShift = useCallback(() => {
 		setShift((prevShift) => {
+			if (prevShift && shiftLocked) {
+				setShiftLocked(false);
+				return false;
+			}
 			if (prevShift) {
 				setShiftLocked(true);
 				return true;
@@ -122,7 +131,7 @@ export function VirtualInputProvider({
 			setShiftLocked(false);
 			return true;
 		});
-	}, []);
+	}, [shiftLocked]);
 
 	const consumeShift = useCallback(() => {
 		setShift((prevShift) => {
