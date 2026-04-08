@@ -17,6 +17,8 @@ type VirtualInputContextType = {
     toggleKorean: () => void;
     enterSelectionMode: () => void;
     exitSelectionMode: () => void;
+    toggleSelectionAdjust: () => void;
+    selectionAdjusting: boolean;
     shift: boolean;
     shiftLocked: boolean;
 };
@@ -28,6 +30,8 @@ export function useKeypadInteraction({
     toggleKorean,
     enterSelectionMode,
     exitSelectionMode,
+    toggleSelectionAdjust,
+    selectionAdjusting,
     shift,
     shiftLocked,
     getTransformedValue,
@@ -68,12 +72,8 @@ export function useKeypadInteraction({
                     exitSelectionMode();
                     return;
                 }
-                if (value === "SelectionStart") {
-                    inputRef.current?.startSelection();
-                    return;
-                }
-                if (value === "SelectionEnd") {
-                    inputRef.current?.endSelection();
+                if (value === "ToggleSelectionAdjust") {
+                    toggleSelectionAdjust();
                     return;
                 }
                 if (value === "Copy") {
@@ -89,11 +89,11 @@ export function useKeypadInteraction({
                     return;
                 }
                 if (value === "ArrowLeft") {
-                    inputRef.current?.moveCaret("left", true);
+                    inputRef.current?.moveCaret("left", selectionAdjusting);
                     return;
                 }
                 if (value === "ArrowRight") {
-                    inputRef.current?.moveCaret("right", true);
+                    inputRef.current?.moveCaret("right", selectionAdjusting);
                     return;
                 }
             }
@@ -111,7 +111,7 @@ export function useKeypadInteraction({
                 consumeShift();
             }
         },
-        [consumeShift, enterSelectionMode, exitSelectionMode, getTransformedValue, inputRef, shift, shiftLocked, toggleKorean, toggleShift],
+        [consumeShift, enterSelectionMode, exitSelectionMode, getTransformedValue, inputRef, selectionAdjusting, shift, shiftLocked, toggleKorean, toggleSelectionAdjust, toggleShift],
     );
 
     const clearRepeat = useCallback((press: ActivePress | undefined) => {
