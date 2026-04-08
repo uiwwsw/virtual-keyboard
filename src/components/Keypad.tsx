@@ -201,7 +201,7 @@ export function VirtualKeypad({
                         const isActiveModifier =
                                 (key.value === "Shift" && (shift || shiftLocked)) ||
                                 (key.value === "HangulMode" && hangulMode) ||
-                                (key.value === "EnterSelectionMode" && selectionMode) ||
+                                ((key.value === "EnterSelectionMode" || key.value === "ExitSelectionMode") && selectionMode) ||
                                 (key.value === "ToggleSelectionAdjust" && selectionAdjusting);
 
                         drawKey(ctx, key, isPressed, isActiveModifier, scale, theme);

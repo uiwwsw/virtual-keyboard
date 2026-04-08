@@ -2,8 +2,7 @@
   [
     { "label": "Select", "value": "ToggleSelectionAdjust", "width": 1.4, "type": "action" },
     { "label": "←", "value": "ArrowLeft", "type": "action" },
-    { "label": "→", "value": "ArrowRight", "type": "action" },
-    { "label": "ABC", "value": "ExitSelectionMode", "width": 1.2, "type": "action" }
+    { "label": "→", "value": "ArrowRight", "type": "action" }
   ],
   [
     { "label": "Copy", "value": "Copy", "width": 1.4, "type": "action" },
@@ -12,8 +11,8 @@
     { "label": "⌫", "value": "Backspace", "type": "action" }
   ],
   [
+    { "label": "✂︎", "value": "ExitSelectionMode", "type": "action" },
     { "label": "␣", "value": " ", "width": 2.8, "type": "action" },
-    { "label": "닫기", "value": "ExitSelectionMode", "width": 1.2, "type": "action" },
     { "label": "⏎", "value": "\n", "type": "action" }
   ]
 ]
