@@ -13,7 +13,7 @@
   ],
   [
     { "label": "␣", "value": " ", "width": 2.8, "type": "action" },
-    { "label": "🌐", "value": "HangulMode", "type": "action" },
+    { "label": "닫기", "value": "ExitSelectionMode", "width": 1.2, "type": "action" },
     { "label": "⏎", "value": "\n", "type": "action" }
   ]
 ]
