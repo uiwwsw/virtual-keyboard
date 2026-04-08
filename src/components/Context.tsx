@@ -15,8 +15,10 @@ interface VirtualInputContextValue {
 	setHangulMode: Dispatch<SetStateAction<boolean>>;
 	hangulMode: boolean;
 	shift: boolean;
+	shiftLocked: boolean;
 	theme: "light" | "dark";
 	toggleShift: () => void;
+	consumeShift: () => void;
 	toggleKorean: () => void;
 }
 export const VirtualInputContext =

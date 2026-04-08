@@ -29,6 +29,7 @@ export function VirtualInputProvider({
 	const isCompositionRef = useRef<boolean | undefined>(undefined);
 	const [focusId, setFocusId] = useState<string | undefined>();
 	const [shift, setShift] = useState(false);
+	const [shiftLocked, setShiftLocked] = useState(false);
 	const [hangulMode, setHangulMode] = useStorage(
 		"virtual-keyboard-hangul-mode",
 		defaultHangulMode,
@@ -106,8 +107,23 @@ export function VirtualInputProvider({
 		// However, Keypad.tsx now handles explicit outside clicks and calls onBlur(true).
 	}, [setFocusId, isCompositionRef]);
 	const toggleShift = useCallback(() => {
-		setShift((prev) => !prev);
+		setShift((prevShift) => {
+			if (prevShift) {
+				setShiftLocked(true);
+				return true;
+			}
+			setShiftLocked(false);
+			return true;
+		});
 	}, []);
+
+	const consumeShift = useCallback(() => {
+		setShift((prevShift) => {
+			if (!prevShift || shiftLocked) return prevShift;
+			return false;
+		});
+		setShiftLocked((prevLocked) => prevLocked);
+	}, [shiftLocked]);
 
 	const toggleKorean = useCallback(() => {
 		setHangulMode((prev) => !prev);
@@ -118,11 +134,13 @@ export function VirtualInputProvider({
 				focusId,
 				hangulMode,
 				shift,
+				shiftLocked,
 				theme: effectiveTheme,
 				onFocus,
 				onBlur,
 				setHangulMode,
 				toggleShift,
+				consumeShift,
 				toggleKorean,
 				isCompositionRef,
 				inputRef,

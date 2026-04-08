@@ -13,15 +13,19 @@ type ActivePress = {
 type VirtualInputContextType = {
     inputRef: React.RefObject<VirtualInputHandle | null>;
     toggleShift: () => void;
+    consumeShift: () => void;
     toggleKorean: () => void;
     shift: boolean;
+    shiftLocked: boolean;
 };
 
 export function useKeypadInteraction({
     inputRef,
     toggleShift,
+    consumeShift,
     toggleKorean,
     shift,
+    shiftLocked,
     getTransformedValue,
     keyBoundsRef,
     calculateLayout,
@@ -62,8 +66,12 @@ export function useKeypadInteraction({
                 shiftKey: shift,
             });
             inputRef.current?.handleKeyDown(event);
+
+            if (shift && !shiftLocked && type === "char") {
+                consumeShift();
+            }
         },
-        [getTransformedValue, inputRef, shift, toggleKorean, toggleShift],
+        [consumeShift, getTransformedValue, inputRef, shift, shiftLocked, toggleKorean, toggleShift],
     );
 
     const clearRepeat = useCallback((press: ActivePress | undefined) => {
