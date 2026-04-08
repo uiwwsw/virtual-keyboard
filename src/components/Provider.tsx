@@ -11,7 +11,7 @@ import { useStorage } from "../hooks/useStorage";
 import { VirtualInputContext } from "./Context";
 import type { VirtualInputHandle } from "./Input";
 import qwerty from "../assets/qwerty.json";
-import { selectionModeLayout } from "../assets/selectionModeLayout";
+import selectionModeLayout from "../assets/selectionModeLayout.json";
 import { useVisualViewport } from "../hooks/useVisualViewport";
 import { useSystemTheme } from "../hooks/useSystemTheme";
 export function VirtualInputProvider({
@@ -32,6 +32,7 @@ export function VirtualInputProvider({
 	const [shift, setShift] = useState(false);
 	const [shiftLocked, setShiftLocked] = useState(false);
 	const [selectionMode, setSelectionMode] = useState(false);
+	const [selectionAdjusting, setSelectionAdjusting] = useState(false);
 	const [hangulMode, setHangulMode] = useStorage(
 		"virtual-keyboard-hangul-mode",
 		defaultHangulMode,
@@ -87,6 +88,7 @@ export function VirtualInputProvider({
 		if (e === true) {
 			setFocusId(undefined);
 			setSelectionMode(false);
+			setSelectionAdjusting(false);
 			isCompositionRef.current = false;
 			return;
 		}
@@ -101,6 +103,7 @@ export function VirtualInputProvider({
 			sti.current = setTimeout(() => {
 				setFocusId(undefined);
 				setSelectionMode(false);
+				setSelectionAdjusting(false);
 				isCompositionRef.current = false;
 			}, 0);
 			return;
@@ -131,10 +134,16 @@ export function VirtualInputProvider({
 
 	const enterSelectionMode = useCallback(() => {
 		setSelectionMode(true);
+		setSelectionAdjusting(false);
 	}, []);
 
 	const exitSelectionMode = useCallback(() => {
 		setSelectionMode(false);
+		setSelectionAdjusting(false);
+	}, []);
+
+	const toggleSelectionAdjust = useCallback(() => {
+		setSelectionAdjusting((prev) => !prev);
 	}, []);
 
 	const toggleKorean = useCallback(() => {
@@ -148,6 +157,7 @@ export function VirtualInputProvider({
 				shift,
 				shiftLocked,
 				selectionMode,
+				selectionAdjusting,
 				theme: effectiveTheme,
 				onFocus,
 				onBlur,
@@ -156,6 +166,7 @@ export function VirtualInputProvider({
 				consumeShift,
 				enterSelectionMode,
 				exitSelectionMode,
+				toggleSelectionAdjust,
 				toggleKorean,
 				isCompositionRef,
 				inputRef,

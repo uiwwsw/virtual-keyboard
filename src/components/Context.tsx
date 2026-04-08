@@ -22,6 +22,8 @@ interface VirtualInputContextValue {
 	enterSelectionMode: () => void;
 	exitSelectionMode: () => void;
 	selectionMode: boolean;
+	selectionAdjusting: boolean;
+	toggleSelectionAdjust: () => void;
 	toggleKorean: () => void;
 }
 export const VirtualInputContext =

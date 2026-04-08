@@ -19,8 +19,6 @@ export interface VirtualInputHandle {
 	handleKeyDown: (e: KeyboardEvent | React.KeyboardEvent) => void;
 	scrollIntoView: () => void;
 	moveCaret: (direction: "left" | "right", extendSelection?: boolean) => void;
-	startSelection: () => void;
-	endSelection: () => void;
 	copySelection: () => Promise<void>;
 	pasteClipboard: () => Promise<void>;
 	cutSelection: () => Promise<void>;
@@ -686,15 +684,6 @@ export function VirtualInput({
 		setCaretIndex(newIndex);
 	}, [clearSelection, setSelectionRange]);
 
-	const startSelection = useCallback(() => {
-		setSelectionRange(caretIndexRef.current, caretIndexRef.current);
-	}, [setSelectionRange]);
-
-	const endSelection = useCallback(() => {
-		const start = selectionRef.current.start ?? caretIndexRef.current;
-		setSelectionRange(start, caretIndexRef.current);
-	}, [setSelectionRange]);
-
 	const copySelection = useCallback(async () => {
 		const currentVal = internalValueRef.current;
 		const sel = selectionRef.current;
@@ -736,15 +725,13 @@ export function VirtualInput({
 					});
 				},
 				moveCaret,
-				startSelection,
-				endSelection,
 				copySelection,
 				pasteClipboard,
 				cutSelection,
 			};
 		}
 		return inputRef.current!;
-	}, [isFocused, handleKeyDown, inputRef, moveCaret, startSelection, endSelection, copySelection, pasteClipboard, cutSelection]);
+	}, [isFocused, handleKeyDown, inputRef, moveCaret, copySelection, pasteClipboard, cutSelection]);
 
 
 	return (
