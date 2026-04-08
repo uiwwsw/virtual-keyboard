@@ -159,6 +159,7 @@ export function VirtualInput({
 		const newString = currentVal.slice(0, start) + currentVal.slice(end);
 
 		clearSelection();
+		caretIndexRef.current = start;
 		return { newString, finalCaretIndex: start };
 	}, [clearSelection]);
 
