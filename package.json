@@ -43,7 +43,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build-package": "bun build src/index.ts --outdir dist --target browser --format esm --external react --external react-dom && tsc -p tsconfig.build.json",
+    "build-package": "tsc -p tsconfig.build.json && cp src/index.ts dist/index.js",
     "lint": "eslint .",
     "test": "vitest run",
     "preview": "vite preview"
