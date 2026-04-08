@@ -22,9 +22,12 @@ export function VirtualKeypad({
                 inputRef,
                 shift,
                 shiftLocked,
+                selectionMode,
                 hangulMode,
                 toggleShift,
                 consumeShift,
+                enterSelectionMode,
+                exitSelectionMode,
                 toggleKorean,
                 theme,
         } = useVirtualInputContext();
@@ -56,6 +59,8 @@ export function VirtualKeypad({
                 toggleShift,
                 consumeShift,
                 toggleKorean,
+                enterSelectionMode,
+                exitSelectionMode,
                 shift,
                 shiftLocked,
                 getTransformedValue,
@@ -189,11 +194,14 @@ export function VirtualKeypad({
                                         break;
                                 }
                         }
-                        const isActiveModifier = (key.value === "Shift" && (shift || shiftLocked)) || (key.value === "HangulMode" && hangulMode);
+                        const isActiveModifier =
+                                (key.value === "Shift" && (shift || shiftLocked)) ||
+                                (key.value === "HangulMode" && hangulMode) ||
+                                (key.value === "EnterSelectionMode" && selectionMode);
 
                         drawKey(ctx, key, isPressed, isActiveModifier, scale, theme);
                 });
-        }, [calculateLayout, drawKey, hangulMode, shift, viewport.scale, activePresses, keyBoundsRef, theme]);
+        }, [calculateLayout, drawKey, hangulMode, selectionMode, shift, viewport.scale, activePresses, keyBoundsRef, theme]);
 
 
 

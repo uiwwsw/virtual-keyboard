@@ -19,6 +19,9 @@ interface VirtualInputContextValue {
 	theme: "light" | "dark";
 	toggleShift: () => void;
 	consumeShift: () => void;
+	enterSelectionMode: () => void;
+	exitSelectionMode: () => void;
+	selectionMode: boolean;
 	toggleKorean: () => void;
 }
 export const VirtualInputContext =

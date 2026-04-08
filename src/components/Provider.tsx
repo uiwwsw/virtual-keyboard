@@ -11,6 +11,7 @@ import { useStorage } from "../hooks/useStorage";
 import { VirtualInputContext } from "./Context";
 import type { VirtualInputHandle } from "./Input";
 import qwerty from "../assets/qwerty.json";
+import { selectionModeLayout } from "../assets/selectionModeLayout";
 import { useVisualViewport } from "../hooks/useVisualViewport";
 import { useSystemTheme } from "../hooks/useSystemTheme";
 export function VirtualInputProvider({
@@ -30,6 +31,7 @@ export function VirtualInputProvider({
 	const [focusId, setFocusId] = useState<string | undefined>();
 	const [shift, setShift] = useState(false);
 	const [shiftLocked, setShiftLocked] = useState(false);
+	const [selectionMode, setSelectionMode] = useState(false);
 	const [hangulMode, setHangulMode] = useStorage(
 		"virtual-keyboard-hangul-mode",
 		defaultHangulMode,
@@ -84,6 +86,7 @@ export function VirtualInputProvider({
 		// Force close (from Keypad outside click)
 		if (e === true) {
 			setFocusId(undefined);
+			setSelectionMode(false);
 			isCompositionRef.current = false;
 			return;
 		}
@@ -97,6 +100,7 @@ export function VirtualInputProvider({
 			// If focused to valid non-virtual element, close
 			sti.current = setTimeout(() => {
 				setFocusId(undefined);
+				setSelectionMode(false);
 				isCompositionRef.current = false;
 			}, 0);
 			return;
@@ -125,6 +129,14 @@ export function VirtualInputProvider({
 		setShiftLocked((prevLocked) => prevLocked);
 	}, [shiftLocked]);
 
+	const enterSelectionMode = useCallback(() => {
+		setSelectionMode(true);
+	}, []);
+
+	const exitSelectionMode = useCallback(() => {
+		setSelectionMode(false);
+	}, []);
+
 	const toggleKorean = useCallback(() => {
 		setHangulMode((prev) => !prev);
 	}, [setHangulMode]);
@@ -135,19 +147,22 @@ export function VirtualInputProvider({
 				hangulMode,
 				shift,
 				shiftLocked,
+				selectionMode,
 				theme: effectiveTheme,
 				onFocus,
 				onBlur,
 				setHangulMode,
 				toggleShift,
 				consumeShift,
+				enterSelectionMode,
+				exitSelectionMode,
 				toggleKorean,
 				isCompositionRef,
 				inputRef,
 			}}
 		>
 			{children}
-			<VirtualKeypad layout={layout} viewport={viewport} />
+			<VirtualKeypad layout={selectionMode ? selectionModeLayout : layout} viewport={viewport} />
 		</VirtualInputContext.Provider>
 	);
 }
