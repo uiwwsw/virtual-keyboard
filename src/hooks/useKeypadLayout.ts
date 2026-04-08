@@ -46,13 +46,12 @@ export function useKeypadLayout({
     const getTransformedValue = useCallback(
         (cell: { label?: string; value: string; type?: string }) => {
             if (cell.type === "char") {
-                const isConvertibleHangulSource =
-                    hangulMode && /[a-zA-Z]/.test(cell.value) && cell.value.length === 1;
+                const isSingleAlpha = /[a-zA-Z]/.test(cell.value) && cell.value.length === 1;
 
-                if (isConvertibleHangulSource) {
-                    return convertQwertyToHangul(cell.value);
+                if (hangulMode && isSingleAlpha) {
+                    return convertQwertyToHangul(cell.value.toLowerCase());
                 }
-                if (shift) {
+                if (shift && isSingleAlpha) {
                     return cell.value.toUpperCase();
                 }
                 return cell.value;
