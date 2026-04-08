@@ -111,17 +111,22 @@ export function VirtualInput({
 
 	// Blinking cursor effect
 	useEffect(() => {
-		if (!isFocused) return;
+		if (!isFocused) {
+			setShowCursor(false);
+			return;
+		}
+		setShowCursor(true);
 		const interval = setInterval(() => {
 			setShowCursor((prev: boolean) => !prev);
-		}, 530); // Standard blink rate
+		}, 530);
 		return () => clearInterval(interval);
 	}, [isFocused]);
 
-	// Force cursor visible on typing/moving
+	// Force cursor visible on typing/moving only while focused
 	useEffect(() => {
+		if (!isFocused) return;
 		setShowCursor(true);
-	}, [caretIndex, internalValue]);
+	}, [caretIndex, internalValue, isFocused]);
 
 
 	// Selection Helper
