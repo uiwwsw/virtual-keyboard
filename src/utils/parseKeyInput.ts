@@ -30,12 +30,17 @@ export function parseKeyInput(
 		"CapsLock",
 		"Enter",
 		"Tab",
+		"Escape",
+		"Esc",
 		"ArrowUp",
 		"ArrowDown",
 		"ArrowLeft",
 		"ArrowRight",
 		"Backspace",
 		"Delete",
+		"PageUp",
+		"PageDown",
+		"Insert",
 		"Unidentified",
 	]);
 	if (ignoredKeys.has(e.key)) {

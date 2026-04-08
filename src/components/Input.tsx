@@ -479,6 +479,11 @@ export function VirtualInput({
 		(e: React.KeyboardEvent | KeyboardEvent) => {
 			const currentVal = internalValueRef.current;
 			const currentCaret = caretIndexRef.current;
+			const preventDefault = () => {
+				if (typeof e.preventDefault === "function") {
+					e.preventDefault();
+				}
+			};
 
 			if (e.key === "HangulMode") {
 				setHangulMode(!hangulMode);
@@ -495,7 +500,7 @@ export function VirtualInput({
 			const isEnd = e.key === "ArrowDown" || (isCmd && e.key === "ArrowRight") || e.key === "End";
 
 			if (isHome) {
-				e.preventDefault();
+				preventDefault();
 				const newIndex = 0;
 
 				if (e.shiftKey) {
@@ -513,7 +518,7 @@ export function VirtualInput({
 			}
 
 			if (isEnd) {
-				e.preventDefault();
+				preventDefault();
 				const newIndex = currentVal.length;
 
 				if (e.shiftKey) {
@@ -533,7 +538,7 @@ export function VirtualInput({
 			if (e.ctrlKey || e.metaKey) {
 				const key = e.key.toLowerCase();
 				if (key === 'a') {
-					e.preventDefault();
+					preventDefault();
 					setSelection({ start: 0, end: currentVal.length });
 					caretIndexRef.current = currentVal.length;
 					setCaretIndex(currentVal.length);
@@ -543,6 +548,7 @@ export function VirtualInput({
 			}
 
 			if (e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+				preventDefault();
 				const newIndex = e.key === "ArrowLeft"
 					? Math.max(0, currentCaret - 1)
 					: Math.min(currentVal.length, currentCaret + 1);
@@ -559,6 +565,7 @@ export function VirtualInput({
 
 			switch (e.key) {
 				case "ArrowLeft": {
+					preventDefault();
 					const newIndex = Math.max(0, currentCaret - 1);
 					caretIndexRef.current = newIndex;
 					setCaretIndex(newIndex);
@@ -566,6 +573,7 @@ export function VirtualInput({
 					return;
 				}
 				case "ArrowRight": {
+					preventDefault();
 					const newIndex = Math.min(currentVal.length, currentCaret + 1);
 					caretIndexRef.current = newIndex;
 					setCaretIndex(newIndex);
@@ -573,6 +581,7 @@ export function VirtualInput({
 					return;
 				}
 				case "Backspace": {
+					preventDefault();
 					isCompositionRef.current = false;
 					if (hasSelection) {
 						const { newString, finalCaretIndex } = deleteSelectedText();
