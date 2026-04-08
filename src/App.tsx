@@ -2,82 +2,37 @@ import { useMemo, useState, type ReactNode } from "react";
 import "./App.css";
 import { VirtualInput } from "./components/Input";
 import { VirtualInputProvider } from "./components/Provider";
-import type { KeypadLayout } from "./components/Keypad";
 
-const numberPadLayout: KeypadLayout = [
-  [
-    { label: "1", value: "1", type: "char" },
-    { label: "2", value: "2", type: "char" },
-    { label: "3", value: "3", type: "char" },
-  ],
-  [
-    { label: "4", value: "4", type: "char" },
-    { label: "5", value: "5", type: "char" },
-    { label: "6", value: "6", type: "char" },
-  ],
-  [
-    { label: "7", value: "7", type: "char" },
-    { label: "8", value: "8", type: "char" },
-    { label: "9", value: "9", type: "char" },
-  ],
-  [
-    { label: "·", value: ".", type: "char" },
-    { label: "0", value: "0", type: "char" },
-    { label: "⌫", value: "Backspace", type: "action" },
-  ],
-];
-
-const dialerLayout: KeypadLayout = [
-  [
-    { label: "1", value: "1", type: "char" },
-    { label: "2", value: "2", type: "char" },
-    { label: "3", value: "3", type: "char" },
-  ],
-  [
-    { label: "4", value: "4", type: "char" },
-    { label: "5", value: "5", type: "char" },
-    { label: "6", value: "6", type: "char" },
-  ],
-  [
-    { label: "7", value: "7", type: "char" },
-    { label: "8", value: "8", type: "char" },
-    { label: "9", value: "9", type: "char" },
-  ],
-  [
-    { label: "＊", value: "*", type: "char" },
-    { label: "0", value: "0", type: "char" },
-    { label: "#", value: "#", type: "char" },
-  ],
-  [
-    { label: "저장된 010", value: "010", width: 2, type: "char" },
-    { label: "⌫", value: "Backspace", type: "action" },
-  ],
-];
-
-type ModeKey = "hangul" | "number" | "dialer";
+type ModeKey = "hangul" | "number" | "tel" | "alpha";
 
 const layoutModes: Record<ModeKey, {
   title: string;
   helper: string;
-  layout?: KeypadLayout;
+  mode: "text" | "number" | "tel" | "alpha";
   defaultHangulMode?: boolean;
 }> = {
   hangul: {
     title: "한/영 풀키보드",
     helper: "한국어 조합을 완벽히 처리하는 기본 QWERTY",
-    layout: undefined,
+    mode: "text",
     defaultHangulMode: true,
   },
   number: {
-    title: "숫자 패드",
+    title: "숫자 전용",
     helper: "계산기 · 결제 화면 · OTP 입력",
-    layout: numberPadLayout,
+    mode: "number",
     defaultHangulMode: false,
   },
-  dialer: {
-    title: "다이얼러 + 매크로 키",
-    helper: "전화번호 전용 단축키와 함께",
-    layout: dialerLayout,
+  tel: {
+    title: "전화번호 전용",
+    helper: "다이얼러, 고객센터, 내선 입력",
+    mode: "tel",
+    defaultHangulMode: false,
+  },
+  alpha: {
+    title: "영문 전용",
+    helper: "아이디, 코드, 영문 태그 입력",
+    mode: "alpha",
     defaultHangulMode: false,
   },
 };
@@ -145,9 +100,11 @@ function App() {
   const modeDescription = useMemo(() => {
     switch (mode) {
       case "number":
-        return "결제나 OTP 같이 숫자만 필요한 화면에서 네이티브 숫자 키패드를 완전히 대체합니다.";
-      case "dialer":
-        return "매크로 키와 전화번호 입력을 조합해 고객센터/사번 내선 같은 반복 입력을 빠르게 처리합니다.";
+        return "결제나 OTP 같이 숫자만 필요한 화면에서 숫자 외 입력을 막고 숫자 패드를 자동으로 사용합니다.";
+      case "tel":
+        return "전화번호 전용 키패드와 허용 문자 정책을 함께 적용해 연락처/다이얼러 입력을 단순화합니다.";
+      case "alpha":
+        return "영문만 허용해 아이디, 짧은 코드, 태그 입력에서 실수를 줄여줍니다.";
       default:
         return "표준 QWERTY 자판 위에 조합 로직을 올려 모바일 웹에서도 한글 타이핑을 안정적으로 유지합니다.";
     }
@@ -198,13 +155,13 @@ function App() {
 
         <DemoCard
           title="모드 전환"
-          subtitle="풀 키보드 ↔ 숫자 전용 ↔ 다이얼러를 즉시 바꿔보세요."
+          subtitle="입력 정책만 바꿔 숫자 전용, 전화번호 전용, 영문 전용을 바로 테스트해보세요."
         >
           <ModeButtons active={mode} onChange={setMode} />
           <p className="mode-description">{modeDescription}</p>
-          <VirtualInputProvider layout={activeLayout.layout} defaultHangulMode={activeLayout.defaultHangulMode}>
+          <VirtualInputProvider defaultHangulMode={activeLayout.defaultHangulMode}>
             <div className="mode-input">
-              <VirtualInput placeholder="값을 입력하세요" />
+              <VirtualInput mode={activeLayout.mode} placeholder="값을 입력하세요" />
             </div>
           </VirtualInputProvider>
         </DemoCard>
@@ -218,8 +175,8 @@ function App() {
           <li>개발자 도구 기기 모드에서도 User-Agent 를 모바일로 설정하면 동일한 동작을 확인할 수 있습니다.</li>
         </ol>
         <p>
-          각 데모는 <code>VirtualInputProvider</code> 의 <code>layout</code> 속성만 바꿔서 구성했습니다. 필요한 모양을
-          자유롭게 추가해보세요.
+          이제는 <code>VirtualInput</code> 에 <code>mode</code> 를 주면 각 입력 필드별로 숫자, 전화번호, 영문 전용 정책과
+          프리셋 키패드를 자동으로 적용할 수 있습니다.
         </p>
       </section>
     </div>

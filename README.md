@@ -53,9 +53,36 @@ function App() {
 }
 ```
 
+### Input Modes
+
+You can now assign an input policy per `VirtualInput`.
+
+```tsx
+import { VirtualInput, VirtualInputProvider } from "@uiwwsw/virtual-keyboard";
+
+function App() {
+  return (
+    <VirtualInputProvider>
+      <VirtualInput mode="number" placeholder="숫자만 입력" />
+      <VirtualInput mode="tel" placeholder="전화번호만 입력" />
+      <VirtualInput mode="alpha" placeholder="영문만 입력" />
+    </VirtualInputProvider>
+  );
+}
+```
+
+Supported modes:
+- `text`
+- `number`
+- `tel`
+- `hangul`
+- `alpha`
+- `alphanumeric`
+- `custom`
+
 ### Custom Layout
 
-You can provide a custom layout for specialized inputs, such as a number pad for phone numbers.
+You can still provide a custom layout for specialized inputs, such as a number pad for phone numbers.
 
 ```tsx
 import { VirtualInput, VirtualInputProvider } from "@uiwwsw/virtual-keyboard";
@@ -70,12 +97,24 @@ const numberPadLayout = [
 
 function App() {
   return (
-    <VirtualInputProvider layout={numberPadLayout}>
+    <VirtualInputProvider>
       <p>Enter your phone number:</p>
-      <VirtualInput placeholder="010-0000-0000" />
+      <VirtualInput layout={numberPadLayout} mode="tel" placeholder="010-0000-0000" />
     </VirtualInputProvider>
   );
 }
+```
+
+### Custom Filter / Sanitizer
+
+For advanced cases, you can override key filtering and pasted value sanitization.
+
+```tsx
+<VirtualInput
+  mode="custom"
+  filterKey={(key) => /[ABC123]/.test(key)}
+  sanitizeValue={(value) => value.replace(/[^ABC123]/g, "")}
+/>
 ```
 
 ## Components API
@@ -86,12 +125,18 @@ The main provider that manages the keyboard state and UI.
 
 | Prop       | Type                   | Description                                         |
 | :--------- | :--------------------- | :-------------------------------------------------- |
-| `layout`   | `Key[][][]` (optional) | A 2D array to define a custom keyboard layout.      |
+| `layout`   | `Key[][][]` (optional) | Default fallback layout when an input does not provide its own mode/layout. |
 | `children` | `ReactNode`            | Must contain at least one `VirtualInput` component. |
 
 ### `<VirtualInput />`
 
 The replacement for the standard `<input>` element. It accepts all standard input element props like `value`, `defaultValue`, `placeholder`, `onChange`, etc.
+
+Additional props:
+- `mode?: "text" | "number" | "tel" | "hangul" | "alpha" | "alphanumeric" | "custom"`
+- `layout?: KeypadLayout`
+- `filterKey?: (key: string) => boolean`
+- `sanitizeValue?: (value: string) => string`
 
 ## Star History
 
