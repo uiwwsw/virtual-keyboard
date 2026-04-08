@@ -134,6 +134,12 @@ export function VirtualInput({
 		setSelection(nextSelection);
 	}, []);
 
+	const setSelectionRange = useCallback((start: number | null, end: number | null) => {
+		const nextSelection = { start, end };
+		selectionRef.current = nextSelection;
+		setSelection(nextSelection);
+	}, []);
+
 	const deleteSelectedText = useCallback(() => {
 		// Use refs for latest state
 		const currentVal = internalValueRef.current;
@@ -154,11 +160,7 @@ export function VirtualInput({
 
 		clearSelection();
 		return { newString, finalCaretIndex: start };
-	}, [
-		hasSelection,
-		selection,
-		clearSelection,
-	]);
+	}, [clearSelection]);
 
 	const draw = useCallback(() => {
 		const canvas = canvasRef.current;
@@ -522,10 +524,8 @@ export function VirtualInput({
 				const newIndex = 0;
 
 				if (e.shiftKey) {
-					setSelection((prev: { start: number | null; end: number | null }) => ({
-						start: prev.start ?? currentCaret,
-						end: newIndex
-					}));
+					const currentSelection = selectionRef.current;
+					setSelectionRange(currentSelection.start ?? currentCaret, newIndex);
 				} else {
 					clearSelection();
 				}
@@ -540,10 +540,8 @@ export function VirtualInput({
 				const newIndex = currentVal.length;
 
 				if (e.shiftKey) {
-					setSelection((prev: { start: number | null; end: number | null }) => ({
-						start: prev.start ?? currentCaret,
-						end: newIndex
-					}));
+					const currentSelection = selectionRef.current;
+					setSelectionRange(currentSelection.start ?? currentCaret, newIndex);
 				} else {
 					clearSelection();
 				}
@@ -557,9 +555,7 @@ export function VirtualInput({
 				const key = e.key.toLowerCase();
 				if (key === 'a') {
 					preventDefault();
-					const nextSelection = { start: 0, end: currentVal.length };
-					selectionRef.current = nextSelection;
-					setSelection(nextSelection);
+					setSelectionRange(0, currentVal.length);
 					caretIndexRef.current = currentVal.length;
 					setCaretIndex(currentVal.length);
 					return;
@@ -572,15 +568,8 @@ export function VirtualInput({
 				const newIndex = e.key === "ArrowLeft"
 					? Math.max(0, currentCaret - 1)
 					: Math.min(currentVal.length, currentCaret + 1);
-
-				setSelection((prev: { start: number | null; end: number | null }) => {
-					const nextSelection = {
-						start: prev.start ?? currentCaret,
-						end: newIndex,
-					};
-					selectionRef.current = nextSelection;
-					return nextSelection;
-				});
+				const currentSelection = selectionRef.current;
+				setSelectionRange(currentSelection.start ?? currentCaret, newIndex);
 
 				caretIndexRef.current = newIndex;
 				setCaretIndex(newIndex);
@@ -636,7 +625,13 @@ export function VirtualInput({
 				text = text.toUpperCase();
 			}
 
-			const { newString, finalCaretIndex } = hasSelection
+			const currentSelection = selectionRef.current;
+			const hasActiveSelection =
+				currentSelection.start !== null &&
+				currentSelection.end !== null &&
+				currentSelection.start !== currentSelection.end;
+
+			const { newString, finalCaretIndex } = hasActiveSelection
 				? deleteSelectedText()
 				: { newString: currentVal, finalCaretIndex: currentCaret };
 
@@ -651,7 +646,7 @@ export function VirtualInput({
 			}
 			isCompositionRef.current = composing;
 		},
-		[hangulMode, setHangulMode, isCompositionRef, shift, updateValue, hasSelection, deleteSelectedText, clearSelection]
+		[hangulMode, setHangulMode, isCompositionRef, shift, updateValue, deleteSelectedText, clearSelection, setSelectionRange]
 	);
 
 	useImperativeHandle(inputRef, () => {
