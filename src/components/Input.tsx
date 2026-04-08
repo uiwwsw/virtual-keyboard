@@ -605,6 +605,18 @@ export function VirtualInput({
 					}
 					return;
 				}
+				case "Delete": {
+					preventDefault();
+					isCompositionRef.current = false;
+					if (hasSelection) {
+						const { newString, finalCaretIndex } = deleteSelectedText();
+						updateValue(newString, finalCaretIndex);
+					} else if (currentCaret < currentVal.length) {
+						const newString = currentVal.slice(0, currentCaret) + currentVal.slice(currentCaret + 1);
+						updateValue(newString, currentCaret);
+					}
+					return;
+				}
 			}
 
 			const result = parseKeyInput(e, hangulMode);
