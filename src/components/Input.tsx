@@ -774,7 +774,7 @@ export function VirtualInput({
 				cursor: "text",
 				...props.style
 			}}
-			onFocus={() => onFocus(id, containerRef.current)}
+			onFocus={() => onFocus(id, containerRef.current, inputPolicy)}
 			onBlur={(e) => onBlur(e)}
 			onKeyDown={handleKeyDown}
 			onContextMenu={(e) => e.preventDefault()}
