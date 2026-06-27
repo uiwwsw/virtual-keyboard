@@ -4,6 +4,20 @@ import phonePad from "../assets/phonePad.json";
 import type { KeypadLayout } from "../hooks/useKeypadLayout";
 import type { InputMode, InputPolicy } from "../types/inputPolicy";
 
+export function getForcedHangulMode(mode: InputMode): boolean | null {
+  switch (mode) {
+    case "hangul":
+      return true;
+    case "alpha":
+    case "alphanumeric":
+    case "number":
+    case "tel":
+      return false;
+    default:
+      return null;
+  }
+}
+
 const allowAll = () => true;
 
 const presets: Record<InputMode, Required<Pick<InputPolicy, "mode">> & Partial<InputPolicy>> = {

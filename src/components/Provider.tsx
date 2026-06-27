@@ -12,7 +12,7 @@ import { VirtualInputContext } from "./Context";
 import type { VirtualInputHandle } from "./Input";
 import qwerty from "../assets/qwerty.json";
 import selectionModeLayout from "../assets/selectionModeLayout.json";
-import { resolveInputPolicy } from "../utils/inputPolicy";
+import { getForcedHangulMode, resolveInputPolicy } from "../utils/inputPolicy";
 import type { InputPolicy } from "../types/inputPolicy";
 import { useVisualViewport } from "../hooks/useVisualViewport";
 import { useSystemTheme } from "../hooks/useSystemTheme";
@@ -84,7 +84,14 @@ export function VirtualInputProvider({
 	const onFocus = (id: string, target?: HTMLElement | null, policy?: InputPolicy) => {
 		clearTimeout(sti.current);
 		if (target) focusedElementRef.current = target;
-		if (policy) setActiveInputPolicy(resolveInputPolicy(policy));
+		if (policy) {
+			const resolvedPolicy = resolveInputPolicy(policy);
+			setActiveInputPolicy(resolvedPolicy);
+			const forcedHangulMode = getForcedHangulMode(resolvedPolicy.mode);
+			if (forcedHangulMode !== null) {
+				setHangulMode(forcedHangulMode);
+			}
+		}
 		setFocusId(id);
 	};
 	const resetKeyboardModes = useCallback(() => {
