@@ -740,8 +740,9 @@ export function VirtualInput({
 				handleKeyDown,
 				scrollIntoView: () => {
 					containerRef.current?.scrollIntoView({
-						behavior: "smooth",
+						behavior: "auto",
 						block: "nearest",
+						inline: "nearest",
 					});
 				},
 				moveCaret,

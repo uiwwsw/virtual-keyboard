@@ -8,13 +8,13 @@ type ModeKey = "hangul" | "number" | "tel" | "alpha";
 const layoutModes: Record<ModeKey, {
   title: string;
   helper: string;
-  mode: "text" | "number" | "tel" | "alpha";
+  mode: "hangul" | "number" | "tel" | "alpha";
   defaultHangulMode?: boolean;
 }> = {
   hangul: {
     title: "한/영 풀키보드",
     helper: "한국어 조합을 완벽히 처리하는 기본 QWERTY",
-    mode: "text",
+    mode: "hangul",
     defaultHangulMode: true,
   },
   number: {
