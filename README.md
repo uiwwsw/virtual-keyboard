@@ -63,6 +63,7 @@ import { VirtualInput, VirtualInputProvider } from "@uiwwsw/virtual-keyboard";
 function App() {
   return (
     <VirtualInputProvider>
+      <VirtualInput mode="hangul" placeholder="한글 이름 입력" />
       <VirtualInput mode="number" placeholder="숫자만 입력" />
       <VirtualInput mode="tel" placeholder="전화번호만 입력" />
       <VirtualInput mode="alpha" placeholder="영문만 입력" />
@@ -70,6 +71,8 @@ function App() {
   );
 }
 ```
+
+`mode="hangul"` forces the keyboard into Korean mode for that field, while `mode="alpha"`, `mode="number"`, and `mode="tel"` automatically lock the matching layout/policy.
 
 Supported modes:
 - `text`

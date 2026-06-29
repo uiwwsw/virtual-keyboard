@@ -16,6 +16,16 @@ import { getForcedHangulMode, resolveInputPolicy } from "../utils/inputPolicy";
 import type { InputPolicy } from "../types/inputPolicy";
 import { useVisualViewport } from "../hooks/useVisualViewport";
 import { useSystemTheme } from "../hooks/useSystemTheme";
+
+const GLOBAL_FOCUS_EVENT = "virtual-keyboard:focus-change";
+let providerSequence = 0;
+
+type GlobalFocusDetail = {
+	providerId: string;
+	inputId?: string;
+	active: boolean;
+};
+
 export function VirtualInputProvider({
 	children,
 	layout = qwerty,
@@ -41,38 +51,72 @@ export function VirtualInputProvider({
 	);
 	const viewport = useVisualViewport();
 	const [activeInputPolicy, setActiveInputPolicy] = useState(() => resolveInputPolicy({ layout }));
+	const providerIdRef = useRef(`virtual-input-provider-${++providerSequence}`);
 
 	// Resolve Theme
 	const systemTheme = useSystemTheme();
 	const effectiveTheme = theme ?? systemTheme;
 	const focusedElementRef = useRef<HTMLElement | null>(null);
+	const resetKeyboardModes = useCallback(() => {
+		setShift(false);
+		setShiftLocked(false);
+		setSelectionMode(false);
+		setSelectionAdjusting(false);
+	}, []);
+
+	const clearFocusState = useCallback((shouldBroadcast = false) => {
+		focusedElementRef.current = null;
+		setFocusId(undefined);
+		resetKeyboardModes();
+		isCompositionRef.current = false;
+
+		if (shouldBroadcast && typeof window !== "undefined") {
+			window.dispatchEvent(
+				new CustomEvent<GlobalFocusDetail>(GLOBAL_FOCUS_EVENT, {
+					detail: {
+						providerId: providerIdRef.current,
+						active: false,
+					},
+				}),
+			);
+		}
+	}, [isCompositionRef, resetKeyboardModes]);
 
 	useEffect(() => {
 		if (focusId && focusedElementRef.current) {
 			const paddingBottom = Math.round(200 / viewport.scale);
 			document.body.style.paddingBottom = `${paddingBottom}px`;
 
-			// Vertical Focus: Scroll input into view (centered in available space)
-			setTimeout(() => {
+			const frame = window.requestAnimationFrame(() => {
 				const el = focusedElementRef.current;
-				if (el) {
-					const rect = el.getBoundingClientRect();
-					const scrollTop = window.scrollY || document.documentElement.scrollTop;
-					const elementTop = rect.top + scrollTop;
+				if (!el) return;
 
-					// Calculate available height (Visual Viewport - Keypad)
-					const availableHeight = viewport.height - paddingBottom;
+				const rect = el.getBoundingClientRect();
+				const topMargin = Math.max(12, Math.round(20 / viewport.scale));
+				const bottomMargin = paddingBottom + Math.max(12, Math.round(20 / viewport.scale));
+				const visibleTop = viewport.offsetTop + topMargin;
+				const visibleBottom = viewport.offsetTop + viewport.height - bottomMargin;
 
-					// Target: Center the element in the available space
-					// ScrollTop = (Element Top) - (Half Available Height) + (Half Element Height)
-					const targetScroll = elementTop - (availableHeight / 2) + (rect.height / 2);
+				if (rect.top < visibleTop) {
+					window.scrollBy({
+						top: rect.top - visibleTop,
+						behavior: "auto",
+					});
+					return;
+				}
 
-					window.scrollTo({
-						top: targetScroll,
-						behavior: "smooth",
+				if (rect.bottom > visibleBottom) {
+					window.scrollBy({
+						top: rect.bottom - visibleBottom,
+						behavior: "auto",
 					});
 				}
-			}, 100);
+			});
+
+			return () => {
+				window.cancelAnimationFrame(frame);
+				document.body.style.paddingBottom = '0px';
+			};
 		} else {
 			document.body.style.paddingBottom = '0px';
 		}
@@ -80,6 +124,21 @@ export function VirtualInputProvider({
 			document.body.style.paddingBottom = '0px';
 		};
 	}, [focusId, viewport.scale, viewport.height, viewport.offsetTop]);
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+
+		const handleGlobalFocusChange = (event: Event) => {
+			const detail = (event as CustomEvent<GlobalFocusDetail>).detail;
+			if (!detail || detail.providerId === providerIdRef.current || !detail.active) return;
+			clearFocusState(false);
+		};
+
+		window.addEventListener(GLOBAL_FOCUS_EVENT, handleGlobalFocusChange as EventListener);
+		return () => {
+			window.removeEventListener(GLOBAL_FOCUS_EVENT, handleGlobalFocusChange as EventListener);
+		};
+	}, [clearFocusState]);
 
 	const onFocus = (id: string, target?: HTMLElement | null, policy?: InputPolicy) => {
 		clearTimeout(sti.current);
@@ -92,21 +151,24 @@ export function VirtualInputProvider({
 				setHangulMode(forcedHangulMode);
 			}
 		}
+		if (typeof window !== "undefined") {
+			window.dispatchEvent(
+				new CustomEvent<GlobalFocusDetail>(GLOBAL_FOCUS_EVENT, {
+					detail: {
+						providerId: providerIdRef.current,
+						inputId: id,
+						active: true,
+					},
+				}),
+			);
+		}
 		setFocusId(id);
 	};
-	const resetKeyboardModes = useCallback(() => {
-		setShift(false);
-		setShiftLocked(false);
-		setSelectionMode(false);
-		setSelectionAdjusting(false);
-	}, []);
 
 	const onBlur = useCallback((e?: React.FocusEvent | boolean) => {
 		// Force close (from Keypad outside click)
 		if (e === true) {
-			setFocusId(undefined);
-			resetKeyboardModes();
-			isCompositionRef.current = false;
+			clearFocusState(true);
 			return;
 		}
 
@@ -118,9 +180,7 @@ export function VirtualInputProvider({
 			}
 			// If focused to valid non-virtual element, close
 			sti.current = setTimeout(() => {
-				setFocusId(undefined);
-				resetKeyboardModes();
-				isCompositionRef.current = false;
+				clearFocusState(true);
 			}, 0);
 			return;
 		}
@@ -128,7 +188,7 @@ export function VirtualInputProvider({
 		// If tapped background (no related target or body), KEEP OPEN (User request)
 		// This is CRITICAL for iOS fast input where focus can be lost transiently.
 		// However, Keypad.tsx now handles explicit outside clicks and calls onBlur(true).
-	}, [resetKeyboardModes, setFocusId, isCompositionRef]);
+	}, [clearFocusState]);
 	const toggleShift = useCallback(() => {
 		setShift((prevShift) => {
 			if (prevShift && shiftLocked) {
@@ -198,4 +258,3 @@ export function VirtualInputProvider({
 		</VirtualInputContext.Provider>
 	);
 }
-
