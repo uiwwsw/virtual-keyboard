@@ -36,6 +36,7 @@ function KeyButton({
   value,
   active,
   disabled,
+  busy,
   dispatch,
 }: {
   cell: Key;
@@ -43,6 +44,7 @@ function KeyButton({
   value: string;
   active?: boolean;
   disabled?: boolean;
+  busy?: boolean;
   dispatch: () => void;
 }) {
   const press = usePress(dispatch, {
@@ -60,6 +62,7 @@ function KeyButton({
       disabled={disabled}
       aria-label={labels[value] ?? label}
       aria-pressed={active}
+      aria-busy={busy || undefined}
       className={
         languageKey
           ? "key action language"
@@ -77,7 +80,9 @@ function KeyButton({
       style={{ flex: cell.width && cell.width > 0 ? cell.width : 1 }}
       {...press}
     >
-      {deleteIcon ? (
+      {busy ? (
+        "읽는 중…"
+      ) : deleteIcon ? (
         <svg
           data-key-icon={value === "Backspace" ? "backspace" : "delete"}
           aria-hidden="true"
@@ -288,6 +293,9 @@ export function VirtualKeypad({
     }
   };
   const forced = getForcedHangulMode(activeInputPolicy.mode) !== null;
+  const successMessage = ["복사했어요", "붙여넣었어요"].includes(
+    editingStatus.message,
+  );
   const style: CSSProperties = {
     position: "fixed",
     zIndex: 9999,
@@ -353,6 +361,23 @@ export function VirtualKeypad({
         }
         .toolbar span {
           opacity: 0.75;
+        }
+        .toolbar-caption {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        .toolbar > .close,
+        .paste-action {
+          flex-shrink: 0;
+        }
+        .paste-action .key {
+          padding: 8px 10px;
+          font-size: 12px;
+          box-shadow: none;
+          white-space: nowrap;
         }
         .close {
           background: transparent;
@@ -469,8 +494,8 @@ export function VirtualKeypad({
                 className="selection-count"
                 title={editingStatus.message || undefined}
               >
-                {editingStatus.message === "복사했어요"
-                  ? "복사했어요"
+                {successMessage
+                  ? editingStatus.message
                   : `${editingStatus.selectionLength}자 선택`}
               </span>
               <div
@@ -478,34 +503,48 @@ export function VirtualKeypad({
                 role="group"
                 aria-label="선택한 텍스트 편집"
               >
-                {["Copy", "Cut", "SelectAll"].map((value) => (
+                {["Copy", "Cut", "Paste"].map((value) => (
                   <KeyButton
                     key={value}
                     cell={{ value, type: "action" }}
                     value={value}
                     label={labels[value]}
+                    disabled={value === "Paste" && editingStatus.pasting}
+                    busy={value === "Paste" && editingStatus.pasting}
                     dispatch={() => dispatch({ value, type: "action" })}
                   />
                 ))}
               </div>
             </>
           ) : (
-            <span>
-              {selectionMode
-                ? editingStatus.message === "복사했어요"
-                  ? "복사했어요"
-                  : "텍스트 편집"
-                : symbolsMode && supportsSymbols
-                  ? "숫자 · 기호"
-                  : activeInputPolicy.mode === "number"
-                    ? "숫자"
-                    : activeInputPolicy.mode === "tel"
-                      ? "전화번호"
-                      : hangulMode
-                        ? "한국어 · 두벌식"
-                        : "English"}
+            <span className="toolbar-caption">
+              {successMessage
+                ? editingStatus.message
+                : selectionMode
+                  ? "텍스트 편집"
+                  : symbolsMode && supportsSymbols
+                    ? "숫자 · 기호"
+                    : activeInputPolicy.mode === "number"
+                      ? "숫자"
+                      : activeInputPolicy.mode === "tel"
+                        ? "전화번호"
+                        : hangulMode
+                          ? "한국어 · 두벌식"
+                          : "English"}
               {shiftLocked ? " · Shift 고정" : ""}
             </span>
+          )}
+          {!selectionMode && !editingStatus.selectionLength && (
+            <div className="paste-action">
+              <KeyButton
+                cell={{ value: "Paste", type: "action" }}
+                value="Paste"
+                label="붙여넣기"
+                disabled={editingStatus.pasting}
+                busy={editingStatus.pasting}
+                dispatch={() => dispatch({ value: "Paste", type: "action" })}
+              />
+            </div>
           )}
           {supportsSymbols &&
             !selectionMode &&
@@ -529,7 +568,7 @@ export function VirtualKeypad({
             닫기 ↓
           </button>
         </div>
-        {editingStatus.message && editingStatus.message !== "복사했어요" && (
+        {editingStatus.message && !successMessage && (
           <p className="feedback">{editingStatus.message}</p>
         )}
         {displayedLayout.map((row, rowIndex) => (
@@ -557,7 +596,9 @@ export function VirtualKeypad({
                   label={label}
                   value={value}
                   active={active}
+                  busy={value === "Paste" && editingStatus.pasting}
                   disabled={
+                    (value === "Paste" && editingStatus.pasting) ||
                     (cell.value === "HangulMode" && forced) ||
                     (["Copy", "Cut"].includes(value) &&
                       !editingStatus.selectionLength) ||
