@@ -1,337 +1,445 @@
-import { useRef, useEffect, useCallback } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+import symbols from "../assets/symbols.json";
 import { createPortal } from "react-dom";
-import { ShadowWrapper } from "./ShadowWrapper";
-import { useVirtualInputContext } from "./Context";
-import { isMobileAgent } from "../utils/isMobileAgent";
-import { useKeypadLayout, type KeypadLayout, type Viewport } from "../hooks/useKeypadLayout";
-import { useKeypadInteraction } from "../hooks/useKeypadInteraction";
-
+import { ShadowWrapper } from "./ShadowWrapper.js";
+import { useVirtualInputContext } from "./Context.js";
+import { getForcedHangulMode } from "../utils/inputPolicy.js";
+import { transformKey } from "../utils/keyboard.js";
+import { isHangul } from "../utils/isHangul.js";
+import type { Key, KeypadLayout, Viewport } from "../types/keyboard.js";
 export type { KeypadLayout, Viewport };
 
-export function VirtualKeypad({
-        layout,
-        viewport,
+const labels: Record<string, string> = {
+  Shift: "Shift",
+  HangulMode: "한영 전환",
+  Backspace: "지우기",
+  Delete: "앞 글자 지우기",
+  Enter: "입력 완료",
+  EnterSelectionMode: "텍스트 편집",
+  ExitSelectionMode: "키보드로 돌아가기",
+  ToggleSelectionAdjust: "선택 범위 조절",
+  ArrowLeft: "커서 왼쪽",
+  ArrowRight: "커서 오른쪽",
+  Copy: "복사",
+  Paste: "붙여넣기",
+  Cut: "잘라내기",
+  " ": "공백",
+  Undo: "실행 취소",
+  Redo: "다시 실행",
+  SelectAll: "전체 선택",
+};
+
+function KeyButton({
+  cell,
+  label,
+  value,
+  active,
+  disabled,
+  dispatch,
 }: {
-        layout: KeypadLayout;
-        viewport: Viewport;
+  cell: Key;
+  label: string;
+  value: string;
+  active?: boolean;
+  disabled?: boolean;
+  dispatch: () => void;
 }) {
-        const {
-                focusId,
-                onBlur,
-                onFocus,
-                inputRef,
-                shift,
-                shiftLocked,
-                selectionMode,
-                selectionAdjusting,
-                hangulMode,
-                toggleShift,
-                consumeShift,
-                enterSelectionMode,
-                exitSelectionMode,
-                toggleSelectionAdjust,
-                toggleKorean,
-                theme,
-        } = useVirtualInputContext();
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const latest = useRef(dispatch);
+  latest.current = dispatch;
+  const cancel = useCallback(() => clearTimeout(timer.current), []);
+  useEffect(() => {
+    window.addEventListener("blur", cancel);
+    document.addEventListener("visibilitychange", cancel);
+    return () => {
+      cancel();
+      window.removeEventListener("blur", cancel);
+      document.removeEventListener("visibilitychange", cancel);
+    };
+  }, [cancel]);
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-label={labels[value] ?? label}
+      aria-pressed={active}
+      className={cell.type === "action" ? "key action" : "key"}
+      style={{ flex: cell.width && cell.width > 0 ? cell.width : 1 }}
+      onPointerDown={(event) => {
+        if (event.button !== 0 || disabled) return;
+        event.preventDefault();
+        cancel();
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+        latest.current();
+        if (
+          ["Backspace", "Delete", "ArrowLeft", "ArrowRight"].includes(value)
+        ) {
+          const tick = () => {
+            latest.current();
+            timer.current = setTimeout(tick, 65);
+          };
+          timer.current = setTimeout(tick, 450);
+        }
+      }}
+      onPointerUp={cancel}
+      onPointerCancel={cancel}
+      onLostPointerCapture={cancel}
+      onPointerLeave={cancel}
+      onClick={(event) => {
+        if (event.detail === 0) latest.current();
+      }}
+    >
+      {label}
+    </button>
+  );
+}
 
-        // Canvas & Container
-        const canvasRef = useRef<HTMLCanvasElement>(null);
-        const containerRef = useRef<HTMLDivElement>(null);
-
-        // Hooks
-        const {
-                keyBoundsRef,
-                calculateLayout,
-                getTransformedValue
-        } = useKeypadLayout({
-                layout,
-                viewport,
-                hangulMode,
-                shift
-        });
-
-        const {
-                activePresses,
-                handlePointerDown,
-                handlePointerMove,
-                handlePointerUp,
-                handlePointerCancel
-        } = useKeypadInteraction({
-                inputRef,
-                toggleShift,
-                consumeShift,
-                toggleKorean,
-                enterSelectionMode,
-                exitSelectionMode,
-                toggleSelectionAdjust,
-                selectionAdjusting,
-                shift,
-                shiftLocked,
-                getTransformedValue,
-                keyBoundsRef,
-                calculateLayout,
-        });
-
-
-        // --- Layout & Rendering ---
-
-        // --- Layout & Rendering ---
-
-        const roundRect = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
-                if (w < 2 * r) r = w / 2;
-                if (h < 2 * r) r = h / 2;
-                ctx.beginPath();
-                ctx.moveTo(x + r, y);
-                ctx.arcTo(x + w, y, x + w, y + h, r);
-                ctx.arcTo(x + w, y + h, x, y + h, r);
-                ctx.arcTo(x, y + h, x, y, r);
-                ctx.arcTo(x, y, x + w, y, r);
-                ctx.closePath();
-        }, []);
-
-        const drawKey = useCallback((
-                ctx: CanvasRenderingContext2D,
-                key: { x: number; y: number; w: number; h: number; value: string; label: string; isAction: boolean; type?: string },
-                isPressed: boolean,
-                isActiveModifier: boolean,
-                scale: number,
-                currentTheme: "light" | "dark"
-        ) => {
-                const r = 10 / scale; // More rounded (squircle-ish)
-                const { x, y, w, h } = key;
-
-                // --- Color Palettes ---
-                const colors = currentTheme === "dark"
-                        ? {
-                                // DARK THEME (Inspired by reference image)
-                                shadow: "#0f172a", // Deep slate shadow
-                                keyFace: isPressed ? "#334155" : "#1e293b", // Slate-700 pressed / Slate-800 normal
-                                text: "#f8fafc", // Slate-50 (White-ish)
-                                actionFace: isPressed ? "#475569" : "#334155", // Lighter slate for actions
-                                activeModFace: isPressed ? "#f8fafc" : "#e2e8f0", // Light when active
-                                activeModText: "#0f172a", // Dark text when active
-                        }
-                        : {
-                                // LIGHT THEME
-                                shadow: "#cbd5e1", // Slate-300 shadow
-                                keyFace: isPressed ? "#f1f5f9" : "#ffffff", // Slate-100 pressed / White normal
-                                text: "#1e293b", // Slate-800
-                                actionFace: isPressed ? "#e2e8f0" : "#f1f5f9", // Very light gray
-                                activeModFace: isPressed ? "#bfdbfe" : "#dbeafe", // Blue hint
-                                activeModText: "#1d4ed8",
-                        };
-
-                let faceColor = colors.keyFace;
-                let textColor = colors.text;
-
-                if (key.isAction) {
-                        faceColor = colors.actionFace;
-                }
-                if (isActiveModifier) {
-                        faceColor = colors.activeModFace;
-                        textColor = colors.activeModText;
-                }
-
-                const depth = 4 / scale;
-                const pressOffset = isPressed ? depth * 0.6 : 0;
-
-                ctx.fillStyle = colors.shadow;
-                roundRect(ctx, x, y + depth, w, h, r);
-                ctx.fill();
-
-                ctx.fillStyle = faceColor;
-                roundRect(ctx, x, y + pressOffset, w, h, r);
-                ctx.fill();
-
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-
-                let fontSize = 20 / scale;
-                if (key.label.length > 1) fontSize = 16 / scale;
-                const fontFamily = currentTheme === "dark" ? "Inter, system-ui, sans-serif" : "Inter, system-ui, sans-serif";
-                ctx.font = `500 ${fontSize}px "${fontFamily}"`;
-                ctx.fillStyle = textColor;
-
-                ctx.fillText(key.label, x + w / 2, y + h / 2 + pressOffset);
-        }, [roundRect]);
-
-        const draw = useCallback(() => {
-                const canvas = canvasRef.current;
-                if (!canvas) return;
-                const ctx = canvas.getContext("2d", { alpha: false });
-                if (!ctx) return;
-
-                // Resize check
-                const dpr = window.devicePixelRatio || 1;
-                const rect = canvas.getBoundingClientRect();
-                if (Math.abs(canvas.width - rect.width * dpr) > 1 || Math.abs(canvas.height - rect.height * dpr) > 1) {
-                        canvas.width = rect.width * dpr;
-                        canvas.height = rect.height * dpr;
-                        ctx.scale(dpr, dpr);
-                        keyBoundsRef.current = calculateLayout();
-                }
-
-                if (keyBoundsRef.current.length === 0) {
-                        keyBoundsRef.current = calculateLayout();
-                }
-
-                const width = rect.width;
-                const height = rect.height;
-
-                // Background Theme Color
-                const bgColors = {
-                        dark: "#0f172a", // Slate-950 (Dark background from image)
-                        light: "#e2e8f0", // Slate-200 (Light background)
-                };
-                ctx.fillStyle = bgColors[theme] || bgColors.light;
-                ctx.fillRect(0, 0, width, height);
-
-                const scale = viewport.scale;
-
-                // Draw keys
-                keyBoundsRef.current.forEach(key => {
-                        let isPressed = false;
-                        for (const press of activePresses.current.values()) {
-                                const keyIndex = key.rowIndex * 100 + key.colIndex;
-                                if (press.keyIndex === keyIndex) {
-                                        isPressed = true;
-                                        break;
-                                }
-                        }
-                        const isActiveModifier =
-                                (key.value === "Shift" && (shift || shiftLocked)) ||
-                                (key.value === "HangulMode" && hangulMode) ||
-                                ((key.value === "EnterSelectionMode" || key.value === "ExitSelectionMode") && selectionMode) ||
-                                (key.value === "ToggleSelectionAdjust" && selectionAdjusting);
-
-                        drawKey(ctx, key, isPressed, isActiveModifier, scale, theme);
-                });
-        }, [calculateLayout, drawKey, hangulMode, selectionAdjusting, selectionMode, shift, shiftLocked, viewport.scale, activePresses, keyBoundsRef, theme]);
-
-
-
-        // --- Interactions ---
-
-        // Explicitly reset layout on mode change to force redraw
-        useEffect(() => {
-                keyBoundsRef.current = [];
-        }, [hangulMode, shift, selectionMode, selectionAdjusting, layout, keyBoundsRef]);
-
-        // Outside tap closes keypad; drags/scrolls keep it open
-        const outsideTapRef = useRef<{ pointerId: number; x: number; y: number } | null>(null);
-        useEffect(() => {
-                const isInsideVirtual = (path: EventTarget[], keypadEl: HTMLElement) => {
-                        const inKeypad = path.includes(keypadEl);
-                        const inInput = path.some(node => node instanceof Element && node.getAttribute("data-virtual-input") === "true");
-                        return inKeypad || inInput;
-                };
-
-                const handlePointerDown = (e: PointerEvent) => {
-                        if (!containerRef.current || !focusId) return;
-                        const path = e.composedPath();
-                        if (isInsideVirtual(path, containerRef.current)) {
-                            outsideTapRef.current = null;
-                            return;
-                        }
-                        outsideTapRef.current = { pointerId: e.pointerId, x: e.clientX, y: e.clientY };
-                };
-
-                const handlePointerUp = (e: PointerEvent) => {
-                        if (!containerRef.current || !focusId) return;
-                        const tap = outsideTapRef.current;
-                        outsideTapRef.current = null;
-                        if (!tap || tap.pointerId !== e.pointerId) return;
-
-                        const dx = Math.abs(e.clientX - tap.x);
-                        const dy = Math.abs(e.clientY - tap.y);
-                        const moved = Math.hypot(dx, dy) > 10;
-                        if (moved) return; // drag/scroll -> keep open
-
-                        const path = e.composedPath();
-                        if (isInsideVirtual(path, containerRef.current)) return;
-
-                        onBlur(true);
-                };
-
-                window.addEventListener("pointerdown", handlePointerDown, { capture: true });
-                window.addEventListener("pointerup", handlePointerUp, { capture: true });
-                window.addEventListener("pointercancel", handlePointerUp, { capture: true });
-                return () => {
-                        window.removeEventListener("pointerdown", handlePointerDown, { capture: true });
-                        window.removeEventListener("pointerup", handlePointerUp, { capture: true });
-                        window.removeEventListener("pointercancel", handlePointerUp, { capture: true });
-                };
-        }, [focusId, onBlur]);
-
-        // Animation Loop for smooth pressing
-
-        useEffect(() => {
-                let handle: number;
-                const loop = () => {
-                        draw();
-                        handle = requestAnimationFrame(loop);
-                };
-                loop();
-                return () => cancelAnimationFrame(handle);
-        }, [draw]);
-
-
-        if (!focusId || !isMobileAgent()) return null;
-
-        // Render Portal to Body
-        return createPortal(
-                <ShadowWrapper
-                        tagName={"virtual-keypad-canvas" as any}
-                        hostRef={containerRef}
-                        // Host Element Styles (The actual container)
-                        style={{
-                                position: "fixed",
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                margin: "0 auto",
-                                width: viewport.width,
-                                height: Math.round(200 / viewport.scale),
-                                backgroundColor: theme === "dark" ? "#0f172a" : "#e2e8f0",
-                                borderRadius: `calc(18px / ${viewport.scale}) calc(18px / ${viewport.scale}) 0 0`,
-                                boxShadow: `0 calc(-6px / ${viewport.scale}) calc(30px / ${viewport.scale}) rgba(15, 23, 42, 0.2)`,
-                                zIndex: 9999,
-                                overflow: "hidden",
-                                userSelect: "none",
-                                touchAction: "none",
-                                // CSS Variables for internal usage if needed
-                                "--scale-factor": viewport.scale,
-                                "--keypad-bg": theme === "dark" ? "#0f172a" : "#e2e8f0",
-                        } as React.CSSProperties}
-                        // Event Handlers on Host
-                        onFocus={() => { if (focusId) onFocus(focusId) }}
-                        onBlur={onBlur}
-                        onContextMenu={(e) => e.preventDefault()}
-                        onPointerDown={(e) => e.preventDefault()}
-                        onClickCapture={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                        // Internal Shadow DOM Styles
-                        css={`
-				:host {
-					display: block;
-				}
-				canvas {
-					display: block;
-					width: 100%;
-					height: 100%;
-					touch-action: none;
-				}
-			`}
-                >
-                        <canvas
-                                ref={canvasRef}
-                                onPointerDown={handlePointerDown}
-                                onPointerMove={handlePointerMove}
-                                onPointerUp={handlePointerUp}
-                                onPointerLeave={handlePointerUp}
-                                onPointerCancel={handlePointerCancel}
-                                style={{ width: '100%', height: '100%', display: 'block' }}
-                        />
-                </ShadowWrapper>,
-                document.body
+export function VirtualKeypad({
+  layout,
+  viewport,
+  onHeightChange,
+}: {
+  layout: KeypadLayout;
+  viewport: Viewport;
+  onHeightChange: (height: number) => void;
+}) {
+  const context = useVirtualInputContext();
+  const {
+    inputRef,
+    hangulMode,
+    shift,
+    shiftLocked,
+    theme,
+    selectionMode,
+    selectionAdjusting,
+    activeInputPolicy,
+    onBlur,
+  } = context;
+  const host = useRef<HTMLElement | null>(null);
+  const [height, setHeight] = useState(0);
+  const [symbolsMode, setSymbolsMode] = useState(false);
+  const supportsSymbols = ["text", "hangul", "custom"].includes(
+    activeInputPolicy.mode,
+  );
+  const displayedLayout =
+    symbolsMode && supportsSymbols && !selectionMode ? symbols : layout;
+  useEffect(() => {
+    if (!host.current) return;
+    const update = () => {
+      const next = host.current?.getBoundingClientRect().height ?? 0;
+      setHeight(next);
+      onHeightChange(next);
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(host.current);
+    return () => observer.disconnect();
+  }, [onHeightChange]);
+  useEffect(() => {
+    let tap: { x: number; y: number; id: number } | null = null;
+    const inside = (event: PointerEvent) =>
+      event
+        .composedPath()
+        .some(
+          (node) =>
+            node === host.current ||
+            (node instanceof Element &&
+              node.hasAttribute("data-virtual-input")),
         );
+    const down = (event: PointerEvent) => {
+      tap = inside(event)
+        ? null
+        : { x: event.clientX, y: event.clientY, id: event.pointerId };
+    };
+    const up = (event: PointerEvent) => {
+      if (
+        tap &&
+        tap.id === event.pointerId &&
+        Math.hypot(event.clientX - tap.x, event.clientY - tap.y) < 10 &&
+        !inside(event)
+      )
+        onBlur(true);
+      tap = null;
+    };
+    const cancel = () => {
+      tap = null;
+    };
+    window.addEventListener("pointerdown", down, true);
+    window.addEventListener("pointerup", up, true);
+    window.addEventListener("pointercancel", cancel, true);
+    return () => {
+      window.removeEventListener("pointerdown", down, true);
+      window.removeEventListener("pointerup", up, true);
+      window.removeEventListener("pointercancel", cancel, true);
+    };
+  }, [onBlur]);
+
+  const dispatch = (cell: Key) => {
+    const value = transformKey(cell, hangulMode, shift);
+    if (cell.type !== "action") {
+      inputRef.current?.insertText(value, isHangul(value));
+      context.consumeShift();
+      return;
+    }
+    switch (value) {
+      case "Undo":
+        inputRef.current?.undo();
+        break;
+      case "Redo":
+        inputRef.current?.redo();
+        break;
+      case "SelectAll":
+        inputRef.current?.selectAll();
+        break;
+      case "Shift":
+        context.toggleShift();
+        break;
+      case "HangulMode":
+        inputRef.current?.handleKeyDown(
+          new KeyboardEvent("keydown", { key: value }),
+        );
+        break;
+      case "EnterSelectionMode":
+        setSymbolsMode(false);
+        context.enterSelectionMode();
+        break;
+      case "ExitSelectionMode":
+        context.exitSelectionMode();
+        break;
+      case "ToggleSelectionAdjust":
+        context.toggleSelectionAdjust();
+        break;
+      case "Copy":
+        void inputRef.current?.copySelection();
+        break;
+      case "Paste":
+        void inputRef.current?.pasteClipboard();
+        break;
+      case "Cut":
+        void inputRef.current?.cutSelection();
+        break;
+      case "ArrowLeft":
+        inputRef.current?.moveCaret("left", selectionAdjusting);
+        break;
+      case "ArrowRight":
+        inputRef.current?.moveCaret("right", selectionAdjusting);
+        break;
+      default:
+        if (value === " ") inputRef.current?.insertText(" ");
+        else
+          inputRef.current?.handleKeyDown(
+            new KeyboardEvent("keydown", { key: value }),
+          );
+    }
+  };
+  const forced = getForcedHangulMode(activeInputPolicy.mode) !== null;
+  const style: CSSProperties = {
+    position: "fixed",
+    zIndex: 9999,
+    boxSizing: "border-box",
+    display: "block",
+    width: Math.min(viewport.width || 760, 760),
+    left: viewport.offsetLeft + viewport.width / 2,
+    transform: "translateX(-50%)",
+    ...(height && viewport.height
+      ? { top: viewport.offsetTop + viewport.height - height }
+      : { bottom: 0 }),
+    maxHeight: viewport.height ? viewport.height * 0.65 : "65dvh",
+    overflowY: "auto",
+    colorScheme: theme,
+    background: theme === "dark" ? "#18201f" : "#e9eeeb",
+    color: theme === "dark" ? "#eef4ef" : "#203b31",
+    border: "1px solid " + (theme === "dark" ? "#35413c" : "#c8d3cb"),
+    borderRadius: "20px 20px 0 0",
+    boxShadow: "0 -8px 48px #10251a20",
+  };
+  return createPortal(
+    <ShadowWrapper
+      tagName="virtual-keypad"
+      hostRef={host}
+      data-virtual-keypad="true"
+      style={style}
+      onBlur={context.onBlur}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          onBlur(true);
+        }
+      }}
+      css={`
+        * {
+          box-sizing: border-box;
+        }
+        .keyboard {
+          padding: 10px 8px max(12px, env(safe-area-inset-bottom));
+          font:
+            500 16px system-ui,
+            sans-serif;
+        }
+        .toolbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 6px 8px;
+          font-size: 12px;
+        }
+        .toolbar span {
+          opacity: 0.75;
+        }
+        .close {
+          background: transparent;
+          color: inherit;
+          border: 0;
+          padding: 8px 12px;
+          cursor: pointer;
+          border-radius: 6px;
+        }
+        .row {
+          display: flex;
+          gap: clamp(3px, 1vw, 7px);
+          margin-top: 7px;
+        }
+        .key {
+          min-width: 0;
+          min-height: 44px;
+          border: 0;
+          border-radius: 8px;
+          background: ${theme === "dark" ? "#303c37" : "#fff"};
+          color: inherit;
+          box-shadow: 0 2px 0 ${theme === "dark" ? "#0d1611" : "#bdc9c1"};
+          font: inherit;
+          padding: 8px 0;
+          touch-action: none;
+          cursor: pointer;
+          user-select: none;
+        }
+        .action {
+          background: ${theme === "dark" ? "#414e46" : "#d7e1db"};
+          font-size: 14px;
+        }
+        .key[aria-pressed="true"] {
+          background: #246447;
+          color: #fff;
+        }
+        .key:active {
+          transform: translateY(2px);
+          box-shadow: none;
+        }
+        button:focus-visible {
+          outline: 3px solid #48a97e;
+          outline-offset: 2px;
+        }
+        button:disabled {
+          opacity: 0.38;
+          cursor: default;
+        }
+        @media (max-height: 500px) {
+          .key {
+            min-height: 32px;
+            padding: 5px 0;
+          }
+          .toolbar {
+            padding-bottom: 0;
+          }
+        }
+      `}
+    >
+      <section className="keyboard" role="group" aria-label="가상 키보드">
+        <div className="toolbar">
+          <span>
+            {selectionMode
+              ? "텍스트 편집"
+              : symbolsMode && supportsSymbols
+                ? "숫자 · 기호"
+                : activeInputPolicy.mode === "number"
+                  ? "숫자"
+                  : activeInputPolicy.mode === "tel"
+                    ? "전화번호"
+                    : hangulMode
+                      ? "한국어 · 두벌식"
+                      : "English"}
+            {shiftLocked ? " · Shift 고정" : ""}
+          </span>
+          {supportsSymbols && !selectionMode && (
+            <button
+              type="button"
+              className="close"
+              aria-label="숫자·기호 전환"
+              aria-pressed={symbolsMode}
+              onPointerDown={(event) => {
+                if (event.button === 0) {
+                  event.preventDefault();
+                  setSymbolsMode((previous) => !previous);
+                }
+              }}
+              onClick={(event) => {
+                if (event.detail === 0) setSymbolsMode((previous) => !previous);
+              }}
+            >
+              {symbolsMode ? "가 / ABC" : "123 / #+="}
+            </button>
+          )}
+          <button
+            type="button"
+            className="close"
+            onPointerDown={(event) => {
+              if (event.button === 0) {
+                event.preventDefault();
+                onBlur(true);
+              }
+            }}
+            onClick={(event) => {
+              if (event.detail === 0) onBlur(true);
+            }}
+            aria-label="키보드 닫기"
+          >
+            닫기 ↓
+          </button>
+        </div>
+        {displayedLayout.map((row, rowIndex) => (
+          <div className="row" key={rowIndex}>
+            {row.map((cell, index) => {
+              const value = transformKey(cell, hangulMode, shift);
+              const label =
+                cell.type === "action"
+                  ? (cell.label ?? labels[value] ?? value)
+                  : /^[A-Za-z]$/.test(cell.value)
+                    ? value
+                    : (cell.label ?? value);
+              const active =
+                cell.value === "Shift"
+                  ? shift
+                  : cell.value === "HangulMode"
+                    ? hangulMode
+                    : cell.value === "ToggleSelectionAdjust"
+                      ? selectionAdjusting
+                      : undefined;
+              return (
+                <KeyButton
+                  key={`${rowIndex}-${index}-${cell.value}`}
+                  cell={cell}
+                  label={label}
+                  value={value}
+                  active={active}
+                  disabled={
+                    (cell.value === "HangulMode" && forced) ||
+                    ((cell.type !== "action" || value === " ") &&
+                      !activeInputPolicy.filterKey(value))
+                  }
+                  dispatch={() => dispatch(cell)}
+                />
+              );
+            })}
+          </div>
+        ))}
+      </section>
+    </ShadowWrapper>,
+    document.body,
+  );
 }

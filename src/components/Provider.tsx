@@ -1,260 +1,220 @@
-// components/VirtualInputProvider.tsx
 import {
-	useState,
-	type ReactNode,
-	useRef,
-	useCallback,
-	useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+  useId,
+  type ReactNode,
 } from "react";
-import { VirtualKeypad, type KeypadLayout } from "./Keypad";
-import { useStorage } from "../hooks/useStorage";
-import { VirtualInputContext } from "./Context";
-import type { VirtualInputHandle } from "./Input";
+import { createPortal } from "react-dom";
+import { VirtualKeypad } from "./Keypad.js";
+import { useStorage } from "../hooks/useStorage.js";
+import { VirtualInputContext } from "./Context.js";
+import type { VirtualInputHandle } from "./Input.js";
 import qwerty from "../assets/qwerty.json";
-import selectionModeLayout from "../assets/selectionModeLayout.json";
-import { getForcedHangulMode, resolveInputPolicy } from "../utils/inputPolicy";
-import type { InputPolicy } from "../types/inputPolicy";
-import { useVisualViewport } from "../hooks/useVisualViewport";
-import { useSystemTheme } from "../hooks/useSystemTheme";
+import selectionLayout from "../assets/selectionModeLayout.json";
+import {
+  getForcedHangulMode,
+  resolveInputPolicy,
+} from "../utils/inputPolicy.js";
+import type { InputPolicy } from "../types/inputPolicy.js";
+import type { KeypadLayout } from "../types/keyboard.js";
+import { useVisualViewport } from "../hooks/useVisualViewport.js";
+import { useSystemTheme } from "../hooks/useSystemTheme.js";
+import { isMobileAgent } from "../utils/isMobileAgent.js";
 
 const GLOBAL_FOCUS_EVENT = "virtual-keyboard:focus-change";
-let providerSequence = 0;
-
-type GlobalFocusDetail = {
-	providerId: string;
-	inputId?: string;
-	active: boolean;
-};
-
+export interface VirtualInputProviderProps {
+  children: ReactNode;
+  layout?: KeypadLayout;
+  defaultHangulMode?: boolean;
+  theme?: "light" | "dark";
+  /** auto: touch/mobile devices; always: also show on desktop; never: physical keys only. */
+  keyboardVisibility?: "auto" | "always" | "never";
+}
 export function VirtualInputProvider({
-	children,
-	layout = qwerty,
-	defaultHangulMode = true,
-	theme, // undefined = auto (defaults to system preference)
-}: {
-	layout?: KeypadLayout;
-	children: ReactNode;
-	defaultHangulMode?: boolean;
-	theme?: "light" | "dark";
-}) {
-	const inputRef = useRef<VirtualInputHandle>(null);
-	const sti = useRef(setTimeout(() => null, 0));
-	const isCompositionRef = useRef<boolean | undefined>(undefined);
-	const [focusId, setFocusId] = useState<string | undefined>();
-	const [shift, setShift] = useState(false);
-	const [shiftLocked, setShiftLocked] = useState(false);
-	const [selectionMode, setSelectionMode] = useState(false);
-	const [selectionAdjusting, setSelectionAdjusting] = useState(false);
-	const [hangulMode, setHangulMode] = useStorage(
-		"virtual-keyboard-hangul-mode",
-		defaultHangulMode,
-	);
-	const viewport = useVisualViewport();
-	const [activeInputPolicy, setActiveInputPolicy] = useState(() => resolveInputPolicy({ layout }));
-	const providerIdRef = useRef(`virtual-input-provider-${++providerSequence}`);
+  children,
+  layout = qwerty,
+  defaultHangulMode = true,
+  theme,
+  keyboardVisibility = "auto",
+}: VirtualInputProviderProps) {
+  const providerId = useId();
+  const inputRef = useRef<VirtualInputHandle | null>(null);
+  const focusedElement = useRef<HTMLElement | null>(null);
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const [focusId, setFocusId] = useState<string>();
+  const [shiftState, setShiftState] = useState(0);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectionAdjusting, setSelectionAdjusting] = useState(false);
+  const [preferredHangul, setPreferredHangul] = useStorage(
+    "virtual-keyboard-hangul-mode",
+    defaultHangulMode,
+  );
+  const [activeInputPolicy, setActiveInputPolicy] = useState(() =>
+    resolveInputPolicy({ layout }),
+  );
+  const [mobile, setMobile] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const viewport = useVisualViewport();
+  const systemTheme = useSystemTheme();
+  const hangulMode =
+    getForcedHangulMode(activeInputPolicy.mode) ?? preferredHangul;
+  const visible =
+    !!focusId &&
+    (keyboardVisibility === "always" ||
+      (keyboardVisibility === "auto" && mobile));
 
-	// Resolve Theme
-	const systemTheme = useSystemTheme();
-	const effectiveTheme = theme ?? systemTheme;
-	const focusedElementRef = useRef<HTMLElement | null>(null);
-	const resetKeyboardModes = useCallback(() => {
-		setShift(false);
-		setShiftLocked(false);
-		setSelectionMode(false);
-		setSelectionAdjusting(false);
-	}, []);
+  useEffect(() => {
+    const update = () => setMobile(isMobileAgent());
+    update();
+    const query = window.matchMedia?.("(pointer: coarse)");
+    query?.addEventListener("change", update);
+    return () => query?.removeEventListener("change", update);
+  }, []);
 
-	const clearFocusState = useCallback((shouldBroadcast = false) => {
-		focusedElementRef.current = null;
-		setFocusId(undefined);
-		resetKeyboardModes();
-		isCompositionRef.current = false;
+  const clearFocus = useCallback(() => {
+    clearTimeout(blurTimer.current);
+    focusedElement.current = null;
+    inputRef.current = null;
+    setFocusId(undefined);
+    setShiftState(0);
+    setSelectionMode(false);
+    setSelectionAdjusting(false);
+  }, []);
 
-		if (shouldBroadcast && typeof window !== "undefined") {
-			window.dispatchEvent(
-				new CustomEvent<GlobalFocusDetail>(GLOBAL_FOCUS_EVENT, {
-					detail: {
-						providerId: providerIdRef.current,
-						active: false,
-					},
-				}),
-			);
-		}
-	}, [isCompositionRef, resetKeyboardModes]);
+  useEffect(() => {
+    const handler = (event: Event) => {
+      if ((event as CustomEvent<string>).detail !== providerId) clearFocus();
+    };
+    window.addEventListener(GLOBAL_FOCUS_EVENT, handler);
+    return () => {
+      window.removeEventListener(GLOBAL_FOCUS_EVENT, handler);
+      clearTimeout(blurTimer.current);
+    };
+  }, [providerId, clearFocus]);
 
-	useEffect(() => {
-		if (focusId && focusedElementRef.current) {
-			const paddingBottom = Math.round(200 / viewport.scale);
-			document.body.style.paddingBottom = `${paddingBottom}px`;
+  const onFocus = useCallback(
+    (id: string, target: HTMLElement, policy: InputPolicy) => {
+      clearTimeout(blurTimer.current);
+      if (focusedElement.current !== target) {
+        setShiftState(0);
+        setSelectionMode(false);
+        setSelectionAdjusting(false);
+      }
+      focusedElement.current = target;
+      setActiveInputPolicy(resolveInputPolicy(policy));
+      setFocusId(id);
+      window.dispatchEvent(
+        new CustomEvent(GLOBAL_FOCUS_EVENT, { detail: providerId }),
+      );
+    },
+    [providerId],
+  );
 
-			const frame = window.requestAnimationFrame(() => {
-				const el = focusedElementRef.current;
-				if (!el) return;
+  const onBlur = useCallback(
+    (event?: React.FocusEvent | boolean) => {
+      if (event === true) {
+        clearFocus();
+        return;
+      }
+      const target =
+        typeof event === "object"
+          ? (event.relatedTarget as HTMLElement | null)
+          : null;
+      if (target?.closest?.("[data-virtual-input], [data-virtual-keypad]"))
+        return;
+      clearTimeout(blurTimer.current);
+      blurTimer.current = setTimeout(clearFocus, 0);
+    },
+    [clearFocus],
+  );
 
-				const rect = el.getBoundingClientRect();
-				const topMargin = Math.max(12, Math.round(20 / viewport.scale));
-				const bottomMargin = paddingBottom + Math.max(12, Math.round(20 / viewport.scale));
-				const visibleTop = viewport.offsetTop + topMargin;
-				const visibleBottom = viewport.offsetTop + viewport.height - bottomMargin;
+  useEffect(() => {
+    if (!visible || !keyboardHeight) return;
+    const frame = requestAnimationFrame(() => {
+      const rect = focusedElement.current?.getBoundingClientRect();
+      if (!rect) return;
+      const bottom = viewport.offsetTop + viewport.height - keyboardHeight - 16;
+      if (rect.bottom > bottom)
+        window.scrollBy({ top: rect.bottom - bottom, behavior: "auto" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusId, visible, keyboardHeight, viewport.height, viewport.offsetTop]);
 
-				if (rect.top < visibleTop) {
-					window.scrollBy({
-						top: rect.top - visibleTop,
-						behavior: "auto",
-					});
-					return;
-				}
+  const toggleKorean = useCallback(() => {
+    if (getForcedHangulMode(activeInputPolicy.mode) === null)
+      setPreferredHangul((previous) => !previous);
+  }, [activeInputPolicy.mode, setPreferredHangul]);
+  const toggleShift = useCallback(
+    () => setShiftState((state) => (state + 1) % 3),
+    [],
+  );
+  const consumeShift = useCallback(
+    () => setShiftState((state) => (state === 1 ? 0 : state)),
+    [],
+  );
+  const enterSelectionMode = useCallback(() => {
+    setSelectionMode(true);
+    setSelectionAdjusting(false);
+  }, []);
+  const exitSelectionMode = useCallback(() => {
+    setSelectionMode(false);
+    setSelectionAdjusting(false);
+  }, []);
+  const toggleSelectionAdjust = useCallback(
+    () => setSelectionAdjusting((state) => !state),
+    [],
+  );
 
-				if (rect.bottom > visibleBottom) {
-					window.scrollBy({
-						top: rect.bottom - visibleBottom,
-						behavior: "auto",
-					});
-				}
-			});
-
-			return () => {
-				window.cancelAnimationFrame(frame);
-				document.body.style.paddingBottom = '0px';
-			};
-		} else {
-			document.body.style.paddingBottom = '0px';
-		}
-		return () => {
-			document.body.style.paddingBottom = '0px';
-		};
-	}, [focusId, viewport.scale, viewport.height, viewport.offsetTop]);
-
-	useEffect(() => {
-		if (typeof window === "undefined") return;
-
-		const handleGlobalFocusChange = (event: Event) => {
-			const detail = (event as CustomEvent<GlobalFocusDetail>).detail;
-			if (!detail || detail.providerId === providerIdRef.current || !detail.active) return;
-			clearFocusState(false);
-		};
-
-		window.addEventListener(GLOBAL_FOCUS_EVENT, handleGlobalFocusChange as EventListener);
-		return () => {
-			window.removeEventListener(GLOBAL_FOCUS_EVENT, handleGlobalFocusChange as EventListener);
-		};
-	}, [clearFocusState]);
-
-	const onFocus = (id: string, target?: HTMLElement | null, policy?: InputPolicy) => {
-		clearTimeout(sti.current);
-		if (target) focusedElementRef.current = target;
-		if (policy) {
-			const resolvedPolicy = resolveInputPolicy(policy);
-			setActiveInputPolicy(resolvedPolicy);
-			const forcedHangulMode = getForcedHangulMode(resolvedPolicy.mode);
-			if (forcedHangulMode !== null) {
-				setHangulMode(forcedHangulMode);
-			}
-		}
-		if (typeof window !== "undefined") {
-			window.dispatchEvent(
-				new CustomEvent<GlobalFocusDetail>(GLOBAL_FOCUS_EVENT, {
-					detail: {
-						providerId: providerIdRef.current,
-						inputId: id,
-						active: true,
-					},
-				}),
-			);
-		}
-		setFocusId(id);
-	};
-
-	const onBlur = useCallback((e?: React.FocusEvent | boolean) => {
-		// Force close (from Keypad outside click)
-		if (e === true) {
-			clearFocusState(true);
-			return;
-		}
-
-		// If explicit blur to another element
-		if (e && typeof e === 'object' && 'relatedTarget' in e && e.relatedTarget) {
-			// If related target is a virtual input, don't close (let new input focus handle it)
-			if ((e.relatedTarget as HTMLElement).getAttribute("data-virtual-input")) {
-				return;
-			}
-			// If focused to valid non-virtual element, close
-			sti.current = setTimeout(() => {
-				clearFocusState(true);
-			}, 0);
-			return;
-		}
-
-		// If tapped background (no related target or body), KEEP OPEN (User request)
-		// This is CRITICAL for iOS fast input where focus can be lost transiently.
-		// However, Keypad.tsx now handles explicit outside clicks and calls onBlur(true).
-	}, [clearFocusState]);
-	const toggleShift = useCallback(() => {
-		setShift((prevShift) => {
-			if (prevShift && shiftLocked) {
-				setShiftLocked(false);
-				return false;
-			}
-			if (prevShift) {
-				setShiftLocked(true);
-				return true;
-			}
-			setShiftLocked(false);
-			return true;
-		});
-	}, [shiftLocked]);
-
-	const consumeShift = useCallback(() => {
-		setShift((prevShift) => {
-			if (!prevShift || shiftLocked) return prevShift;
-			return false;
-		});
-		setShiftLocked((prevLocked) => prevLocked);
-	}, [shiftLocked]);
-
-	const enterSelectionMode = useCallback(() => {
-		setSelectionMode(true);
-		setSelectionAdjusting(false);
-	}, []);
-
-	const exitSelectionMode = useCallback(() => {
-		setSelectionMode(false);
-		setSelectionAdjusting(false);
-	}, []);
-
-	const toggleSelectionAdjust = useCallback(() => {
-		setSelectionAdjusting((prev) => !prev);
-	}, []);
-
-	const toggleKorean = useCallback(() => {
-		setHangulMode((prev) => !prev);
-	}, [setHangulMode]);
-	return (
-		<VirtualInputContext.Provider
-			value={{
-				focusId,
-				hangulMode,
-				shift,
-				shiftLocked,
-				selectionMode,
-				selectionAdjusting,
-				theme: effectiveTheme,
-				onFocus,
-				onBlur,
-				setHangulMode,
-				toggleShift,
-				consumeShift,
-				enterSelectionMode,
-				exitSelectionMode,
-				toggleSelectionAdjust,
-				toggleKorean,
-				isCompositionRef,
-				inputRef,
-				activeInputPolicy,
-			}}
-		>
-			{children}
-			<VirtualKeypad layout={selectionMode ? (selectionModeLayout as KeypadLayout) : activeInputPolicy.layout} viewport={viewport} />
-		</VirtualInputContext.Provider>
-	);
+  return (
+    <VirtualInputContext.Provider
+      value={{
+        inputRef,
+        focusId,
+        onFocus,
+        onBlur,
+        defaultLayout: layout,
+        hangulMode,
+        shift: shiftState > 0,
+        shiftLocked: shiftState === 2,
+        theme: theme ?? systemTheme,
+        toggleKorean,
+        toggleShift,
+        consumeShift,
+        selectionMode,
+        selectionAdjusting,
+        enterSelectionMode,
+        exitSelectionMode,
+        toggleSelectionAdjust,
+        activeInputPolicy,
+      }}
+    >
+      {children}
+      {visible && (
+        <>
+          {createPortal(
+            <div
+              aria-hidden="true"
+              style={{
+                height: keyboardHeight,
+                pointerEvents: "none",
+                background:
+                  (theme ?? systemTheme) === "dark" ? "#121c17" : "#f7f8f4",
+              }}
+            />,
+            document.body,
+          )}
+          <VirtualKeypad
+            key={focusId}
+            layout={selectionMode ? selectionLayout : activeInputPolicy.layout}
+            viewport={viewport}
+            onHeightChange={setKeyboardHeight}
+          />
+        </>
+      )}
+    </VirtualInputContext.Provider>
+  );
 }

@@ -1,807 +1,614 @@
 import {
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-	useImperativeHandle,
-	useId,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useId,
+  forwardRef,
+  useImperativeHandle,
+  type HTMLAttributes,
+  type ChangeEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ClipboardEvent,
+  type PointerEvent,
 } from "react";
-import React from "react";
-import { ShadowWrapper } from "./ShadowWrapper";
-import { useVirtualInputContext } from "./Context";
-import { parseKeyInput } from "../utils/parseKeyInput";
-import { assemble } from "es-hangul";
-import { isHangul } from "../utils/isHangul";
-import type { InputMode } from "../types/inputPolicy";
-import type { KeypadLayout } from "../hooks/useKeypadLayout";
-import { isSpecialKey, resolveInputPolicy } from "../utils/inputPolicy";
-
+import { EditHistory } from "../utils/history.js";
+import { useVirtualInputContext } from "./Context.js";
+import { parseKeyInput } from "../utils/parseKeyInput.js";
+import {
+  getForcedHangulMode,
+  resolveInputPolicy,
+} from "../utils/inputPolicy.js";
+import {
+  clampBoundary,
+  deleteText,
+  graphemes,
+  insertText,
+  moveCaret as move,
+  selectionRange,
+  type EditingState,
+} from "../utils/editing.js";
+import type { InputMode } from "../types/inputPolicy.js";
+import type { KeypadLayout } from "../types/keyboard.js";
 
 export interface VirtualInputHandle {
-	handleKeyDown: (e: KeyboardEvent | React.KeyboardEvent) => void;
-	scrollIntoView: () => void;
-	moveCaret: (direction: "left" | "right", extendSelection?: boolean) => void;
-	copySelection: () => Promise<void>;
-	pasteClipboard: () => Promise<void>;
-	cutSelection: () => Promise<void>;
+  focus: (options?: FocusOptions) => void;
+  blur: () => void;
+  getValue: () => string;
+  setSelectionRange: (start: number, end: number) => void;
+  handleKeyDown: (event: KeyboardEvent | ReactKeyboardEvent) => void;
+  insertText: (text: string, composing?: boolean) => void;
+  scrollIntoView: () => void;
+  moveCaret: (direction: "left" | "right", extendSelection?: boolean) => void;
+  copySelection: () => Promise<void>;
+  pasteClipboard: () => Promise<void>;
+  cutSelection: () => Promise<void>;
+  undo: () => void;
+  redo: () => void;
+  selectAll: () => void;
+}
+export interface VirtualInputProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "onChange" | "defaultValue"
+> {
+  value?: string;
+  defaultValue?: string;
+  placeholder?: string;
+  /** Compatibility callback; target/currentTarget expose value, not a native input element. */
+  onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
+  onValueChange?: (value: string) => void;
+  onClipboardError?: (error: Error) => void;
+  mode?: InputMode;
+  layout?: KeypadLayout;
+  filterKey?: (key: string) => boolean;
+  sanitizeValue?: (value: string) => string;
+  disabled?: boolean;
+  readOnly?: boolean;
+  /** UTF-16 length, matching HTML input maxLength. */
+  maxLength?: number;
 }
 
-export interface VirtualInputProps extends React.HTMLAttributes<HTMLDivElement> {
-	value?: string;
-	defaultValue?: string;
-	placeholder?: string;
-	onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
-	mode?: InputMode;
-	layout?: KeypadLayout;
-	filterKey?: (key: string) => boolean;
-	sanitizeValue?: (value: string) => string;
-}
-
-export function VirtualInput({
-	value: controlledValue,
-	defaultValue,
-	placeholder,
-	onChange,
-	mode = "text",
-	layout,
-	filterKey,
-	sanitizeValue,
-	...props
-}: VirtualInputProps) {
-	const id = useId();
-	const canvasRef = useRef<HTMLCanvasElement>(null);
-	const containerRef = useRef<HTMLDivElement>(null);
-
-	const [internalValue, setInternalValue] = useState(
-		controlledValue ?? defaultValue ?? "",
-	);
-	const [caretIndex, setCaretIndex] = useState<number>(
-		() => (controlledValue ?? defaultValue ?? "").length,
-	);
-
-	// Refs for synchronous access in event handlers
-	const internalValueRef = useRef(internalValue);
-	const caretIndexRef = useRef(caretIndex);
-
-	const [selection, setSelection] = useState<{
-		start: number | null;
-		end: number | null;
-	}>({ start: null, end: null });
-	const selectionRef = useRef(selection);
-
-	// State for blinking cursor
-	const [showCursor, setShowCursor] = useState(true);
-	const showCursorRef = useRef(showCursor);
-	const hasSelectionRef = useRef(false);
-
-	useEffect(() => {
-		showCursorRef.current = showCursor;
-	}, [showCursor]);
-
-	useEffect(() => {
-		selectionRef.current = selection;
-		hasSelectionRef.current =
-			selection.start !== null &&
-			selection.end !== null &&
-			selection.start !== selection.end;
-	}, [selection]);
-
-	// Long Press Logic
-	const longPressTimerRef = useRef<number | null>(null);
-	const [showCopyFeedback, setShowCopyFeedback] = useState(false);
-	const pointerStartedRef = useRef(false);
-	const pointerStartPositionRef = useRef<{ x: number; y: number } | null>(null);
-
-	// Cache for character positions to avoid re-measuring text every frame
-	const charPositionsRef = useRef<number[]>([]);
-	const scrollXRef = useRef(0); // Viewport scroll offset
-
-	// Invalidate cache when value changes
-	useEffect(() => {
-		charPositionsRef.current = [];
-	}, [internalValue]);
-
-
-	const {
-		focusId,
-		onFocus,
-		onBlur,
-		hangulMode,
-		setHangulMode,
-		isCompositionRef,
-		inputRef,
-		shift,
-		enterSelectionMode,
-	} = useVirtualInputContext();
-
-	const inputPolicy = useMemo(
-		() => resolveInputPolicy({ mode, layout, filterKey, sanitizeValue }),
-		[mode, layout, filterKey, sanitizeValue],
-	);
-
-	const isFocused = focusId === id;
-
-	// Sync controlled value
-	useEffect(() => {
-		if (controlledValue !== undefined && controlledValue !== internalValue) {
-			setInternalValue(controlledValue);
-			internalValueRef.current = controlledValue;
-		}
-	}, [controlledValue, internalValue]);
-
-	// Blinking cursor effect
-	useEffect(() => {
-		if (!isFocused) {
-			setShowCursor(false);
-			return;
-		}
-		setShowCursor(true);
-		const interval = setInterval(() => {
-			setShowCursor((prev: boolean) => !prev);
-		}, 530);
-		return () => clearInterval(interval);
-	}, [isFocused]);
-
-	// Force cursor visible on typing/moving only while focused
-	useEffect(() => {
-		if (!isFocused) return;
-		setShowCursor(true);
-	}, [caretIndex, internalValue, isFocused]);
-
-
-	// Selection Helper
-	const hasSelection = useMemo(
-		() =>
-			selection.start !== null &&
-			selection.end !== null &&
-			selection.start !== selection.end,
-		[selection],
-	);
-
-	const clearSelection = useCallback(() => {
-		const nextSelection = { start: null, end: null };
-		selectionRef.current = nextSelection;
-		setSelection(nextSelection);
-	}, []);
-
-	const setSelectionRange = useCallback((start: number | null, end: number | null) => {
-		const nextSelection = { start, end };
-		selectionRef.current = nextSelection;
-		setSelection(nextSelection);
-	}, []);
-
-	const deleteSelectedText = useCallback(() => {
-		// Use refs for latest state
-		const currentVal = internalValueRef.current;
-
-		const currentSelection = selectionRef.current;
-
-		if (
-			!currentSelection ||
-			currentSelection.start === null ||
-			currentSelection.end === null ||
-			currentSelection.start === currentSelection.end
-		) {
-			return { newString: currentVal, finalCaretIndex: caretIndexRef.current };
-		}
-
-		const [start, end] = [currentSelection.start, currentSelection.end].sort((a, b) => a - b);
-		const newString = currentVal.slice(0, start) + currentVal.slice(end);
-
-		clearSelection();
-		caretIndexRef.current = start;
-		return { newString, finalCaretIndex: start };
-	}, [clearSelection]);
-
-	const draw = useCallback(() => {
-		const canvas = canvasRef.current;
-		const container = containerRef.current;
-		if (!canvas || !container) return;
-
-		const ctx = canvas.getContext("2d");
-		if (!ctx) return;
-
-		// Handle resize
-		const dpr = window.devicePixelRatio || 1;
-		const rect = container.getBoundingClientRect();
-
-		if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
-			canvas.width = rect.width * dpr;
-			canvas.height = rect.height * dpr;
-			ctx.scale(dpr, dpr);
-			charPositionsRef.current = [];
-		}
-
-		const width = rect.width;
-		const height = rect.height;
-
-		ctx.clearRect(0, 0, width, height);
-
-		const computedStyle = window.getComputedStyle(container);
-		const font = `${computedStyle.fontStyle} ${computedStyle.fontVariant} ${computedStyle.fontWeight} ${computedStyle.fontSize} ${computedStyle.fontFamily}`;
-
-		ctx.font = font;
-		ctx.textBaseline = "middle";
-
-		const fontSize = parseFloat(computedStyle.fontSize);
-		const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
-		const paddingRight = parseFloat(computedStyle.paddingRight) || 0;
-		const borderLeft = parseFloat(computedStyle.borderLeftWidth) || 0;
-		const borderRight = parseFloat(computedStyle.borderRightWidth) || 0;
-		const color = computedStyle.color || "black";
-		const caretColor = (computedStyle.caretColor !== "auto" ? computedStyle.caretColor : color) || "black";
-		const y = height / 2;
-		const x = borderLeft + paddingLeft;
-
-		// Optimize: Use refs to avoid re-creating draw function
-		const text = internalValueRef.current;
-		const cIndex = caretIndexRef.current;
-		const isCursorVisible = showCursorRef.current;
-
-		if (!text && placeholder) {
-			ctx.fillStyle = "#aaa";
-			ctx.fillText(placeholder, x, y);
-			if (isFocused && isCursorVisible) {
-				ctx.beginPath();
-				ctx.moveTo(x, y - fontSize / 2);
-				ctx.lineTo(x, y + fontSize / 2);
-				ctx.strokeStyle = caretColor;
-				ctx.lineWidth = 1.5;
-				ctx.stroke();
-			}
-			return;
-		}
-
-		ctx.fillStyle = color;
-
-		if (charPositionsRef.current.length !== text.length + 1) {
-			const positions = [x];
-			for (let i = 0; i < text.length; i++) {
-				const w = ctx.measureText(text.slice(0, i + 1)).width;
-				positions.push(x + w);
-			}
-			charPositionsRef.current = positions;
-		}
-		const charX = charPositionsRef.current;
-
-		// Scroll Logic
-		const caretPos = charX[cIndex] ?? x;
-
-		const viewLeft = paddingLeft;
-		const viewRight = width - paddingRight - borderLeft - borderRight;
-
-		const safety = 2;
-		const totalTextWidth = (charX[charX.length - 1] ?? x) - x;
-		const availableWidth = viewRight - viewLeft;
-
-		if (totalTextWidth < availableWidth) {
-			scrollXRef.current = 0;
-		} else {
-			let s = scrollXRef.current;
-			if (caretPos - s > viewRight - safety) {
-				s = caretPos - viewRight + safety;
-			}
-			if (caretPos - s < viewLeft + safety) {
-				s = caretPos - viewLeft - safety;
-			}
-			const contentEnd = charX[charX.length - 1] ?? x;
-			const maxScroll = Math.max(0, contentEnd - viewRight + safety);
-			s = Math.max(0, Math.min(s, maxScroll));
-			scrollXRef.current = s;
-		}
-
-		ctx.save();
-		ctx.translate(-scrollXRef.current, 0);
-
-		// Draw Selection
-		if (hasSelection && selection.start !== null && selection.end !== null) {
-			const [start, end] = [selection.start, selection.end].sort((a, b) => a - b);
-			const startX = charX[start] ?? x;
-			const endX = charX[end] ?? charX[charX.length - 1];
-
-			ctx.fillStyle = "#b4d5fe";
-			ctx.fillRect(startX, 0, endX - startX, height);
-			ctx.fillStyle = color;
-		}
-
-		// Draw text
-		ctx.fillText(text, x, y);
-
-		// Draw Cursor
-		if (isFocused && isCursorVisible && !hasSelection) {
-			const caretX = charX[cIndex] ?? x;
-			ctx.beginPath();
-			ctx.moveTo(caretX, y - fontSize / 2);
-			ctx.lineTo(caretX, y + fontSize / 2);
-			ctx.strokeStyle = caretColor;
-			ctx.lineWidth = 1.5;
-			ctx.stroke();
-		}
-
-		// Draw Copy Feedback Overlay
-		if (showCopyFeedback) {
-			ctx.save();
-			ctx.translate(scrollXRef.current, 0); // Undo scroll
-			ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-			const msg = "Copied!";
-			const msgWidth = ctx.measureText(msg).width + 20;
-			const msgHeight = fontSize + 10;
-
-			const cx = width / 2;
-			const cy = height / 2;
-			const r = 6;
-			const rw = msgWidth;
-			const rh = msgHeight;
-			const rx = cx - rw / 2;
-			const ry = cy - rh / 2;
-
-			ctx.beginPath();
-			ctx.fillStyle = "rgba(30, 41, 59, 0.9)";
-			ctx.roundRect(rx, ry, rw, rh, r);
-			ctx.fill();
-
-			ctx.fillStyle = "#ffffff";
-			ctx.font = `bold ${fontSize * 0.8}px system-ui`;
-			ctx.textAlign = "center";
-			ctx.textBaseline = "middle";
-			ctx.fillText(msg, cx, cy);
-
-			ctx.restore();
-		}
-
-		ctx.restore();
-	}, [isFocused, placeholder, hasSelection, selection, showCopyFeedback]);
-
-	// Animation Loop
-	useEffect(() => {
-		let animationFrameId: number;
-		const loop = () => {
-			draw();
-			animationFrameId = requestAnimationFrame(loop);
-		};
-		loop();
-		return () => cancelAnimationFrame(animationFrameId);
-	}, [draw]);
-
-
-	const updateValue = useCallback(
-		(newValue: string, newCaretIndex: number) => {
-			const sanitizedValue = inputPolicy.sanitizeValue(newValue);
-			const safeCaretIndex = Math.min(newCaretIndex, sanitizedValue.length);
-			internalValueRef.current = sanitizedValue;
-			caretIndexRef.current = safeCaretIndex;
-
-			if (controlledValue === undefined) {
-				setInternalValue(sanitizedValue);
-			}
-
-			const fakeInput = { value: sanitizedValue } as HTMLInputElement;
-			const changeEvent = {
-				target: fakeInput,
-				currentTarget: fakeInput,
-			} as React.ChangeEvent<HTMLInputElement>;
-
-			onChange?.(changeEvent);
-			setCaretIndex(safeCaretIndex);
-		},
-		[controlledValue, inputPolicy, onChange],
-	);
-
-	const getCharIndexFromX = useCallback((clientX: number) => {
-		const canvas = canvasRef.current;
-		if (!canvas) return 0;
-
-		const rect = canvas.getBoundingClientRect();
-		const x = clientX - rect.left + scrollXRef.current;
-
-		if (charPositionsRef.current.length === internalValue.length + 1) {
-			const charX = charPositionsRef.current;
-			for (let i = 0; i < charX.length - 1; i++) {
-				const center = (charX[i] + charX[i + 1]) / 2;
-				if (x < center) return i;
-			}
-			return internalValue.length;
-		}
-
-		const ctx = canvas.getContext("2d");
-		if (!ctx) return 0;
-		const computedStyle = window.getComputedStyle(containerRef.current!);
-		ctx.font = `${computedStyle.fontSize} ${computedStyle.fontFamily}`;
-
-		let currentX = 0;
-		for (let i = 0; i < internalValue.length; i++) {
-			const w = ctx.measureText(internalValue[i]).width;
-			if (x < currentX + w / 2) return i;
-			currentX += w;
-		}
-		return internalValue.length;
-	}, [internalValue]);
-
-	const handleCanvasClick = useCallback((e: React.MouseEvent) => {
-		if (showCopyFeedback) return;
-		const index = getCharIndexFromX(e.clientX);
-		caretIndexRef.current = index;
-		setCaretIndex(index);
-		clearSelection();
-		onFocus(id, containerRef.current, inputPolicy);
-	}, [getCharIndexFromX, clearSelection, onFocus, id, showCopyFeedback, inputPolicy]);
-
-	// --- Clipboard Handlers (Native Events) ---
-
-	const handleCopy = useCallback((e: React.ClipboardEvent) => {
-		e.preventDefault();
-		const currentVal = internalValueRef.current;
-		const sel = selectionRef.current;
-
-		if (sel.start !== null && sel.end !== null && sel.start !== sel.end) {
-			const [start, end] = [sel.start, sel.end].sort((a, b) => a - b);
-			const textToCopy = currentVal.slice(start, end);
-			e.clipboardData.setData('text/plain', textToCopy);
-
-			if (navigator.vibrate) navigator.vibrate(50);
-			setShowCopyFeedback(true);
-			setTimeout(() => setShowCopyFeedback(false), 1500);
-		}
-	}, []);
-
-	const handleCut = useCallback((e: React.ClipboardEvent) => {
-		e.preventDefault();
-		const currentVal = internalValueRef.current;
-		const sel = selectionRef.current;
-		if (sel.start !== null && sel.end !== null && sel.start !== sel.end) {
-			const [start, end] = [sel.start, sel.end].sort((a, b) => a - b);
-			const textToCopy = currentVal.slice(start, end);
-			e.clipboardData.setData('text/plain', textToCopy);
-
-			if (navigator.vibrate) navigator.vibrate(50);
-			setShowCopyFeedback(true);
-			setTimeout(() => setShowCopyFeedback(false), 1500);
-
-			const { newString, finalCaretIndex } = deleteSelectedText();
-			updateValue(newString, finalCaretIndex);
-		}
-	}, [deleteSelectedText, updateValue]);
-
-	const handlePaste = useCallback((e: React.ClipboardEvent) => {
-		e.preventDefault();
-		const text = inputPolicy.sanitizeValue(e.clipboardData.getData('text/plain'));
-		if (!text) return;
-
-		const currentVal = internalValueRef.current;
-		const currentCaret = caretIndexRef.current;
-		const sel = selectionRef.current;
-		const hasActiveSelection =
-			sel.start !== null && sel.end !== null && sel.start !== sel.end;
-
-		const { newString, finalCaretIndex } = hasActiveSelection
-			? deleteSelectedText()
-			: { newString: currentVal, finalCaretIndex: currentCaret };
-
-		const finalString = newString.slice(0, finalCaretIndex) + text + newString.slice(finalCaretIndex);
-		updateValue(finalString, finalCaretIndex + text.length);
-	}, [deleteSelectedText, inputPolicy, updateValue]);
-
-	// --- Long Press Handlers ---
-
-	const cancelLongPress = useCallback(() => {
-		if (longPressTimerRef.current) {
-			clearTimeout(longPressTimerRef.current);
-			longPressTimerRef.current = null;
-		}
-		pointerStartedRef.current = false;
-		pointerStartPositionRef.current = null;
-	}, []);
-
-	const handlePointerDown = useCallback((e: React.PointerEvent) => {
-		if (e.button !== 0) return;
-		cancelLongPress();
-		pointerStartedRef.current = true;
-		pointerStartPositionRef.current = { x: e.clientX, y: e.clientY };
-
-		longPressTimerRef.current = window.setTimeout(() => {
-			if (!pointerStartedRef.current) return;
-			pointerStartedRef.current = false;
-			enterSelectionMode();
-		}, 600);
-	}, [cancelLongPress, enterSelectionMode]);
-
-	const handlePointerMove = useCallback((e: React.PointerEvent) => {
-		if (!pointerStartedRef.current || !pointerStartPositionRef.current) return;
-		const dx = Math.abs(e.clientX - pointerStartPositionRef.current.x);
-		const dy = Math.abs(e.clientY - pointerStartPositionRef.current.y);
-		if (dx > 10 || dy > 10) cancelLongPress();
-	}, [cancelLongPress]);
-
-	const handlePointerUp = useCallback(() => {
-		cancelLongPress();
-	}, [cancelLongPress]);
-
-
-	const handleKeyDown = useCallback(
-		(e: React.KeyboardEvent | KeyboardEvent) => {
-			const currentVal = internalValueRef.current;
-			const currentCaret = caretIndexRef.current;
-			const preventDefault = () => {
-				if (typeof e.preventDefault === "function") {
-					e.preventDefault();
-				}
-			};
-
-			if (e.key === "HangulMode") {
-				setHangulMode(!hangulMode);
-				return;
-			}
-
-			const isCmd = e.ctrlKey || e.metaKey;
-
-			// --- Navigation & Selection ---
-
-			// Cmd+Left or ArrowUp -> Start
-			// Cmd+Right or ArrowDown -> End
-			const isHome = e.key === "ArrowUp" || (isCmd && e.key === "ArrowLeft") || e.key === "Home";
-			const isEnd = e.key === "ArrowDown" || (isCmd && e.key === "ArrowRight") || e.key === "End";
-
-			if (isHome) {
-				preventDefault();
-				const newIndex = 0;
-
-				if (e.shiftKey) {
-					const currentSelection = selectionRef.current;
-					setSelectionRange(currentSelection.start ?? currentCaret, newIndex);
-				} else {
-					clearSelection();
-				}
-
-				caretIndexRef.current = newIndex;
-				setCaretIndex(newIndex);
-				return;
-			}
-
-			if (isEnd) {
-				preventDefault();
-				const newIndex = currentVal.length;
-
-				if (e.shiftKey) {
-					const currentSelection = selectionRef.current;
-					setSelectionRange(currentSelection.start ?? currentCaret, newIndex);
-				} else {
-					clearSelection();
-				}
-
-				caretIndexRef.current = newIndex;
-				setCaretIndex(newIndex);
-				return;
-			}
-
-			if (e.ctrlKey || e.metaKey) {
-				const key = e.key.toLowerCase();
-				if (key === 'a') {
-					preventDefault();
-					setSelectionRange(0, currentVal.length);
-					caretIndexRef.current = currentVal.length;
-					setCaretIndex(currentVal.length);
-					return;
-				}
-				// Do not prevent default for c, v, x to allow native events (copy/paste)
-			}
-
-			if (e.shiftKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
-				preventDefault();
-				const newIndex = e.key === "ArrowLeft"
-					? Math.max(0, currentCaret - 1)
-					: Math.min(currentVal.length, currentCaret + 1);
-				const currentSelection = selectionRef.current;
-				setSelectionRange(currentSelection.start ?? currentCaret, newIndex);
-
-				caretIndexRef.current = newIndex;
-				setCaretIndex(newIndex);
-				return;
-			}
-
-			switch (e.key) {
-				case "ArrowLeft": {
-					preventDefault();
-					const newIndex = Math.max(0, currentCaret - 1);
-					caretIndexRef.current = newIndex;
-					setCaretIndex(newIndex);
-					clearSelection();
-					return;
-				}
-				case "ArrowRight": {
-					preventDefault();
-					const newIndex = Math.min(currentVal.length, currentCaret + 1);
-					caretIndexRef.current = newIndex;
-					setCaretIndex(newIndex);
-					clearSelection();
-					return;
-				}
-				case "Backspace": {
-					preventDefault();
-					isCompositionRef.current = false;
-					if (hasSelectionRef.current) {
-						const { newString, finalCaretIndex } = deleteSelectedText();
-						updateValue(newString, finalCaretIndex);
-					} else if (currentCaret > 0) {
-						const newString = currentVal.slice(0, currentCaret - 1) + currentVal.slice(currentCaret);
-						updateValue(newString, currentCaret - 1);
-					}
-					return;
-				}
-				case "Delete": {
-					preventDefault();
-					isCompositionRef.current = false;
-					if (hasSelectionRef.current) {
-						const { newString, finalCaretIndex } = deleteSelectedText();
-						updateValue(newString, finalCaretIndex);
-					} else if (currentCaret < currentVal.length) {
-						const newString = currentVal.slice(0, currentCaret) + currentVal.slice(currentCaret + 1);
-						updateValue(newString, currentCaret);
-					}
-					return;
-				}
-			}
-
-			const result = parseKeyInput(e, hangulMode);
-			if (result.toggleHangulMode) {
-				setHangulMode(!hangulMode);
-				return;
-			}
-
-			if (!result.handled || !result.text) return;
-			// Ignore keys if ctrl/meta/alt is pressed (except simple shift)
-			// But we already checked ctrl/meta above.
-			if (e.ctrlKey || e.metaKey || e.altKey) return;
-
-			const { composing } = result;
-			let { text } = result;
-
-			if (!isSpecialKey(text) && !inputPolicy.filterKey(text)) return;
-
-			if (shift && text.length === 1 && text.match(/[a-z]/i)) {
-				text = text.toUpperCase();
-			}
-
-			const currentSelection = selectionRef.current;
-			const hasActiveSelection =
-				currentSelection.start !== null &&
-				currentSelection.end !== null &&
-				currentSelection.start !== currentSelection.end;
-
-			const { newString, finalCaretIndex } = hasActiveSelection
-				? deleteSelectedText()
-				: { newString: currentVal, finalCaretIndex: currentCaret };
-
-			const prevChar = newString[finalCaretIndex - 1];
-			if (composing && isHangul(prevChar) && isCompositionRef.current) {
-				const combined = assemble([prevChar, text]);
-				const finalString = newString.slice(0, finalCaretIndex - 1) + combined + newString.slice(finalCaretIndex);
-				updateValue(finalString, finalCaretIndex - 1 + combined.length);
-			} else {
-				const finalString = newString.slice(0, finalCaretIndex) + text + newString.slice(finalCaretIndex);
-				updateValue(finalString, finalCaretIndex + text.length);
-			}
-			isCompositionRef.current = composing;
-		},
-		[hangulMode, inputPolicy, setHangulMode, isCompositionRef, shift, updateValue, deleteSelectedText, clearSelection, setSelectionRange]
-	);
-
-	const moveCaret = useCallback((direction: "left" | "right", extendSelection = false) => {
-		const currentVal = internalValueRef.current;
-		const currentCaret = caretIndexRef.current;
-		const newIndex = direction === "left"
-			? Math.max(0, currentCaret - 1)
-			: Math.min(currentVal.length, currentCaret + 1);
-
-		if (extendSelection) {
-			const currentSelection = selectionRef.current;
-			setSelectionRange(currentSelection.start ?? currentCaret, newIndex);
-		} else {
-			clearSelection();
-		}
-
-		caretIndexRef.current = newIndex;
-		setCaretIndex(newIndex);
-	}, [clearSelection, setSelectionRange]);
-
-	const copySelection = useCallback(async () => {
-		const currentVal = internalValueRef.current;
-		const sel = selectionRef.current;
-		if (sel.start === null || sel.end === null || sel.start === sel.end) return;
-		const [start, end] = [sel.start, sel.end].sort((a, b) => a - b);
-		await navigator.clipboard.writeText(currentVal.slice(start, end));
-		setShowCopyFeedback(true);
-		setTimeout(() => setShowCopyFeedback(false), 1500);
-	}, []);
-
-	const pasteClipboard = useCallback(async () => {
-		const text = await navigator.clipboard.readText();
-		if (!text) return;
-		const currentVal = internalValueRef.current;
-		const currentCaret = caretIndexRef.current;
-		const sel = selectionRef.current;
-		const hasActiveSelection = sel.start !== null && sel.end !== null && sel.start !== sel.end;
-		const { newString, finalCaretIndex } = hasActiveSelection
-			? deleteSelectedText()
-			: { newString: currentVal, finalCaretIndex: currentCaret };
-		const finalString = newString.slice(0, finalCaretIndex) + text + newString.slice(finalCaretIndex);
-		updateValue(finalString, finalCaretIndex + text.length);
-	}, [deleteSelectedText, updateValue]);
-
-	const cutSelection = useCallback(async () => {
-		await copySelection();
-		const { newString, finalCaretIndex } = deleteSelectedText();
-		updateValue(newString, finalCaretIndex);
-	}, [copySelection, deleteSelectedText, updateValue]);
-
-	useImperativeHandle(inputRef, () => {
-		if (isFocused) {
-			return {
-				handleKeyDown,
-				scrollIntoView: () => {
-					containerRef.current?.scrollIntoView({
-						behavior: "auto",
-						block: "nearest",
-						inline: "nearest",
-					});
-				},
-				moveCaret,
-				copySelection,
-				pasteClipboard,
-				cutSelection,
-			};
-		}
-		return inputRef.current!;
-	}, [isFocused, handleKeyDown, inputRef, moveCaret, copySelection, pasteClipboard, cutSelection]);
-
-
-	return (
-		<ShadowWrapper
-			tagName={"virtual-input-canvas" as any}
-			hostRef={containerRef}
-			id={id}
-			className={props.className}
-			role="textbox"
-			tabIndex={0}
-			{...props}
-			style={{
-				display: "inline-block",
-				minHeight: "1.5em",
-				height: "1.5em",
-				outline: "none",
-				font: "inherit",
-				width: "100%",
-				position: "relative",
-				cursor: "text",
-				...props.style
-			}}
-			onFocus={() => onFocus(id, containerRef.current, inputPolicy)}
-			onBlur={(e) => onBlur(e)}
-			onKeyDown={handleKeyDown}
-			onContextMenu={(e) => e.preventDefault()}
-			onCopy={handleCopy}
-			onCut={handleCut}
-			onPaste={handlePaste}
-			onClick={handleCanvasClick}
-			onPointerDown={handlePointerDown}
-			onPointerMove={handlePointerMove}
-			onPointerUp={handlePointerUp}
-			onPointerLeave={handlePointerUp}
-			onPointerCancel={handlePointerUp}
-			data-virtual-input="true"
-			css={`
-				:host {
-					display: inline-block;
-					position: relative;
-				}
-                canvas {
-                    width: 100%;
-                    height: 100%;
-                    display: block;
-                }
-            `}
-		>
-			<canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
-		</ShadowWrapper>
-	);
-}
+export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
+  function VirtualInput(
+    {
+      value,
+      defaultValue = "",
+      placeholder,
+      onChange,
+      onValueChange,
+      onClipboardError,
+      mode = "text",
+      layout,
+      filterKey,
+      sanitizeValue,
+      disabled = false,
+      readOnly = false,
+      maxLength,
+      ...props
+    }: VirtualInputProps,
+    forwardedRef,
+  ) {
+    const token = useId();
+    const {
+      focusId,
+      onFocus,
+      onBlur,
+      defaultLayout,
+      inputRef,
+      hangulMode,
+      theme,
+      toggleKorean,
+      enterSelectionMode,
+    } = useVirtualInputContext();
+    const host = useRef<HTMLDivElement>(null);
+    const caretElement = useRef<HTMLSpanElement>(null);
+    const [state, setState] = useState<EditingState>(() => ({
+      value: value ?? defaultValue,
+      caret: (value ?? defaultValue).length,
+      anchor: (value ?? defaultValue).length,
+      composing: false,
+    }));
+    const displayedValue = value ?? state.value;
+    const current = useRef(state);
+    const revision = useRef(0);
+    const history = useRef(new EditHistory());
+    const mounted = useRef(false);
+    const focused = focusId === token;
+    const focusedRef = useRef(focused);
+    focusedRef.current = focused;
+    const controlledChanged = value !== undefined && value !== state.value;
+    if (controlledChanged) history.current.clear();
+    current.current = {
+      ...state,
+      value: displayedValue,
+      caret: clampBoundary(displayedValue, state.caret),
+      anchor: clampBoundary(displayedValue, state.anchor),
+      composing: controlledChanged ? false : state.composing,
+    };
+    const policy = useMemo(
+      () =>
+        resolveInputPolicy({
+          mode,
+          layout:
+            layout ??
+            (mode === "text" || mode === "custom" ? defaultLayout : undefined),
+          filterKey,
+          sanitizeValue,
+        }),
+      [mode, layout, defaultLayout, filterKey, sanitizeValue],
+    );
+    const [status, setStatus] = useState("");
+    const longPress = useRef<ReturnType<typeof setTimeout> | undefined>(
+      undefined,
+    );
+    const drag = useRef<{ x: number; y: number; anchor: number } | null>(null);
+
+    const commit = useCallback(
+      (next: EditingState, record = true) => {
+        const previous = current.current.value;
+        if (record) history.current.record(current.current, next);
+        current.current = next;
+        revision.current++;
+        setState(next);
+        if (next.value !== previous) {
+          onValueChange?.(next.value);
+          const target = { value: next.value } as HTMLInputElement;
+          onChange?.({
+            target,
+            currentTarget: target,
+          } as ChangeEvent<HTMLInputElement>);
+        }
+      },
+      [onChange, onValueChange],
+    );
+
+    const insert = useCallback(
+      (text: string, composing = false) => {
+        if (disabled || readOnly) return;
+        const sanitized = policy.sanitizeValue(text).replace(/[\r\n\t]+/g, " ");
+        if (!sanitized) return;
+        commit(insertText(current.current, sanitized, composing, maxLength));
+      },
+      [disabled, readOnly, policy, maxLength, commit],
+    );
+
+    const undo = useCallback(() => {
+      if (!disabled && !readOnly)
+        commit(history.current.undo(current.current), false);
+    }, [disabled, readOnly, commit]);
+    const redo = useCallback(() => {
+      if (!disabled && !readOnly)
+        commit(history.current.redo(current.current), false);
+    }, [disabled, readOnly, commit]);
+    const selectAll = useCallback(
+      () =>
+        commit({
+          ...current.current,
+          caret: current.current.value.length,
+          anchor: 0,
+          composing: false,
+        }),
+      [commit],
+    );
+
+    const moveCaret = useCallback(
+      (direction: "left" | "right", extend = false) =>
+        commit(move(current.current, direction === "left" ? -1 : 1, extend)),
+      [commit],
+    );
+    const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+      props.onKeyDown?.(event);
+      if (event.defaultPrevented || disabled) return;
+      const key = event.key;
+      if (key === "Escape") {
+        event.preventDefault();
+        commit({ ...current.current, composing: false });
+        onBlur(true);
+        host.current?.blur();
+        return;
+      }
+      if (key === "HangulMode") {
+        event.preventDefault();
+        commit({ ...current.current, composing: false });
+        toggleKorean();
+        return;
+      }
+      const command = event.ctrlKey || event.metaKey;
+      if (command && ["z", "y"].includes(key.toLowerCase())) {
+        event.preventDefault();
+        if (key.toLowerCase() === "y" || event.shiftKey) redo();
+        else undo();
+        return;
+      }
+      if (command && key.toLowerCase() === "a") {
+        event.preventDefault();
+        commit({
+          ...current.current,
+          caret: current.current.value.length,
+          anchor: 0,
+          composing: false,
+        });
+        return;
+      }
+      const navigation =
+        key === "Home" || key === "ArrowUp" || (command && key === "ArrowLeft")
+          ? "home"
+          : key === "End" ||
+              key === "ArrowDown" ||
+              (command && key === "ArrowRight")
+            ? "end"
+            : key === "ArrowLeft"
+              ? -1
+              : key === "ArrowRight"
+                ? 1
+                : null;
+      if (navigation !== null) {
+        event.preventDefault();
+        commit(move(current.current, navigation, event.shiftKey));
+        return;
+      }
+      if (key === "Tab" || key === "Enter") {
+        commit({ ...current.current, composing: false });
+        return;
+      }
+      if (readOnly) return;
+      if (key === "Backspace" || key === "Delete") {
+        event.preventDefault();
+        commit(deleteText(current.current, key === "Backspace" ? -1 : 1));
+        return;
+      }
+      const result = parseKeyInput(
+        event,
+        getForcedHangulMode(policy.mode) ?? hangulMode,
+      );
+      if (result.handled && result.text) {
+        event.preventDefault();
+        if (policy.filterKey(result.text))
+          insert(result.text, result.composing);
+      }
+    };
+
+    const reportError = useCallback(
+      (cause: unknown) => {
+        const error = cause instanceof Error ? cause : new Error(String(cause));
+        if (mounted.current) {
+          setStatus(
+            "클립보드에 접근할 수 없습니다. 키보드의 복사·붙여넣기 단축키를 사용해 주세요.",
+          );
+          onClipboardError?.(error);
+        }
+      },
+      [onClipboardError],
+    );
+    const copySelection = useCallback(async () => {
+      const [start, end] = selectionRange(current.current);
+      if (start === end) return;
+      await navigator.clipboard.writeText(
+        current.current.value.slice(start, end),
+      );
+      if (mounted.current) setStatus("선택한 내용을 복사했습니다.");
+    }, []);
+    const cutSelection = useCallback(async () => {
+      if (disabled || readOnly) return;
+      const snapshot = current.current;
+      const version = revision.current;
+      if (snapshot.anchor === snapshot.caret) return;
+      await copySelection();
+      if (
+        mounted.current &&
+        focusedRef.current &&
+        revision.current === version &&
+        current.current.value === snapshot.value
+      )
+        commit(deleteText(snapshot, -1));
+    }, [disabled, readOnly, copySelection, commit]);
+    const pasteClipboard = useCallback(async () => {
+      if (disabled || readOnly) return;
+      const version = revision.current;
+      const previousValue = current.current.value;
+      const text = await navigator.clipboard.readText();
+      if (
+        mounted.current &&
+        focusedRef.current &&
+        revision.current === version &&
+        current.current.value === previousValue
+      )
+        insert(text);
+    }, [disabled, readOnly, insert]);
+    const handle = useMemo<VirtualInputHandle>(
+      () => ({
+        focus: (options) => {
+          if (!disabled) host.current?.focus(options);
+        },
+        blur: () => {
+          host.current?.blur();
+          if (focusedRef.current) onBlur(true);
+        },
+        getValue: () => current.current.value,
+        setSelectionRange: (start, end) =>
+          commit({
+            ...current.current,
+            anchor: clampBoundary(current.current.value, start),
+            caret: clampBoundary(current.current.value, end),
+            composing: false,
+          }),
+        handleKeyDown: (event) =>
+          host.current?.dispatchEvent(
+            new KeyboardEvent("keydown", {
+              key: event.key,
+              shiftKey: event.shiftKey,
+              ctrlKey: event.ctrlKey,
+              metaKey: event.metaKey,
+              altKey: event.altKey,
+              code: event.code,
+              bubbles: true,
+              cancelable: true,
+            }),
+          ),
+        insertText: (text, composing) => {
+          if (policy.filterKey(text)) insert(text, composing);
+        },
+        scrollIntoView: () =>
+          host.current?.scrollIntoView({ block: "nearest", inline: "nearest" }),
+        moveCaret,
+        undo,
+        redo,
+        selectAll,
+        copySelection: () => copySelection().catch(reportError),
+        pasteClipboard: () => pasteClipboard().catch(reportError),
+        cutSelection: () => cutSelection().catch(reportError),
+      }),
+      [
+        policy,
+        insert,
+        moveCaret,
+        copySelection,
+        pasteClipboard,
+        cutSelection,
+        reportError,
+        undo,
+        redo,
+        selectAll,
+        disabled,
+        onBlur,
+        commit,
+      ],
+    );
+
+    useImperativeHandle(forwardedRef, () => handle, [handle]);
+
+    useEffect(() => {
+      if (!focused)
+        setState((previous) =>
+          previous.composing ? { ...previous, composing: false } : previous,
+        );
+    }, [focused]);
+    useEffect(() => {
+      if (!focused || disabled || readOnly) return;
+      inputRef.current = handle;
+      return () => {
+        if (inputRef.current === handle) inputRef.current = null;
+      };
+    }, [focused, disabled, readOnly, handle, inputRef]);
+    useEffect(() => {
+      if (focused && host.current) {
+        if (disabled || readOnly) onBlur(true);
+        else onFocus(token, host.current, policy);
+      }
+    }, [focused, disabled, readOnly, token, policy, onFocus, onBlur]);
+    useEffect(() => {
+      mounted.current = true;
+      return () => {
+        mounted.current = false;
+        clearTimeout(longPress.current);
+        if (focusedRef.current) onBlur(true);
+      };
+    }, [onBlur]);
+    useEffect(() => {
+      if (!focused || !host.current || !caretElement.current) return;
+      const box = host.current.getBoundingClientRect();
+      const caret = caretElement.current.getBoundingClientRect();
+      if (caret.right > box.right - 12)
+        host.current.scrollLeft += caret.right - box.right + 12;
+      else if (caret.left < box.left + 12)
+        host.current.scrollLeft -= box.left + 12 - caret.left;
+    }, [displayedValue, state.caret, focused]);
+
+    const nativeCopy = (
+      event: ClipboardEvent<HTMLDivElement>,
+      cut: boolean,
+    ) => {
+      if (cut) props.onCut?.(event);
+      else props.onCopy?.(event);
+      if (event.defaultPrevented || disabled || (cut && readOnly)) return;
+      const [start, end] = selectionRange(current.current);
+      if (start === end) return;
+      event.preventDefault();
+      event.clipboardData.setData(
+        "text/plain",
+        current.current.value.slice(start, end),
+      );
+      if (cut) commit(deleteText(current.current, -1));
+    };
+    const indexFromX = (x: number) => {
+      for (const element of host.current?.querySelectorAll<HTMLElement>(
+        "[data-char-index]",
+      ) ?? []) {
+        const rect = element.getBoundingClientRect();
+        if (x < rect.left + rect.width / 2)
+          return Number(element.dataset.charIndex);
+      }
+      return current.current.value.length;
+    };
+    const cancelDrag = () => {
+      clearTimeout(longPress.current);
+      drag.current = null;
+    };
+    const pointerDown = (event: PointerEvent<HTMLDivElement>) => {
+      props.onPointerDown?.(event);
+      if (event.defaultPrevented || disabled || event.button !== 0) return;
+      host.current?.focus({ preventScroll: true });
+      if (!readOnly && host.current) onFocus(token, host.current, policy);
+      const index = indexFromX(event.clientX);
+      const anchor = event.shiftKey ? current.current.anchor : index;
+      commit({ ...current.current, caret: index, anchor, composing: false });
+      drag.current = { x: event.clientX, y: event.clientY, anchor };
+      clearTimeout(longPress.current);
+      if (!readOnly) longPress.current = setTimeout(enterSelectionMode, 600);
+      if (event.pointerType === "mouse")
+        host.current?.setPointerCapture?.(event.pointerId);
+    };
+    const [start, end] = selectionRange(current.current);
+    const parts = graphemes(displayedValue);
+    const caret = (
+      <span
+        ref={caretElement}
+        aria-hidden="true"
+        className="vk-caret"
+        style={{
+          display: "inline-block",
+          width: 0,
+          height: "1.1em",
+          verticalAlign: "-0.15em",
+          position: "relative",
+        }}
+      >
+        {focused && !readOnly && !disabled && start === end && (
+          <span
+            style={{
+              position: "absolute",
+              height: "100%",
+              borderLeft: "2px solid currentColor",
+            }}
+          />
+        )}
+      </span>
+    );
+
+    return (
+      <div
+        {...props}
+        ref={host}
+        id={props.id ?? token}
+        role="textbox"
+        tabIndex={disabled ? -1 : (props.tabIndex ?? 0)}
+        aria-disabled={disabled || undefined}
+        aria-readonly={readOnly || undefined}
+        aria-multiline="false"
+        aria-placeholder={placeholder}
+        data-virtual-input="true"
+        data-focused={focused || undefined}
+        data-value={displayedValue}
+        style={{
+          display: "block",
+          boxSizing: "border-box",
+          minHeight: "2.75em",
+          padding: "0.65em 0.8em",
+          border: "1px solid #94a3b8",
+          borderRadius: 8,
+          font: "inherit",
+          width: "100%",
+          whiteSpace: "pre",
+          overflowX: "auto",
+          scrollbarWidth: "none",
+          cursor: disabled ? "not-allowed" : "text",
+          userSelect: "none",
+          opacity: disabled ? 0.5 : 1,
+          outlineOffset: 3,
+          ...props.style,
+        }}
+        onFocus={(event) => {
+          props.onFocus?.(event);
+          if (!event.defaultPrevented && !disabled && !readOnly)
+            onFocus(token, event.currentTarget, policy);
+        }}
+        onBlur={(event) => {
+          props.onBlur?.(event);
+          cancelDrag();
+          if (!event.defaultPrevented) onBlur(event);
+        }}
+        onKeyDown={handleKeyDown}
+        onCopy={(event) => nativeCopy(event, false)}
+        onCut={(event) => nativeCopy(event, true)}
+        onPaste={(event) => {
+          props.onPaste?.(event);
+          if (!event.defaultPrevented && !disabled && !readOnly) {
+            event.preventDefault();
+            insert(event.clipboardData.getData("text/plain"));
+          }
+        }}
+        onPointerDown={pointerDown}
+        onPointerMove={(event) => {
+          props.onPointerMove?.(event);
+          if (event.defaultPrevented || !drag.current) return;
+          if (
+            Math.hypot(
+              event.clientX - drag.current.x,
+              event.clientY - drag.current.y,
+            ) > 8
+          ) {
+            clearTimeout(longPress.current);
+            if (event.pointerType === "mouse")
+              commit({
+                ...current.current,
+                caret: indexFromX(event.clientX),
+                anchor: drag.current.anchor,
+                composing: false,
+              });
+          }
+        }}
+        onPointerUp={(event) => {
+          props.onPointerUp?.(event);
+          cancelDrag();
+        }}
+        onPointerCancel={(event) => {
+          props.onPointerCancel?.(event);
+          cancelDrag();
+        }}
+        onContextMenu={(event) => {
+          props.onContextMenu?.(event);
+          if (!event.defaultPrevented) event.preventDefault();
+        }}
+      >
+        {parts.map(({ segment, index }) => (
+          <span key={index}>
+            {index === current.current.caret && caret}
+            <span
+              data-char-index={index}
+              style={
+                index >= start && index < end
+                  ? { background: "#bfdbfe", color: "#0f172a" }
+                  : undefined
+              }
+            >
+              {segment}
+            </span>
+          </span>
+        ))}
+        {current.current.caret === displayedValue.length && caret}
+        {!displayedValue && (
+          <span
+            aria-hidden="true"
+            style={{ color: theme === "dark" ? "#a6b7a9" : "#58665d" }}
+          >
+            {placeholder || "\u00a0"}
+          </span>
+        )}
+        <span
+          role="status"
+          style={{
+            position: "absolute",
+            width: 1,
+            height: 1,
+            overflow: "hidden",
+            clipPath: "inset(50%)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {status}
+        </span>
+      </div>
+    );
+  },
+);

@@ -1,86 +1,42 @@
-# Contributing to @uiwwsw/virtual-keyboard
+# Contributing
 
-Thank you for considering contributing to `@uiwwsw/virtual-keyboard`! We appreciate your help in making this project better, especially with its innovative approach to Korean input composition.
+이슈에는 재현 순서, 기대 결과, 실제 결과, 브라우저·장치, 입력 모드를 적어 주세요. 한글 문제라면 입력한 키 순서와 커서·선택 위치도 도움이 됩니다.
 
-## How to Contribute
+## Local setup
 
-### 1. Reporting Bugs
-
-If you find a bug, please open an issue on our [GitHub Issues page](https://github.com/uiwwsw/virtual-keyboard/issues).
-When reporting a bug, please include:
-
-- A clear and concise description of the bug.
-- Steps to reproduce the behavior.
-- Expected behavior.
-- Actual behavior.
-- Screenshots or videos if applicable.
-- Your environment (OS, browser, `@uiwwsw/virtual-keyboard` version).
-
-### 2. Suggesting Enhancements
-
-We welcome suggestions for new features or improvements. Please open an issue on our [GitHub Issues page](https://github.com/uiwwsw/virtual-keyboard/issues) and describe your idea.
-
-### 3. Submitting Pull Requests
-
-We encourage you to contribute code! Here's how:
-
-1.  **Fork** the repository.
-2.  **Clone** your forked repository to your local machine.
-    ```bash
-    git clone https://github.com/YOUR_USERNAME/virtual-keyboard.git
-    ```
-3.  **Create a new branch** for your feature or bug fix.
-    ```bash
-    git checkout -b feature/your-feature-name
-    # or
-    git checkout -b bugfix/fix-something
-    ```
-4.  **Make your changes**.
-5.  **Test your changes** thoroughly.
-6.  **Commit your changes** with a clear and concise commit message.
-    ```bash
-    git commit -m "feat: Add new feature"
-    # or
-    git commit -m "fix: Fix bug in something"
-    ```
-    Please follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for commit messages.
-7.  **Push your changes** to your forked repository.
-    ```bash
-    git push origin feature/your-feature-name
-    ```
-8.  **Open a Pull Request** to the `main` branch of the original repository.
-    - Provide a clear title and description for your pull request.
-    - Reference any related issues.
-
-## Development Setup
-
-1.  **Install dependencies:**
-    ```bash
-    npm install
-    # or
-    bun install
-    ```
-2.  **Run the development server:**
-    ```bash
-    npm run dev
-    # or
-    bun run dev
-    ```
-
-## Code Style
-
-We use ESLint and Biome for code linting and formatting. Please ensure your code adheres to our style guidelines by running:
+Node.js 24.15 이상(24 LTS)과 npm이 필요합니다.
 
 ```bash
-npm run lint
-# or
-bun run lint
+npm ci
+npm run dev
 ```
 
-## License
+의존성 변경 시 `package.json`과 `package-lock.json`을 함께 업데이트합니다.
 
-By contributing to `@uiwwsw/virtual-keyboard`, you agree that your contributions will be licensed under its MIT License.
+## Before a pull request
 
----
+```bash
+npm run format
+npm run check
+npx playwright install chromium webkit
+npm run test:e2e
+```
 
-Thank you for your contributions!
+CI는 포맷, ESLint, TypeScript, 단위·컴포넌트 테스트, 두 종류의 빌드, 패키지의 서버 렌더링, 브라우저 동작, 자동 접근성 검사를 실행합니다. 회귀 테스트는 실제 사용자 동작이나 수정한 오류를 검증하도록 작성하세요.
+
+## Project structure
+
+- `src/components`: 입력란, Provider, Shadow DOM 키패드
+- `src/utils/editing.ts`: DOM과 무관한 텍스트 편집·한글 조합 엔진
+- `src/utils/inputPolicy.ts`: 모드별 필터, 정리 함수, 레이아웃
+- `src/types`: 공개 입력 정책과 키 레이아웃 타입
+- `src/App.tsx`, `src/App.css`: 데모
+- `e2e`: Chromium·모바일 WebKit 회귀 검사
+
+## Build and release
+
+`npm run build`는 `demo-dist/`에 사이트를, `npm run build-package`는 `dist/`에 배포 가능한 ESM과 선언 파일을 만듭니다. 배포 패키지에 React를 번들하지 않습니다. `npm pack --dry-run`으로 포함 파일을 검토할 수 있습니다.
+
+기존 main 브랜치 publish 워크플로는 검증을 모두 통과하고 아직 게시되지 않은 버전일 때만 npm에 게시합니다. 변경의 호환성을 검토한 후 유지관리자가 버전과 배포 시점을 결정합니다.
+
+PR에는 사용자가 겪은 문제, 수정 후 동작, 실행한 검증을 적어 주세요. 기여한 코드는 프로젝트의 MIT License를 따릅니다.

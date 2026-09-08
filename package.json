@@ -1,13 +1,12 @@
 {
   "name": "@uiwwsw/virtual-keyboard",
-  "version": "1.1.2",
+  "version": "2.0.0",
   "type": "module",
   "types": "dist/types/index.d.ts",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "files": [
-    "dist",
-    "dist/types"
+    "dist"
   ],
   "license": "MIT",
   "keywords": [
@@ -29,13 +28,13 @@
   ],
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/types/index.d.ts"
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
   "peerDependencies": {
-    "react": "^17.0.0 || ^19.0.0",
-    "react-dom": "^17.0.0 || ^19.0.0"
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
   },
   "publishConfig": {
     "access": "public"
@@ -43,20 +42,29 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build-package": "tsc -p tsconfig.build.json && cp src/index.ts dist/index.js",
-    "lint": "eslint .",
+    "build-package": "vite build --mode library && tsc -p tsconfig.build.json",
+    "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "check": "npm run format:check && npm run lint && npm test && npm run build && npm run build-package && npm run test:package",
+    "test:package": "node scripts/check-package.mjs && npm run test:types",
+    "prepack": "npm run build-package",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:types": "tsc --noEmit --strict --module NodeNext --moduleResolution NodeNext --target ES2022 --jsx react-jsx scripts/consumer-check.tsx"
   },
   "dependencies": {
-    "es-hangul": "^2.3.4",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-shadow": "^20.6.0"
+    "es-hangul": "^2.3.4"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.0.5",
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^9.29.0",
+    "@playwright/test": "^1.63.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^24.0.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react-swc": "^3.10.2",
@@ -64,9 +72,22 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.2.0",
+    "jsdom": "^30.0.1",
+    "prettier": "^3.9.6",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.34.1",
     "vite": "^7.0.0",
     "vitest": "^3.2.4"
+  },
+  "description": "Accessible React virtual keyboard with Korean composition and configurable input policies.",
+  "sideEffects": false,
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/uiwwsw/virtual-keyboard.git"
   }
 }
