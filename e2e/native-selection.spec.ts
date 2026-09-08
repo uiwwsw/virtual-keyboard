@@ -2,25 +2,52 @@ import { expect, test, type Locator } from "@playwright/test";
 
 async function select(input: Locator, anchor: number, caret: number) {
   await input.evaluate(
-    (field, { anchor, caret }) => {
-      const text = field.querySelector("[data-input-text]")!;
-      const point = (index: number): [Node, number] => {
-        const walker = document.createTreeWalker(text, NodeFilter.SHOW_TEXT);
-        let node = walker.nextNode();
-        while (node) {
-          const length = node.textContent!.length;
-          if (index <= length) return [node, index];
-          index -= length;
-          node = walker.nextNode();
-        }
-        return [text, text.childNodes.length];
-      };
-      window
-        .getSelection()!
-        .setBaseAndExtent(...point(anchor), ...point(caret));
+    (element, { anchor, caret }) => {
+      const field = element as HTMLInputElement;
+      field.setSelectionRange(
+        Math.min(anchor, caret),
+        Math.max(anchor, caret),
+        anchor > caret ? "backward" : "forward",
+      );
     },
     { anchor, caret },
   );
+}
+
+const selectedText = (input: Locator) =>
+  input.evaluate((element) => {
+    const field = element as HTMLInputElement;
+    return field.value.slice(field.selectionStart!, field.selectionEnd!);
+  });
+
+async function textPoint(input: Locator, index: number, fraction = 0) {
+  return input.evaluate(
+    (element, { index, fraction }) => {
+      const field = element as HTMLInputElement;
+      const style = getComputedStyle(field);
+      const canvas = document.createElement("canvas").getContext("2d")!;
+      canvas.font = style.font;
+      const box = field.getBoundingClientRect();
+      return {
+        x:
+          box.x +
+          parseFloat(style.paddingLeft) +
+          canvas.measureText(field.value.slice(0, index)).width +
+          canvas.measureText(field.value[index] ?? "").width * fraction -
+          field.scrollLeft,
+        y: box.y + box.height / 2,
+      };
+    },
+    { index, fraction },
+  );
+}
+
+async function doubleClickWord(input: Locator, index: number) {
+  const point = await textPoint(input, index, 0.4);
+  const box = (await input.boundingBox())!;
+  await input.dblclick({
+    position: { x: point.x - box.x, y: point.y - box.y },
+  });
 }
 
 test.beforeEach(async ({ page }) => {
@@ -47,10 +74,8 @@ test("native word selection exposes copy immediately and typing replaces that ra
   page,
 }) => {
   const input = page.getByRole("textbox");
-  await input.locator('[data-char-index="7"]').dblclick();
-  await expect
-    .poll(() => page.evaluate(() => getSelection()?.toString()))
-    .toBe("world");
+  await doubleClickWord(input, 7);
+  await expect.poll(() => selectedText(input)).toBe("world");
   const copy = page.getByRole("button", { name: "복사", exact: true });
   await expect(copy).toBeVisible();
   await expect(
@@ -73,11 +98,11 @@ test("native word selection exposes copy immediately and typing replaces that ra
     page.locator("virtual-keypad").getByText("복사했어요", { exact: true }),
   ).toBeVisible();
   await expect(input).toHaveAttribute("data-value", "hello world");
-  expect(await page.evaluate(() => getSelection()?.toString())).toBe("world");
+  expect(await selectedText(input)).toBe("world");
   await page.getByRole("button", { name: "x", exact: true }).click();
   await expect(input).toHaveAttribute("data-value", "hello x");
   await expect(page.locator("virtual-keypad")).toBeVisible();
-  expect(await page.evaluate(() => getSelection()?.toString())).toBe("");
+  expect(await selectedText(input)).toBe("");
 });
 
 test("reverse native selection supports cut and undo without losing the selected range", async ({
@@ -92,13 +117,9 @@ test("reverse native selection supports cut and undo without losing the selected
   );
   await page.keyboard.press("ControlOrMeta+z");
   await expect(input).toHaveAttribute("data-value", "hello world");
-  await expect
-    .poll(() => page.evaluate(() => getSelection()?.toString()))
-    .toBe("world");
+  await expect.poll(() => selectedText(input)).toBe("world");
   await page.getByRole("button", { name: "전체 선택", exact: true }).click();
-  expect(await page.evaluate(() => getSelection()?.toString())).toBe(
-    "hello world",
-  );
+  expect(await selectedText(input)).toBe("hello world");
 });
 
 test("native copy events use the current DOM range even before selectionchange is delivered", async ({
@@ -106,9 +127,7 @@ test("native copy events use the current DOM range even before selectionchange i
 }) => {
   const input = page.getByRole("textbox");
   const result = await input.evaluate((field) => {
-    const first = field.querySelector('[data-char-index="0"]')!.firstChild!;
-    const last = field.querySelector('[data-char-index="4"]')!.firstChild!;
-    getSelection()!.setBaseAndExtent(first, 0, last, 1);
+    (field as HTMLInputElement).setSelectionRange(0, 5);
     const data = new DataTransfer();
     const event = new ClipboardEvent("copy", {
       bubbles: true,
@@ -193,10 +212,8 @@ test("double-clicking the final Korean letter selects its word, not the followin
     );
   });
   await expect(input).toHaveAttribute("data-value", "한글 복사 확인");
-  await input.locator('[data-char-index="4"]').dblclick();
-  await expect
-    .poll(() => page.evaluate(() => getSelection()?.toString()))
-    .toBe("복사");
+  await doubleClickWord(input, 4);
+  await expect.poll(() => selectedText(input)).toBe("복사");
 });
 
 test("mouse dragging selects real text and the delete icon removes exactly that selection", async ({
@@ -205,19 +222,71 @@ test("mouse dragging selects real text and the delete icon removes exactly that 
 }) => {
   test.skip(isMobile, "Desktop pointer selection");
   const input = page.getByRole("textbox");
-  const first = await input.locator('[data-char-index="0"]').boundingBox();
-  const last = await input.locator('[data-char-index="5"]').boundingBox();
-  await page.mouse.move(first!.x, first!.y + first!.height / 2);
+  const first = await textPoint(input, 0);
+  const last = await textPoint(input, 5);
+  await page.mouse.move(first.x, first.y);
   await page.mouse.down();
-  await page.mouse.move(last!.x, last!.y + last!.height / 2, { steps: 8 });
+  await page.mouse.move(last.x, last.y, { steps: 8 });
   await page.mouse.up();
-  await expect
-    .poll(() => page.evaluate(() => getSelection()?.toString()))
-    .toBe("hello");
+  await expect.poll(() => selectedText(input)).toBe("hello");
   const backspace = page.getByRole("button", { name: "지우기", exact: true });
   await expect(
     backspace.locator('svg[data-key-icon="backspace"]'),
   ).toBeVisible();
   await backspace.click();
   await expect(input).toHaveAttribute("data-value", " world");
+});
+
+test("browser text insertion preserves the native caret and follows the active policy", async ({
+  page,
+}) => {
+  const input = page.getByRole("textbox");
+  await select(input, 6, 11);
+  await page.keyboard.insertText("친구");
+  await expect(input).toHaveValue("hello 친구");
+  await expect(input).toHaveJSProperty("selectionStart", 8);
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(input).toHaveValue("hello world");
+  expect(await selectedText(input)).toBe("world");
+  await page.getByRole("button", { name: "123 숫자" }).click();
+  await input.click();
+  await page.keyboard.insertText("1a2b3");
+  await expect(input).toHaveValue("123");
+  await expect(input).toHaveJSProperty("selectionStart", 3);
+});
+
+test("native IME composition commits once and undo restores its selected range", async ({
+  page,
+  context,
+  browserName,
+}) => {
+  test.skip(
+    browserName !== "chromium",
+    "Uses Chromium's real composition protocol",
+  );
+  const input = page.getByRole("textbox");
+  await select(input, 0, 11);
+  const session = await context.newCDPSession(page);
+  try {
+    await session.send("Input.imeSetComposition", {
+      text: "ㅎ",
+      selectionStart: 1,
+      selectionEnd: 1,
+    });
+    await expect(input).toHaveValue("ㅎ");
+    await expect(input).toHaveAttribute("data-value", "hello world");
+    await session.send("Input.imeSetComposition", {
+      text: "한",
+      selectionStart: 1,
+      selectionEnd: 1,
+    });
+    await session.send("Input.insertText", { text: "한" });
+    await expect(input).toHaveValue("한");
+    await expect(input).toHaveAttribute("data-value", "한");
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(input).toHaveValue("hello world");
+    expect(await selectedText(input)).toBe("hello world");
+  } finally {
+    await session.detach();
+  }
 });
