@@ -1,7 +1,10 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { parseKeyInput } from "./parseKeyInput";
+import { parseKeyInput } from "./parseKeyInput.js";
 
-function createKeyboardEvent(key: string, options: Partial<KeyboardEvent> = {}): KeyboardEvent {
+function createKeyboardEvent(
+  key: string,
+  options: Partial<KeyboardEvent> = {},
+): KeyboardEvent {
   return {
     key,
     ctrlKey: false,
@@ -29,10 +32,18 @@ describe("parseKeyInput", () => {
   });
 
   it("ignores escape and navigation control keys", () => {
-    expect(parseKeyInput(createKeyboardEvent("Escape"), false)).toEqual({ handled: false });
-    expect(parseKeyInput(createKeyboardEvent("Esc"), false)).toEqual({ handled: false });
-    expect(parseKeyInput(createKeyboardEvent("ArrowLeft"), false)).toEqual({ handled: false });
-    expect(parseKeyInput(createKeyboardEvent("PageDown"), false)).toEqual({ handled: false });
+    expect(parseKeyInput(createKeyboardEvent("Escape"), false)).toEqual({
+      handled: false,
+    });
+    expect(parseKeyInput(createKeyboardEvent("Esc"), false)).toEqual({
+      handled: false,
+    });
+    expect(parseKeyInput(createKeyboardEvent("ArrowLeft"), false)).toEqual({
+      handled: false,
+    });
+    expect(parseKeyInput(createKeyboardEvent("PageDown"), false)).toEqual({
+      handled: false,
+    });
   });
 
   it("returns plain text keys on macOS", () => {

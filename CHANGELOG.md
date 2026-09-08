@@ -1,0 +1,25 @@
+# Changelog
+
+## 2.0.0
+
+### Breaking changes
+
+- React 18 이상을 지원합니다. React 17 지원 표기를 제거했습니다.
+- 입력란의 내부 Canvas/custom element 구조를 DOM 텍스트로 변경했습니다. 입력란 스타일은 `className` 또는 `style`로 적용하세요.
+- 데모 빌드 출력은 `demo-dist/`, npm 패키지는 `dist/`입니다. Vercel 설정을 함께 업데이트했습니다.
+
+### Input and keyboard
+
+- 한글 조합·자모 삭제, 커서·선택 영역, 이모지·결합 문자, 제어 값 초기화를 개선했습니다.
+- 특수키 오입력과 사용자 키의 label/value 혼동을 수정했습니다.
+- 숫자·기호 자판, 전체 선택, 실행 취소·다시 실행을 추가했습니다.
+- `onValueChange`, `disabled`, `readOnly`, `maxLength`, `onClipboardError`와 공개 ref API를 제공합니다.
+- 브라우저 클립보드 실패, 반복 입력 타이머, 다중 Provider 포커스와 언어 설정을 정리했습니다.
+- 화면 키패드의 데스크톱 표시, 시스템·명시적 테마, safe area, 터치·키보드 조작을 지원합니다.
+
+### Website and distribution
+
+- 7개 모드를 체험하는 반응형 데모, 라이트·다크 테마, 값·코드 예제, 전체 예제 복사를 제공합니다.
+- 상시 Canvas 렌더링 루프를 제거하고 실제 버튼과 DOM 텍스트로 접근성을 높였습니다.
+- npm JavaScript 번들·타입 선언, NodeNext 소비자, SSR 및 실제 tarball 검증을 추가했습니다.
+- CI가 포맷·린트·테스트·배포 빌드·접근성을 검사합니다. registry 확인에 실패하면 npm 게시를 중단합니다.
