@@ -172,15 +172,15 @@ npx playwright install chromium webkit
 npm run test:e2e
 ```
 
-| 명령어                  | 결과                                         |
-| ----------------------- | -------------------------------------------- |
-| `npm run build`         | 데모 사이트 → `demo-dist/`                   |
-| `npm run build-package` | 라이브러리 JavaScript·타입 → `dist/`         |
-| `npm run test:package`  | 패키지 포함 파일·ESM import·서버 렌더링 검사 |
-| `npm test`              | 입력 엔진·컴포넌트 회귀 테스트               |
-| `npm run test:e2e`      | Chromium·모바일 WebKit 동작 및 접근성 검사   |
-| `npm run format`        | Prettier 포맷 적용                           |
-| `npm run check`         | 포맷·린트·테스트·빌드·패키지 검증            |
+| 명령어                  | 결과                                                       |
+| ----------------------- | ---------------------------------------------------------- |
+| `npm run build`         | 데모 사이트 → `demo-dist/`                                 |
+| `npm run build-package` | 라이브러리 JavaScript·타입 → `dist/`                       |
+| `npm run test:package`  | 패키지 포함 파일·ESM import·서버 렌더링 검사               |
+| `npm test`              | 입력 엔진·컴포넌트 회귀 테스트                             |
+| `npm run test:e2e`      | 데스크톱·모바일 Chromium 및 모바일 WebKit 동작·접근성 검사 |
+| `npm run format`        | Prettier 포맷 적용                                         |
+| `npm run check`         | 포맷·린트·테스트·빌드·패키지 검증                          |
 
 npm의 `package-lock.json`을 의존성 기준으로 사용합니다. Vite 라이브러리 빌드에서 React, React DOM, es-hangul은 외부 의존성으로 유지합니다. 데모를 호스팅할 때 출력 디렉터리를 `demo-dist`로 설정하세요. Next.js처럼 React Server Components를 사용하는 앱에서는 상태를 사용하는 예제 컴포넌트에 `"use client"`를 추가하세요.
 

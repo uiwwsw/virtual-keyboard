@@ -37,6 +37,6 @@
     { "label": "✂︎", "value": "EnterSelectionMode", "type": "action" },
     { "label": "␣", "value": " ", "width": 4, "type": "action" },
     { "label": "⏎", "value": "\n", "type": "action" },
-    { "label": "🌐", "value": "HangulMode", "type": "action" }
+    { "value": "HangulMode", "type": "action", "width": 1.25 }
   ]
 ]

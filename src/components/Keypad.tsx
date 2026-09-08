@@ -53,6 +53,7 @@ function KeyButton({
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const latest = useRef(dispatch);
   latest.current = dispatch;
+  const languageKey = cell.type === "action" && value === "HangulMode";
   const cancel = useCallback(() => clearTimeout(timer.current), []);
   useEffect(() => {
     window.addEventListener("blur", cancel);
@@ -69,7 +70,20 @@ function KeyButton({
       disabled={disabled}
       aria-label={labels[value] ?? label}
       aria-pressed={active}
-      className={cell.type === "action" ? "key action" : "key"}
+      className={
+        languageKey
+          ? "key action language"
+          : cell.type === "action"
+            ? "key action"
+            : "key"
+      }
+      title={
+        languageKey
+          ? disabled
+            ? `${active ? "한국어" : "영어"} 전용`
+            : `${active ? "영어" : "한국어"}로 전환`
+          : undefined
+      }
       style={{ flex: cell.width && cell.width > 0 ? cell.width : 1 }}
       onPointerDown={(event) => {
         if (event.button !== 0 || disabled) return;
@@ -95,7 +109,28 @@ function KeyButton({
         if (event.detail === 0) latest.current();
       }}
     >
-      {label}
+      {languageKey && !cell.label ? (
+        <span className="language-label" aria-hidden="true">
+          <svg
+            width="19"
+            height="19"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.65"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            focusable="false"
+          >
+            <circle cx="12" cy="12" r="9" />
+            <ellipse cx="12" cy="12" rx="4" ry="9" />
+            <path d="M3 12h18" />
+          </svg>
+          <span>{active ? "한" : "EN"}</span>
+        </span>
+      ) : (
+        label
+      )}
     </button>
   );
 }
@@ -258,6 +293,9 @@ export function VirtualKeypad({
     border: "1px solid " + (theme === "dark" ? "#35413c" : "#c8d3cb"),
     borderRadius: "20px 20px 0 0",
     boxShadow: "0 -8px 48px #10251a20",
+    touchAction: "manipulation",
+    userSelect: "none",
+    WebkitUserSelect: "none",
   };
   return createPortal(
     <ShadowWrapper
@@ -265,6 +303,14 @@ export function VirtualKeypad({
       hostRef={host}
       data-virtual-keypad="true"
       style={style}
+      // Empty space between keys belongs to the keyboard too. Prevent the
+      // browser from blurring the input, including compatibility mouse events.
+      onPointerDown={(event) => {
+        if (event.button === 0) event.preventDefault();
+      }}
+      onMouseDown={(event) => {
+        if (event.button === 0) event.preventDefault();
+      }}
       onBlur={context.onBlur}
       onKeyDown={(event) => {
         if (event.key === "Escape") {
@@ -323,9 +369,25 @@ export function VirtualKeypad({
           background: ${theme === "dark" ? "#414e46" : "#d7e1db"};
           font-size: 14px;
         }
-        .key[aria-pressed="true"] {
+        .key[aria-pressed="true"]:not(.language) {
           background: #246447;
           color: #fff;
+        }
+        .language-label {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 5px;
+          font-size: 12px;
+          font-weight: 600;
+          line-height: 1;
+          white-space: nowrap;
+        }
+        .language-label svg {
+          flex-shrink: 0;
+        }
+        .language-label span {
+          min-width: 1.5em;
         }
         .key:active {
           transform: translateY(2px);
