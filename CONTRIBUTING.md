@@ -31,7 +31,7 @@ CI는 포맷, ESLint, TypeScript, 단위·컴포넌트 테스트, 두 종류의 
 - `src/utils/inputPolicy.ts`: 모드별 필터, 정리 함수, 레이아웃
 - `src/types`: 공개 입력 정책과 키 레이아웃 타입
 - `src/App.tsx`, `src/App.css`: 데모
-- `e2e`: Chromium·모바일 WebKit 회귀 검사
+- `e2e`: 데스크톱·모바일 Chromium 및 모바일 WebKit 회귀 검사
 
 ## Build and release
 
