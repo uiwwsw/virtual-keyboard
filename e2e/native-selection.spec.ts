@@ -118,6 +118,7 @@ test("reverse native selection supports cut and undo without losing the selected
   await page.keyboard.press("ControlOrMeta+z");
   await expect(input).toHaveAttribute("data-value", "hello world");
   await expect.poll(() => selectedText(input)).toBe("world");
+  await page.getByRole("button", { name: "텍스트 편집", exact: true }).click();
   await page.getByRole("button", { name: "전체 선택", exact: true }).click();
   expect(await selectedText(input)).toBe("hello world");
 });
