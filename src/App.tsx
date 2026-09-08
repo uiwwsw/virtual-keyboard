@@ -311,7 +311,7 @@ ${code
                   }
                 />
                 <div className="field-meta">
-                  <span>입력란을 누르면 키보드가 열립니다</span>
+                  <span>탭해서 커서 이동 · 단어를 길게 눌러 편집</span>
                   <span>{value.length} / 48</span>
                 </div>
                 <div className="result">

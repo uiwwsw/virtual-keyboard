@@ -27,6 +27,7 @@ import {
   insertText,
   moveCaret as move,
   selectionRange,
+  wordRangeAt,
   type EditingState,
 } from "../utils/editing.js";
 import type { InputMode } from "../types/inputPolicy.js";
@@ -142,7 +143,37 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
     const longPress = useRef<ReturnType<typeof setTimeout> | undefined>(
       undefined,
     );
-    const drag = useRef<{ x: number; y: number; anchor: number } | null>(null);
+    const drag = useRef<{
+      id: number;
+      x: number;
+      y: number;
+      anchor: number;
+      mouse: boolean;
+      held: boolean;
+    } | null>(null);
+    const cancelDrag = useCallback(() => {
+      clearTimeout(longPress.current);
+      drag.current = null;
+    }, []);
+    useEffect(() => {
+      if (disabled || readOnly) cancelDrag();
+    }, [disabled, readOnly, cancelDrag]);
+    useEffect(() => {
+      const cancelMultiplePointers = (event: globalThis.PointerEvent) => {
+        if (drag.current && drag.current.id !== event.pointerId) cancelDrag();
+      };
+      window.addEventListener("blur", cancelDrag);
+      window.addEventListener("scroll", cancelDrag, true);
+      window.addEventListener("pointerdown", cancelMultiplePointers, true);
+      document.addEventListener("visibilitychange", cancelDrag);
+      return () => {
+        cancelDrag();
+        window.removeEventListener("blur", cancelDrag);
+        window.removeEventListener("scroll", cancelDrag, true);
+        window.removeEventListener("pointerdown", cancelMultiplePointers, true);
+        document.removeEventListener("visibilitychange", cancelDrag);
+      };
+    }, [cancelDrag]);
 
     const commit = useCallback(
       (next: EditingState, record = true) => {
@@ -431,33 +462,58 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
       );
       if (cut) commit(deleteText(current.current, -1));
     };
-    const indexFromX = (x: number) => {
+    const indexFromX = (x: number, nearest = true) => {
       for (const element of host.current?.querySelectorAll<HTMLElement>(
         "[data-char-index]",
       ) ?? []) {
         const rect = element.getBoundingClientRect();
-        if (x < rect.left + rect.width / 2)
+        if (x < rect.left + rect.width * (nearest ? 0.5 : 1))
           return Number(element.dataset.charIndex);
       }
       return current.current.value.length;
     };
-    const cancelDrag = () => {
-      clearTimeout(longPress.current);
-      drag.current = null;
+    const focusInput = () => {
+      host.current?.focus({ preventScroll: true });
+      if (!readOnly && host.current) onFocus(token, host.current, policy);
     };
     const pointerDown = (event: PointerEvent<HTMLDivElement>) => {
       props.onPointerDown?.(event);
       if (event.defaultPrevented || disabled || event.button !== 0) return;
-      host.current?.focus({ preventScroll: true });
-      if (!readOnly && host.current) onFocus(token, host.current, policy);
+      const mouse = event.pointerType === "mouse";
+      // Defer touch focus/caret changes until we know this is a tap, not a pan.
+      if (!mouse) event.preventDefault();
+      if (drag.current || event.isPrimary === false) {
+        cancelDrag();
+        return;
+      }
       const index = indexFromX(event.clientX);
       const anchor = event.shiftKey ? current.current.anchor : index;
-      commit({ ...current.current, caret: index, anchor, composing: false });
-      drag.current = { x: event.clientX, y: event.clientY, anchor };
+      drag.current = {
+        id: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        anchor,
+        mouse,
+        held: false,
+      };
       clearTimeout(longPress.current);
-      if (!readOnly) longPress.current = setTimeout(enterSelectionMode, 600);
-      if (event.pointerType === "mouse")
+      if (mouse) {
+        focusInput();
+        commit({ ...current.current, caret: index, anchor, composing: false });
         host.current?.setPointerCapture?.(event.pointerId);
+      } else if (!readOnly) {
+        longPress.current = setTimeout(() => {
+          if (!drag.current) return;
+          drag.current.held = true;
+          const [anchor, caret] = wordRangeAt(
+            current.current.value,
+            indexFromX(drag.current.x, false),
+          );
+          focusInput();
+          commit({ ...current.current, anchor, caret, composing: false });
+          enterSelectionMode();
+        }, 550);
+      }
     };
     const [start, end] = selectionRange(current.current);
     const parts = graphemes(displayedValue);
@@ -514,6 +570,9 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
           scrollbarWidth: "none",
           cursor: disabled ? "not-allowed" : "text",
           userSelect: "none",
+          WebkitUserSelect: "none",
+          WebkitTouchCallout: "none",
+          touchAction: "manipulation",
           opacity: disabled ? 0.5 : 1,
           outlineOffset: 3,
           ...props.style,
@@ -541,7 +600,11 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
         onPointerDown={pointerDown}
         onPointerMove={(event) => {
           props.onPointerMove?.(event);
-          if (event.defaultPrevented || !drag.current) return;
+          if (event.defaultPrevented) {
+            cancelDrag();
+            return;
+          }
+          if (!drag.current || drag.current.id !== event.pointerId) return;
           if (
             Math.hypot(
               event.clientX - drag.current.x,
@@ -549,22 +612,45 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
             ) > 8
           ) {
             clearTimeout(longPress.current);
-            if (event.pointerType === "mouse")
+            if (drag.current.mouse)
               commit({
                 ...current.current,
                 caret: indexFromX(event.clientX),
                 anchor: drag.current.anchor,
                 composing: false,
               });
+            else cancelDrag();
           }
         }}
         onPointerUp={(event) => {
           props.onPointerUp?.(event);
+          const gesture = drag.current;
+          if (
+            !event.defaultPrevented &&
+            gesture?.id === event.pointerId &&
+            !gesture.mouse &&
+            !gesture.held &&
+            Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) <=
+              8
+          ) {
+            const index = indexFromX(event.clientX);
+            focusInput();
+            commit({
+              ...current.current,
+              caret: index,
+              anchor: index,
+              composing: false,
+            });
+          }
           cancelDrag();
         }}
         onPointerCancel={(event) => {
           props.onPointerCancel?.(event);
           cancelDrag();
+        }}
+        onLostPointerCapture={(event) => {
+          props.onLostPointerCapture?.(event);
+          if (drag.current?.id === event.pointerId) cancelDrag();
         }}
         onContextMenu={(event) => {
           props.onContextMenu?.(event);

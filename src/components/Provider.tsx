@@ -66,6 +66,8 @@ export function VirtualInputProvider({
     !!focusId &&
     (keyboardVisibility === "always" ||
       (keyboardVisibility === "auto" && mobile));
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
 
   useEffect(() => {
     const update = () => setMobile(isMobileAgent());
@@ -126,6 +128,9 @@ export function VirtualInputProvider({
           : null;
       if (target?.closest?.("[data-virtual-input], [data-virtual-keypad]"))
         return;
+      // Mobile pan/cancel gestures can blur to no element. The keypad's
+      // outside-tap handler owns dismissal; moving focus to a control still closes.
+      if (!target && visibleRef.current) return;
       clearTimeout(blurTimer.current);
       blurTimer.current = setTimeout(clearFocus, 0);
     },
@@ -133,16 +138,24 @@ export function VirtualInputProvider({
   );
 
   useEffect(() => {
-    if (!visible || !keyboardHeight) return;
+    if (!visible || !keyboardHeight || viewport.scale !== 1) return;
     const frame = requestAnimationFrame(() => {
       const rect = focusedElement.current?.getBoundingClientRect();
       if (!rect) return;
       const bottom = viewport.offsetTop + viewport.height - keyboardHeight - 16;
       if (rect.bottom > bottom)
-        window.scrollBy({ top: rect.bottom - bottom, behavior: "auto" });
+        // Do not inherit a host page's smooth scrolling while a touch is active.
+        window.scrollBy({ top: rect.bottom - bottom, behavior: "instant" });
     });
     return () => cancelAnimationFrame(frame);
-  }, [focusId, visible, keyboardHeight, viewport.height, viewport.offsetTop]);
+  }, [
+    focusId,
+    visible,
+    keyboardHeight,
+    viewport.height,
+    viewport.offsetTop,
+    viewport.scale,
+  ]);
 
   const toggleKorean = useCallback(() => {
     if (getForcedHangulMode(activeInputPolicy.mode) === null)
