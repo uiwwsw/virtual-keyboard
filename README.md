@@ -1,6 +1,6 @@
 # Virtual Keyboard
 
-한글 조합과 커스텀 키패드를 지원하는 React 가상 키보드입니다. 입력란은 `input`이나 `contentEditable` 대신 `div role="textbox"`를 사용하며, 화면 키패드는 Shadow DOM 안의 실제 버튼으로 렌더링됩니다.
+한글 조합과 커스텀 키패드를 지원하는 React 가상 키보드입니다. 입력란은 실제 `<input inputMode="none">`을 사용해 커서·길게 누르기·선택을 브라우저에 맡기며, 화면 키패드는 Shadow DOM 안의 실제 버튼으로 렌더링됩니다.
 
 [데모](https://composed-input.vercel.app/) · [npm](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard) · [MIT License](./LICENSE)
 
@@ -36,7 +36,7 @@ export default function App() {
 }
 ```
 
-추가 CSS 파일을 불러올 필요가 없습니다. `className`과 `style`로 입력란을 꾸밀 수 있습니다. 기본 `keyboardVisibility="auto"`는 모바일 또는 터치 중심 장치에서 화면 키보드를 표시합니다. 데스크톱 데모에는 `always`, 물리 키보드만 사용할 때는 `never`를 지정하세요.
+추가 CSS 파일을 불러올 필요가 없습니다. `className`과 `style`은 입력란을 감싼 컨테이너에 적용됩니다. 내부 input은 여백·글꼴·색상을 이어받고 컨테이너 전체를 터치 영역으로 사용합니다. 기본 `keyboardVisibility="auto"`는 모바일 또는 터치 중심 장치에서 화면 키보드를 표시합니다. 데스크톱 데모에는 `always`, 물리 키보드만 사용할 때는 `never`를 지정하세요.
 
 `value`를 제공하면 부모가 입력 상태를 관리합니다. `defaultValue`는 최초 값에만 사용됩니다. 입력 정책은 사용자의 새 입력과 붙여넣기에 적용되며, 부모가 전달하는 `value`와 기존 값은 임의로 변경하지 않습니다.
 
@@ -130,9 +130,9 @@ function PhoneField() {
 | `maxLength`             | `number`                                         | UTF-16 단위 최대 길이. 초과 편집은 전체 거절                |
 | `onClipboardError`      | `(error: Error) => void`                         | 클립보드 API 사용 실패 알림                                 |
 
-`id`, `className`, `style`, `aria-*`, `onFocus`, `onBlur`, `onKeyDown`, 포인터·클립보드 이벤트 등 `HTMLAttributes<HTMLDivElement>`도 지원합니다. 소비자 이벤트 핸들러의 `preventDefault()`를 존중합니다.
+`HTMLAttributes<HTMLDivElement>` 호환 속성을 지원합니다. `id`, `tabIndex`, `aria-*`는 실제 input에, `className`, `style`과 이벤트 핸들러는 컨테이너에 적용합니다. `onFocus`, `onBlur`, `onKeyDown`, 포인터·클립보드 이벤트는 input에서 버블링하며 `currentTarget`은 기존처럼 컨테이너입니다. 소비자 이벤트 핸들러의 `preventDefault()`를 존중합니다.
 
-입력란은 실제 HTML input이 아니므로 `type="password"`, 자동완성, 네이티브 폼 제출, 브라우저 IME·음성 입력를 제공하지 않습니다. 폼에 연결할 때는 부모의 상태로 제출을 처리하세요. `Enter`는 조합을 끝내며 `onKeyDown`에서 앱의 완료 동작을 연결할 수 있습니다. `onChange`의 호환 이벤트를 실제 DOM 이벤트로 사용하지 마세요.
+입력란은 한 줄 텍스트 input입니다. `inputMode="none"`으로 시스템 화면 키보드를 억제하고 가상 키패드를 사용합니다. 네이티브 IME 조합 중에는 키를 가로채지 않고 조합 완료 시 입력 정책을 적용합니다. 공개 API에 `type="password"`, 자동완성, `name`을 통한 폼 제출 설정은 제공하지 않습니다. 폼에 연결할 때는 부모의 상태로 제출을 처리하세요. `Enter`는 조합을 끝내며 `onKeyDown`에서 앱의 완료 동작을 연결할 수 있습니다. `onChange`의 호환 이벤트를 실제 DOM 이벤트로 사용하지 마세요.
 
 ### Ref API
 
@@ -150,20 +150,20 @@ ref.current?.setSelectionRange(0, 2);
 
 ## Keyboard and accessibility
 
-- 입력란에 `aria-label` 또는 `aria-labelledby`를 제공하세요. `label htmlFor`만으로는 div와 연결되지 않습니다.
+- 입력란에 `aria-label`, `aria-labelledby` 또는 `id`와 연결한 `label htmlFor`를 제공하세요.
 - 물리 키보드의 영문 키를 현재 한글 모드에 맞춰 해석하며, 이미 전달된 한글 키도 지원합니다. 운영체제 IME 전체를 대체하는 입력란은 아닙니다.
 - 한글 조합 중 Backspace는 자모를 지우고, 조합이 끝나면 글자 단위로 지웁니다. 이모지·결합 문자는 중간에서 나누지 않습니다.
 - 방향키, Home/End, Shift + 방향키, Ctrl/Cmd + A, 복사·잘라내기·붙여넣기, Escape를 지원합니다.
 - Ctrl/Cmd + Z로 실행 취소, Ctrl/Cmd + Shift + Z 또는 Ctrl + Y로 다시 실행합니다. 기록은 입력란별로 최대 100개를 보관하고 외부에서 제어 값이 바뀌면 초기화합니다.
 - 키패드 상단의 숫자·기호 전환으로 숫자·구두점·특수문자를 입력할 수 있습니다.
 - Shift는 한 번 누르면 다음 문자에 적용되고, 두 번 누르면 고정됩니다. 세 번째 입력으로 해제됩니다.
-- 입력란을 탭하면 커서를 옮깁니다. 스크롤이나 취소된 터치는 커서·포커스를 바꾸지 않습니다.
-- 브라우저의 실제 텍스트 선택과 입력 엔진의 선택 범위를 동기화합니다. 마우스 드래그·더블클릭, 모바일 길게 누르기와 기본 컨텍스트 메뉴를 허용합니다. 브라우저가 먼저 선택하지 않는 경우 550ms 길게 누르기로 단어를 선택합니다.
+- 탭, 길게 누르기, 드래그, 스크롤은 실제 input의 기본 제스처로 처리합니다. 앱에서 터치 위치를 커서로 환산하거나 손을 뗄 때 다시 선택하지 않습니다.
+- `selectionStart`·`selectionEnd`·`selectionDirection`을 편집 엔진과 동기화합니다. 자체 길게 누르기 타이머와 가짜 커서가 없어 브라우저가 정한 커서·선택 상태를 뒤늦게 덮어쓰지 않습니다.
 - 선택하면 현재 자판 위에 `복사`·`잘라내기`·`전체 선택`이 바로 표시됩니다. 선택 손잡이와 기본 복사 메뉴의 표시·모양은 기기와 브라우저가 결정합니다. `편집` 키의 화살표·범위 조절도 계속 사용할 수 있습니다.
 - 화면 키는 손을 뗄 때 실행됩니다. 누른 채 키 밖으로 움직이거나 터치가 취소되면 실행하지 않습니다. 지우기·화살표는 길게 누르면 반복하고 키 밖으로 움직이면 멈춥니다.
 - 키패드의 클립보드 버튼은 보안 컨텍스트와 브라우저 권한이 필요할 수 있습니다. 복사는 Clipboard API 실패 시 실제 선택 영역의 기본 복사 이벤트를 대체 경로로 시도합니다. 실패는 보이는 상태 메시지와 `onClipboardError`로 전달합니다. 기본 복사 메뉴와 물리 키보드 단축키도 지원합니다.
 
-텍스트와 키는 DOM에 존재하며 스크린 리더에 노출됩니다. 자동 접근성 검사는 보조기기 실기기 검증을 대체하지 않습니다.
+입력란과 키는 실제 HTML input·button으로 렌더링되며 스크린 리더에 노출됩니다. 자동 접근성 검사는 보조기기 실기기 검증을 대체하지 않습니다.
 
 ## Development
 
@@ -192,3 +192,7 @@ npm의 `package-lock.json`을 의존성 기준으로 사용합니다. Vite 라�
 ## Migration from 1.x
 
 2.0은 React 18 이상을 지원하며 입력란을 일반 DOM 요소로 렌더링합니다. 이전 custom element 또는 Canvas 구조를 선택하던 CSS를 `className`/`style`로 옮기세요. 기존 `onChange`는 유지되며 문자열 상태에는 `onValueChange`를 권장합니다. 데모 빌드 경로는 `demo-dist/`로 변경되었고 Vercel 설정에도 반영했습니다. [전체 변경 내역](./CHANGELOG.md)을 참고하세요.
+
+## Migration from 2.0
+
+2.1부터 입력란 내부는 실제 input입니다. 공개 값·ref API와 컨테이너의 `className`/`style`은 유지합니다. 내부 문자 span이나 가짜 커서를 선택하던 CSS·DOM 코드는 제거하세요. 선택 범위를 직접 읽을 때는 input의 `selectionStart`, `selectionEnd`, `selectionDirection`을 사용합니다. `id`와 접근성 속성은 실제 input으로 이동하므로 `label htmlFor`를 연결할 수 있습니다.

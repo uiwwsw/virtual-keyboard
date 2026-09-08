@@ -431,6 +431,7 @@ h2 {
   padding: 17px 14px !important;
 }
 .demo-input[data-focused] {
+  outline: none !important;
   border-color: #50805c !important;
   box-shadow: 0 0 0 3px #50805c12;
 }
