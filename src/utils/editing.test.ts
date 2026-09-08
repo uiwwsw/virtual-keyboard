@@ -3,6 +3,7 @@ import {
   deleteText,
   insertText,
   moveCaret,
+  wordRangeAt,
   type EditingState,
 } from "./editing.js";
 const state = (
@@ -11,6 +12,19 @@ const state = (
   anchor = caret,
 ): EditingState => ({ value, caret, anchor, composing: false });
 describe("text editing", () => {
+  it.each([
+    ["hello world", 8, [6, 11]],
+    ["hello world", 11, [6, 11]],
+    ["안녕 세상", 1, [0, 2]],
+    ["A👨‍👩‍👧‍👦B", 4, [1, 12]],
+    ["e\u0301!", 1, [0, 2]],
+    ["", 0, [0, 0]],
+  ] as const)(
+    "selects a complete word or grapheme at %s[%i]",
+    (value, index, range) => {
+      expect(wordRangeAt(value, index)).toEqual(range);
+    },
+  );
   it("composes Hangul across syllables and deletes one composing jamo", () => {
     let result = state();
     for (const char of ["ㅎ", "ㅏ", "ㄴ", "ㄱ", "ㅡ", "ㄹ"])

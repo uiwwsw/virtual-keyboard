@@ -482,6 +482,36 @@ h2 {
   width: 14px;
   height: 14px;
 }
+@media (pointer: coarse) {
+  .theme-switch button,
+  .mode-button,
+  .text-button,
+  .copy-code,
+  .install-block button {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+  .text-button {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+  .keyboard-toggle {
+    min-height: 44px;
+    font-size: 12px;
+  }
+  .keyboard-toggle input {
+    width: 20px;
+    height: 20px;
+  }
+  .field-meta {
+    font-size: 11px;
+    line-height: 1.6;
+  }
+  .field-meta > span:last-child {
+    white-space: nowrap;
+  }
+}
 .code-panel {
   background: #1d2c23;
   color: #c1d0c0;

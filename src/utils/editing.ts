@@ -9,6 +9,15 @@ export interface EditingState {
 }
 
 const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+const wordSegmenter = new Intl.Segmenter(undefined, { granularity: "word" });
+export function wordRangeAt(value: string, index: number): [number, number] {
+  const position = Math.max(0, Math.min(index, value.length - 1));
+  for (const part of wordSegmenter.segment(value)) {
+    if (position < part.index + part.segment.length)
+      return [part.index, part.index + part.segment.length];
+  }
+  return [0, 0];
+}
 export const graphemes = (value: string) =>
   Array.from(segmenter.segment(value));
 export function clampBoundary(value: string, index: number) {
