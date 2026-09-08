@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-} from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import symbols from "../assets/symbols.json";
 import { createPortal } from "react-dom";
 import { ShadowWrapper } from "./ShadowWrapper.js";
@@ -12,6 +6,7 @@ import { useVirtualInputContext } from "./Context.js";
 import { getForcedHangulMode } from "../utils/inputPolicy.js";
 import { transformKey } from "../utils/keyboard.js";
 import { isHangul } from "../utils/isHangul.js";
+import { usePress } from "../hooks/usePress.js";
 import type { Key, KeypadLayout, Viewport } from "../types/keyboard.js";
 export type { KeypadLayout, Viewport };
 
@@ -50,20 +45,11 @@ function KeyButton({
   disabled?: boolean;
   dispatch: () => void;
 }) {
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const latest = useRef(dispatch);
-  latest.current = dispatch;
+  const press = usePress(dispatch, {
+    disabled,
+    repeat: ["Backspace", "Delete", "ArrowLeft", "ArrowRight"].includes(value),
+  });
   const languageKey = cell.type === "action" && value === "HangulMode";
-  const cancel = useCallback(() => clearTimeout(timer.current), []);
-  useEffect(() => {
-    window.addEventListener("blur", cancel);
-    document.addEventListener("visibilitychange", cancel);
-    return () => {
-      cancel();
-      window.removeEventListener("blur", cancel);
-      document.removeEventListener("visibilitychange", cancel);
-    };
-  }, [cancel]);
   return (
     <button
       type="button"
@@ -85,29 +71,7 @@ function KeyButton({
           : undefined
       }
       style={{ flex: cell.width && cell.width > 0 ? cell.width : 1 }}
-      onPointerDown={(event) => {
-        if (event.button !== 0 || disabled) return;
-        event.preventDefault();
-        cancel();
-        event.currentTarget.setPointerCapture?.(event.pointerId);
-        latest.current();
-        if (
-          ["Backspace", "Delete", "ArrowLeft", "ArrowRight"].includes(value)
-        ) {
-          const tick = () => {
-            latest.current();
-            timer.current = setTimeout(tick, 65);
-          };
-          timer.current = setTimeout(tick, 450);
-        }
-      }}
-      onPointerUp={cancel}
-      onPointerCancel={cancel}
-      onLostPointerCapture={cancel}
-      onPointerLeave={cancel}
-      onClick={(event) => {
-        if (event.detail === 0) latest.current();
-      }}
+      {...press}
     >
       {languageKey && !cell.label ? (
         <span className="language-label" aria-hidden="true">
@@ -157,8 +121,9 @@ export function VirtualKeypad({
     onBlur,
   } = context;
   const host = useRef<HTMLElement | null>(null);
-  const [height, setHeight] = useState(0);
   const [symbolsMode, setSymbolsMode] = useState(false);
+  const symbolsPress = usePress(() => setSymbolsMode((previous) => !previous));
+  const closePress = usePress(() => onBlur(true));
   const supportsSymbols = ["text", "hangul", "custom"].includes(
     activeInputPolicy.mode,
   );
@@ -168,7 +133,6 @@ export function VirtualKeypad({
     if (!host.current) return;
     const update = () => {
       const next = host.current?.getBoundingClientRect().height ?? 0;
-      setHeight(next);
       onHeightChange(next);
     };
     update();
@@ -178,6 +142,7 @@ export function VirtualKeypad({
   }, [onHeightChange]);
   useEffect(() => {
     let tap: { x: number; y: number; id: number } | null = null;
+    const pointers = new Set<number>();
     const inside = (event: PointerEvent) =>
       event
         .composedPath()
@@ -188,9 +153,11 @@ export function VirtualKeypad({
               node.hasAttribute("data-virtual-input")),
         );
     const down = (event: PointerEvent) => {
-      tap = inside(event)
-        ? null
-        : { x: event.clientX, y: event.clientY, id: event.pointerId };
+      pointers.add(event.pointerId);
+      tap =
+        pointers.size !== 1 || event.button !== 0 || inside(event)
+          ? null
+          : { x: event.clientX, y: event.clientY, id: event.pointerId };
     };
     const up = (event: PointerEvent) => {
       if (
@@ -201,17 +168,41 @@ export function VirtualKeypad({
       )
         onBlur(true);
       tap = null;
+      pointers.delete(event.pointerId);
+    };
+    const move = (event: PointerEvent) => {
+      if (
+        tap?.id === event.pointerId &&
+        Math.hypot(event.clientX - tap.x, event.clientY - tap.y) >= 10
+      )
+        tap = null;
     };
     const cancel = () => {
       tap = null;
     };
+    const cancelPointer = (event: PointerEvent) => {
+      cancel();
+      pointers.delete(event.pointerId);
+    };
+    const reset = () => {
+      cancel();
+      pointers.clear();
+    };
     window.addEventListener("pointerdown", down, true);
+    window.addEventListener("pointermove", move, true);
     window.addEventListener("pointerup", up, true);
-    window.addEventListener("pointercancel", cancel, true);
+    window.addEventListener("pointercancel", cancelPointer, true);
+    window.addEventListener("scroll", cancel, true);
+    window.addEventListener("blur", reset);
+    document.addEventListener("visibilitychange", reset);
     return () => {
       window.removeEventListener("pointerdown", down, true);
+      window.removeEventListener("pointermove", move, true);
       window.removeEventListener("pointerup", up, true);
-      window.removeEventListener("pointercancel", cancel, true);
+      window.removeEventListener("pointercancel", cancelPointer, true);
+      window.removeEventListener("scroll", cancel, true);
+      window.removeEventListener("blur", reset);
+      document.removeEventListener("visibilitychange", reset);
     };
   }, [onBlur]);
 
@@ -281,9 +272,9 @@ export function VirtualKeypad({
     display: "block",
     width: Math.min(viewport.width || 760, 760),
     left: viewport.offsetLeft + viewport.width / 2,
-    transform: "translateX(-50%)",
-    ...(height && viewport.height
-      ? { top: viewport.offsetTop + viewport.height - height }
+    transform: viewport.height ? "translate(-50%, -100%)" : "translateX(-50%)",
+    ...(viewport.height
+      ? { top: viewport.offsetTop + viewport.height }
       : { bottom: 0 }),
     maxHeight: viewport.height ? viewport.height * 0.65 : "65dvh",
     overflowY: "auto",
@@ -345,6 +336,9 @@ export function VirtualKeypad({
           padding: 8px 12px;
           cursor: pointer;
           border-radius: 6px;
+          min-width: 44px;
+          min-height: 44px;
+          touch-action: pan-y;
         }
         .row {
           display: flex;
@@ -389,8 +383,9 @@ export function VirtualKeypad({
         .language-label span {
           min-width: 1.5em;
         }
-        .key:active {
-          transform: translateY(2px);
+        .key[data-pressed="true"],
+        .close[data-pressed="true"] {
+          filter: brightness(0.9);
           box-shadow: none;
         }
         button:focus-visible {
@@ -403,8 +398,14 @@ export function VirtualKeypad({
         }
         @media (max-height: 500px) {
           .key {
-            min-height: 32px;
+            min-height: 44px;
             padding: 5px 0;
+          }
+          .row {
+            margin-top: 4px;
+          }
+          .keyboard {
+            padding-top: 0;
           }
           .toolbar {
             padding-bottom: 0;
@@ -434,15 +435,7 @@ export function VirtualKeypad({
               className="close"
               aria-label="숫자·기호 전환"
               aria-pressed={symbolsMode}
-              onPointerDown={(event) => {
-                if (event.button === 0) {
-                  event.preventDefault();
-                  setSymbolsMode((previous) => !previous);
-                }
-              }}
-              onClick={(event) => {
-                if (event.detail === 0) setSymbolsMode((previous) => !previous);
-              }}
+              {...symbolsPress}
             >
               {symbolsMode ? "가 / ABC" : "123 / #+="}
             </button>
@@ -450,15 +443,7 @@ export function VirtualKeypad({
           <button
             type="button"
             className="close"
-            onPointerDown={(event) => {
-              if (event.button === 0) {
-                event.preventDefault();
-                onBlur(true);
-              }
-            }}
-            onClick={(event) => {
-              if (event.detail === 0) onBlur(true);
-            }}
+            {...closePress}
             aria-label="키보드 닫기"
           >
             닫기 ↓

@@ -34,7 +34,7 @@
     { "label": "⌫", "value": "Backspace", "type": "action" }
   ],
   [
-    { "label": "✂︎", "value": "EnterSelectionMode", "type": "action" },
+    { "label": "편집", "value": "EnterSelectionMode", "type": "action" },
     { "label": "␣", "value": " ", "width": 4, "type": "action" },
     { "label": "⏎", "value": "\n", "type": "action" },
     { "value": "HangulMode", "type": "action", "width": 1.25 }

@@ -97,7 +97,7 @@ test("overlapping two-finger typing inserts each key once and stays open", async
       });
       await session.send("Input.dispatchTouchEvent", {
         type: "touchEnd",
-        touchPoints: [right],
+        touchPoints: [left],
       });
       await session.send("Input.dispatchTouchEvent", {
         type: "touchEnd",

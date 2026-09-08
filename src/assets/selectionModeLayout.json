@@ -18,7 +18,7 @@
   ],
   [
     {
-      "label": "Select",
+      "label": "범위 조절",
       "value": "ToggleSelectionAdjust",
       "width": 1.4,
       "type": "action"
@@ -36,19 +36,19 @@
   ],
   [
     {
-      "label": "Copy",
+      "label": "복사",
       "value": "Copy",
       "width": 1.4,
       "type": "action"
     },
     {
-      "label": "Paste",
+      "label": "붙여넣기",
       "value": "Paste",
       "width": 1.4,
       "type": "action"
     },
     {
-      "label": "Cut",
+      "label": "잘라내기",
       "value": "Cut",
       "width": 1.2,
       "type": "action"
@@ -61,7 +61,7 @@
   ],
   [
     {
-      "label": "✂︎",
+      "label": "키보드",
       "value": "ExitSelectionMode",
       "type": "action"
     },
