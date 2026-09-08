@@ -148,9 +148,46 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
       [mode, layout, defaultLayout, filterKey, sanitizeValue],
     );
     const [status, setStatus] = useState("");
+    const [pasting, setPasting] = useState(false);
+    const pasteRequest = useRef<{
+      value: string;
+      policy: typeof policy;
+      maxLength: number | undefined;
+    } | null>(null);
+    const pasteFeedback = useRef<string | null>(null);
+    const editSettings = useRef({ disabled, readOnly, policy, maxLength });
+    editSettings.current = { disabled, readOnly, policy, maxLength };
+    const cancelPaste = useCallback(() => {
+      if (!pasteRequest.current) return;
+      pasteRequest.current = null;
+      setPasting(false);
+    }, []);
+
+    useEffect(() => {
+      const request = pasteRequest.current;
+      if (
+        request &&
+        (!focused ||
+          disabled ||
+          readOnly ||
+          request.policy !== policy ||
+          request.maxLength !== maxLength ||
+          request.value !== displayedValue)
+      )
+        cancelPaste();
+    }, [
+      focused,
+      disabled,
+      readOnly,
+      policy,
+      maxLength,
+      displayedValue,
+      cancelPaste,
+    ]);
 
     const commit = useCallback(
       (next: EditingState, record = true, nativeSelection = false) => {
+        cancelPaste();
         const previous = current.current.value;
         if (record) history.current.record(current.current, next);
         pendingDOMSelection.current = !nativeSelection;
@@ -167,7 +204,7 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
           } as ChangeEvent<HTMLInputElement>);
         }
       },
-      [onChange, onValueChange],
+      [onChange, onValueChange, cancelPaste],
     );
 
     const readNativeSelection = useCallback(() => {
@@ -243,6 +280,14 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
           editor.current.setSelectionRange(start, end, direction);
       }
       pendingDOMSelection.current = false;
+      if (pasteFeedback.current !== null) {
+        setStatus(
+          displayedValue === pasteFeedback.current
+            ? "붙여넣었어요"
+            : "입력값이 적용되지 않았어요",
+        );
+        pasteFeedback.current = null;
+      }
     });
 
     useEffect(() => {
@@ -252,12 +297,14 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
         selectionLength: graphemes(displayedValue.slice(start, end)).length,
         hasValue: !!displayedValue,
         message: status,
+        pasting,
       });
     }, [
       displayedValue,
       state.anchor,
       state.caret,
       status,
+      pasting,
       focused,
       setEditingStatus,
     ]);
@@ -271,6 +318,31 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
         commit(insertText(current.current, sanitized, composing, maxLength));
       },
       [disabled, readOnly, policy, maxLength, commit, readNativeSelection],
+    );
+
+    const insertPastedText = useCallback(
+      (text: string) => {
+        if (disabled || readOnly || nativeComposing.current) return;
+        readNativeSelection();
+        if (!text) {
+          setStatus("붙여넣을 텍스트가 없어요");
+          return;
+        }
+        const sanitized = policy.sanitizeValue(text).replace(/[\r\n\t]+/g, " ");
+        if (!sanitized || !policy.filterKey(sanitized)) {
+          setStatus("이 입력란에 붙여넣을 수 없는 내용이에요");
+          return;
+        }
+        const next = insertText(current.current, sanitized, false, maxLength);
+        if (next === current.current) {
+          setStatus("입력 길이 제한을 초과했어요");
+          return;
+        }
+        pasteFeedback.current = next.value;
+        commit(next);
+        editor.current?.focus({ preventScroll: true });
+      },
+      [disabled, readOnly, policy, maxLength, readNativeSelection, commit],
     );
 
     const undo = useCallback(() => {
@@ -450,19 +522,57 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
         commit(deleteText(snapshot, -1));
     }, [disabled, readOnly, copySelection, commit, readNativeSelection]);
     const pasteClipboard = useCallback(async () => {
-      if (disabled || readOnly) return;
-      readNativeSelection();
-      const version = revision.current;
-      const previousValue = current.current.value;
-      const text = await navigator.clipboard.readText();
       if (
+        disabled ||
+        readOnly ||
+        nativeComposing.current ||
+        pasteRequest.current
+      )
+        return;
+      readNativeSelection();
+      const request = { value: current.current.value, policy, maxLength };
+      pasteRequest.current = request;
+      setPasting(true);
+      setStatus("");
+      const isCurrent = () =>
+        pasteRequest.current === request &&
         mounted.current &&
         focusedRef.current &&
-        revision.current === version &&
-        current.current.value === previousValue
-      )
-        insert(text);
-    }, [disabled, readOnly, insert, readNativeSelection]);
+        !editSettings.current.disabled &&
+        !editSettings.current.readOnly &&
+        editSettings.current.policy === request.policy &&
+        editSettings.current.maxLength === request.maxLength &&
+        current.current.value === request.value;
+      try {
+        if (!navigator.clipboard?.readText)
+          throw new Error("Clipboard read unavailable");
+        const text = await navigator.clipboard.readText();
+        // Read again before using an async result: the OS may have moved its
+        // selection before React receives selectionchange, or pasted natively.
+        readNativeSelection();
+        if (isCurrent()) insertPastedText(text);
+      } catch (error) {
+        readNativeSelection();
+        if (isCurrent()) {
+          editor.current?.focus({ preventScroll: true });
+          reportError(error);
+          setStatus(
+            "클립보드를 읽을 수 없어요. 입력란을 길게 눌러 ‘붙여넣기’를 선택해 주세요.",
+          );
+        }
+      } finally {
+        if (pasteRequest.current === request) cancelPaste();
+      }
+    }, [
+      disabled,
+      readOnly,
+      policy,
+      maxLength,
+      insertPastedText,
+      readNativeSelection,
+      reportError,
+      cancelPaste,
+    ]);
     const handle = useMemo<VirtualInputHandle>(
       () => ({
         focus: (options) => {
@@ -548,6 +658,7 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
       mounted.current = true;
       return () => {
         mounted.current = false;
+        pasteRequest.current = null;
         if (focusedRef.current) onBlur(true);
       };
     }, [onBlur]);
@@ -633,6 +744,11 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
         }}
         onBlur={(event) => {
           setFieldFocused(false);
+          if (
+            event.relatedTarget instanceof Element &&
+            !event.relatedTarget.closest("[data-virtual-keypad]")
+          )
+            cancelPaste();
           props.onBlur?.(event);
           if (!event.defaultPrevented) onBlur(event);
         }}
@@ -643,7 +759,8 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
           props.onPaste?.(event);
           if (!event.defaultPrevented && !disabled && !readOnly) {
             event.preventDefault();
-            insert(event.clipboardData.getData("text/plain"));
+            cancelPaste();
+            insertPastedText(event.clipboardData.getData("text/plain"));
           }
         }}
       >
@@ -702,6 +819,7 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
           }}
           onSelect={readNativeSelection}
           onCompositionStart={() => {
+            cancelPaste();
             readNativeSelection();
             compositionBase.current = current.current;
             nativeComposing.current = true;

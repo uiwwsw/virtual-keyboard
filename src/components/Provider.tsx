@@ -53,12 +53,14 @@ export function VirtualInputProvider({
     selectionLength: 0,
     hasValue: false,
     message: "",
+    pasting: false,
   });
   const setEditingStatus = useCallback((next: InputEditingStatus) => {
     updateEditingStatus((previous) =>
       previous.selectionLength === next.selectionLength &&
       previous.hasValue === next.hasValue &&
-      previous.message === next.message
+      previous.message === next.message &&
+      previous.pasting === next.pasting
         ? previous
         : next,
     );

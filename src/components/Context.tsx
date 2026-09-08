@@ -7,6 +7,7 @@ export interface InputEditingStatus {
   selectionLength: number;
   hasValue: boolean;
   message: string;
+  pasting: boolean;
 }
 
 interface VirtualInputContextValue {

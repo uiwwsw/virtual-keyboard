@@ -311,7 +311,7 @@ ${code
                   }
                 />
                 <div className="field-meta">
-                  <span>탭해서 커서 이동 · 길게 눌러 선택·편집</span>
+                  <span>커서 위치에 붙여넣기 · 길게 눌러 선택</span>
                   <span>{value.length} / 48</span>
                 </div>
                 <div className="result">
