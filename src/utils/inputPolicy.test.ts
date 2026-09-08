@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getForcedHangulMode } from "./inputPolicy";
+import { getForcedHangulMode } from "./inputPolicy.js";
 
 describe("getForcedHangulMode", () => {
   it("forces english-friendly modes out of hangul", () => {

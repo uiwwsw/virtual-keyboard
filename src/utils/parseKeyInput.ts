@@ -1,79 +1,29 @@
 import { convertQwertyToHangul } from "es-hangul";
-import { isHangul } from "./isHangul";
+import { isHangul } from "./isHangul.js";
 
-/**
- * 키 입력 이벤트를 해석해서 실제 삽입할 문자열을 반환함
- * - 한글 모드 토글 감지 (Windows만)
- * - 조합 여부 판단 (macOS는 키 값 기반)
- */
+/** Interpret physical keys consistently across platforms. Mac IME may already supply Hangul. */
 export function parseKeyInput(
-	e: React.KeyboardEvent | KeyboardEvent,
-	hangulMode: boolean,
+  e: React.KeyboardEvent | KeyboardEvent,
+  hangulMode: boolean,
 ): {
-	handled: boolean;
-	toggleHangulMode?: boolean;
-	text?: string;
-	composing?: boolean;
+  handled: boolean;
+  toggleHangulMode?: boolean;
+  text?: string;
+  composing?: boolean;
 } {
-	const isMac = navigator.userAgent.includes("Mac");
-
-	// 윈도우: 한영 전환 키
-	if (!isMac && e.key === "HangulMode") {
-		return { handled: true, toggleHangulMode: true };
-	}
-
-	const ignoredKeys = new Set([
-		"Shift",
-		"Control",
-		"Alt",
-		"Meta",
-		"CapsLock",
-		"Enter",
-		"Tab",
-		"Escape",
-		"Esc",
-		"ArrowUp",
-		"ArrowDown",
-		"ArrowLeft",
-		"ArrowRight",
-		"Backspace",
-		"Delete",
-		"PageUp",
-		"PageDown",
-		"Insert",
-		"Unidentified",
-	]);
-	if (ignoredKeys.has(e.key)) {
-		return { handled: false };
-	}
-	// --- macOS ---
-	if (isMac) {
-		if (isHangul(e.key)) {
-			return {
-				handled: true,
-				text: e.key,
-				composing: true,
-			};
-		} else {
-			return {
-				handled: true,
-				text: e.key,
-				composing: false,
-			};
-		}
-	}
-	// --- Windows ---
-	if (hangulMode && e.key.length === 1) {
-		return {
-			handled: true,
-			text: isHangul(e.key) ? e.key : convertQwertyToHangul(e.key),
-			composing: true,
-		};
-	}
-
-	return {
-		handled: true,
-		text: e.key,
-		composing: false,
-	};
+  if (e.key === "HangulMode") return { handled: true, toggleHangulMode: true };
+  if (
+    e.ctrlKey ||
+    e.metaKey ||
+    e.altKey ||
+    [...e.key].length !== 1 ||
+    /[\r\n\t]/.test(e.key)
+  ) {
+    return { handled: false };
+  }
+  const text =
+    hangulMode && /^[A-Za-z]$/.test(e.key)
+      ? convertQwertyToHangul(e.key)
+      : e.key;
+  return { handled: true, text, composing: isHangul(text) };
 }

@@ -1,18 +1,80 @@
 [
   [
-    { "label": "Select", "value": "ToggleSelectionAdjust", "width": 1.4, "type": "action" },
-    { "label": "←", "value": "ArrowLeft", "type": "action" },
-    { "label": "→", "value": "ArrowRight", "type": "action" }
+    {
+      "label": "전체 선택",
+      "value": "SelectAll",
+      "type": "action"
+    },
+    {
+      "label": "실행 취소",
+      "value": "Undo",
+      "type": "action"
+    },
+    {
+      "label": "다시 실행",
+      "value": "Redo",
+      "type": "action"
+    }
   ],
   [
-    { "label": "Copy", "value": "Copy", "width": 1.4, "type": "action" },
-    { "label": "Paste", "value": "Paste", "width": 1.4, "type": "action" },
-    { "label": "Cut", "value": "Cut", "width": 1.2, "type": "action" },
-    { "label": "⌫", "value": "Backspace", "type": "action" }
+    {
+      "label": "Select",
+      "value": "ToggleSelectionAdjust",
+      "width": 1.4,
+      "type": "action"
+    },
+    {
+      "label": "←",
+      "value": "ArrowLeft",
+      "type": "action"
+    },
+    {
+      "label": "→",
+      "value": "ArrowRight",
+      "type": "action"
+    }
   ],
   [
-    { "label": "✂︎", "value": "ExitSelectionMode", "type": "action" },
-    { "label": "␣", "value": " ", "width": 2.8, "type": "action" },
-    { "label": "⏎", "value": "\n", "type": "action" }
+    {
+      "label": "Copy",
+      "value": "Copy",
+      "width": 1.4,
+      "type": "action"
+    },
+    {
+      "label": "Paste",
+      "value": "Paste",
+      "width": 1.4,
+      "type": "action"
+    },
+    {
+      "label": "Cut",
+      "value": "Cut",
+      "width": 1.2,
+      "type": "action"
+    },
+    {
+      "label": "⌫",
+      "value": "Backspace",
+      "type": "action"
+    }
+  ],
+  [
+    {
+      "label": "✂︎",
+      "value": "ExitSelectionMode",
+      "type": "action"
+    },
+    {
+      "label": "␣",
+      "value": " ",
+      "width": 2.8,
+      "type": "action"
+    },
+    {
+      "label": "⏎",
+      "value": "\n",
+      "type": "action"
+    }
   ]
 ]

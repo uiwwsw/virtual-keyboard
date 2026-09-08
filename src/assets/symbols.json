@@ -1,0 +1,43 @@
+[
+  [
+    { "value": "1" },
+    { "value": "2" },
+    { "value": "3" },
+    { "value": "4" },
+    { "value": "5" },
+    { "value": "6" },
+    { "value": "7" },
+    { "value": "8" },
+    { "value": "9" },
+    { "value": "0" }
+  ],
+  [
+    { "value": "@" },
+    { "value": "#" },
+    { "value": "$" },
+    { "value": "%" },
+    { "value": "&" },
+    { "value": "*" },
+    { "value": "-" },
+    { "value": "+" },
+    { "value": "(" },
+    { "value": ")" }
+  ],
+  [
+    { "value": "!" },
+    { "value": "?" },
+    { "value": "/" },
+    { "value": ":" },
+    { "value": ";" },
+    { "value": "\"" },
+    { "value": "'" },
+    { "value": "_" },
+    { "value": "Backspace", "label": "⌫", "type": "action" }
+  ],
+  [
+    { "value": "," },
+    { "value": ".", "width": 1 },
+    { "value": " ", "label": "공백", "width": 4, "type": "action" },
+    { "value": "Enter", "label": "↵", "type": "action" }
+  ]
+]
