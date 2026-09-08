@@ -138,10 +138,12 @@ test("long press selects a word; dragging and cancelled holds keep the caret", a
   await expect(
     page.getByRole("button", { name: "복사", exact: true }),
   ).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => window.getSelection()?.toString()))
+    .toBe("world");
   await touch(input, "pointerup", x, y);
   await page.getByRole("button", { name: "지우기", exact: true }).click();
   await expect(input).toHaveAttribute("data-value", "hello ");
-  await page.getByRole("button", { name: "키보드로 돌아가기" }).click();
   await expect(
     page.getByRole("button", { name: "w", exact: true }),
   ).toBeVisible();

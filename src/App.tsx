@@ -311,7 +311,7 @@ ${code
                   }
                 />
                 <div className="field-meta">
-                  <span>탭해서 커서 이동 · 단어를 길게 눌러 편집</span>
+                  <span>길게 눌러 선택 · 선택 범위를 조절하고 바로 복사</span>
                   <span>{value.length} / 48</span>
                 </div>
                 <div className="result">

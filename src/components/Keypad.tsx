@@ -50,6 +50,10 @@ function KeyButton({
     repeat: ["Backspace", "Delete", "ArrowLeft", "ArrowRight"].includes(value),
   });
   const languageKey = cell.type === "action" && value === "HangulMode";
+  const deleteIcon =
+    cell.type === "action" &&
+    ((value === "Backspace" && (!cell.label || cell.label === "⌫")) ||
+      (value === "Delete" && (!cell.label || cell.label === "⌦")));
   return (
     <button
       type="button"
@@ -73,7 +77,25 @@ function KeyButton({
       style={{ flex: cell.width && cell.width > 0 ? cell.width : 1 }}
       {...press}
     >
-      {languageKey && !cell.label ? (
+      {deleteIcon ? (
+        <svg
+          data-key-icon={value === "Backspace" ? "backspace" : "delete"}
+          aria-hidden="true"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          focusable="false"
+          style={value === "Delete" ? { transform: "scaleX(-1)" } : undefined}
+        >
+          <path d="M9 5H20a1.5 1.5 0 0 1 1.5 1.5v11A1.5 1.5 0 0 1 20 19H9l-7-7 7-7Z" />
+          <path d="m12 9 6 6m0-6-6 6" />
+        </svg>
+      ) : languageKey && !cell.label ? (
         <span className="language-label" aria-hidden="true">
           <svg
             width="19"
@@ -118,6 +140,7 @@ export function VirtualKeypad({
     selectionMode,
     selectionAdjusting,
     activeInputPolicy,
+    editingStatus,
     onBlur,
   } = context;
   const host = useRef<HTMLElement | null>(null);
@@ -325,6 +348,8 @@ export function VirtualKeypad({
           justify-content: space-between;
           padding: 0 6px 8px;
           font-size: 12px;
+          min-height: 52px;
+          gap: 5px;
         }
         .toolbar span {
           opacity: 0.75;
@@ -346,6 +371,9 @@ export function VirtualKeypad({
           margin-top: 7px;
         }
         .key {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           min-width: 0;
           min-height: 44px;
           border: 0;
@@ -362,6 +390,26 @@ export function VirtualKeypad({
         .action {
           background: ${theme === "dark" ? "#414e46" : "#d7e1db"};
           font-size: 14px;
+        }
+        .selection-count {
+          min-width: 48px;
+          white-space: nowrap;
+          font-size: 11px;
+        }
+        .selection-actions {
+          display: flex;
+          flex: 1;
+          gap: 5px;
+        }
+        .selection-actions .key {
+          font-size: 12px;
+          box-shadow: none;
+          white-space: nowrap;
+        }
+        .feedback {
+          margin: 0 6px 6px;
+          font-size: 12px;
+          line-height: 1.5;
         }
         .key[aria-pressed="true"]:not(.language) {
           background: #246447;
@@ -415,31 +463,63 @@ export function VirtualKeypad({
     >
       <section className="keyboard" role="group" aria-label="가상 키보드">
         <div className="toolbar">
-          <span>
-            {selectionMode
-              ? "텍스트 편집"
-              : symbolsMode && supportsSymbols
-                ? "숫자 · 기호"
-                : activeInputPolicy.mode === "number"
-                  ? "숫자"
-                  : activeInputPolicy.mode === "tel"
-                    ? "전화번호"
-                    : hangulMode
-                      ? "한국어 · 두벌식"
-                      : "English"}
-            {shiftLocked ? " · Shift 고정" : ""}
-          </span>
-          {supportsSymbols && !selectionMode && (
-            <button
-              type="button"
-              className="close"
-              aria-label="숫자·기호 전환"
-              aria-pressed={symbolsMode}
-              {...symbolsPress}
-            >
-              {symbolsMode ? "가 / ABC" : "123 / #+="}
-            </button>
+          {editingStatus.selectionLength > 0 && !selectionMode ? (
+            <>
+              <span
+                className="selection-count"
+                title={editingStatus.message || undefined}
+              >
+                {editingStatus.message === "복사했어요"
+                  ? "복사했어요"
+                  : `${editingStatus.selectionLength}자 선택`}
+              </span>
+              <div
+                className="selection-actions"
+                role="group"
+                aria-label="선택한 텍스트 편집"
+              >
+                {["Copy", "Cut", "SelectAll"].map((value) => (
+                  <KeyButton
+                    key={value}
+                    cell={{ value, type: "action" }}
+                    value={value}
+                    label={labels[value]}
+                    dispatch={() => dispatch({ value, type: "action" })}
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+            <span>
+              {selectionMode
+                ? editingStatus.message === "복사했어요"
+                  ? "복사했어요"
+                  : "텍스트 편집"
+                : symbolsMode && supportsSymbols
+                  ? "숫자 · 기호"
+                  : activeInputPolicy.mode === "number"
+                    ? "숫자"
+                    : activeInputPolicy.mode === "tel"
+                      ? "전화번호"
+                      : hangulMode
+                        ? "한국어 · 두벌식"
+                        : "English"}
+              {shiftLocked ? " · Shift 고정" : ""}
+            </span>
           )}
+          {supportsSymbols &&
+            !selectionMode &&
+            !editingStatus.selectionLength && (
+              <button
+                type="button"
+                className="close"
+                aria-label="숫자·기호 전환"
+                aria-pressed={symbolsMode}
+                {...symbolsPress}
+              >
+                {symbolsMode ? "가 / ABC" : "123 / #+="}
+              </button>
+            )}
           <button
             type="button"
             className="close"
@@ -449,6 +529,9 @@ export function VirtualKeypad({
             닫기 ↓
           </button>
         </div>
+        {editingStatus.message && editingStatus.message !== "복사했어요" && (
+          <p className="feedback">{editingStatus.message}</p>
+        )}
         {displayedLayout.map((row, rowIndex) => (
           <div className="row" key={rowIndex}>
             {row.map((cell, index) => {
@@ -476,6 +559,9 @@ export function VirtualKeypad({
                   active={active}
                   disabled={
                     (cell.value === "HangulMode" && forced) ||
+                    (["Copy", "Cut"].includes(value) &&
+                      !editingStatus.selectionLength) ||
+                    (value === "SelectAll" && !editingStatus.hasValue) ||
                     ((cell.type !== "action" || value === " ") &&
                       !activeInputPolicy.filterKey(value))
                   }
