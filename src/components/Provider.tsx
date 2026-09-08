@@ -9,7 +9,7 @@ import {
 import { createPortal } from "react-dom";
 import { VirtualKeypad } from "./Keypad.js";
 import { useStorage } from "../hooks/useStorage.js";
-import { VirtualInputContext } from "./Context.js";
+import { VirtualInputContext, type InputEditingStatus } from "./Context.js";
 import type { VirtualInputHandle } from "./Input.js";
 import qwerty from "../assets/qwerty.json";
 import selectionLayout from "../assets/selectionModeLayout.json";
@@ -49,6 +49,11 @@ export function VirtualInputProvider({
   const [shiftState, setShiftState] = useState(0);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectionAdjusting, setSelectionAdjusting] = useState(false);
+  const [editingStatus, setEditingStatus] = useState<InputEditingStatus>({
+    selectionLength: 0,
+    hasValue: false,
+    message: "",
+  });
   const [preferredHangul, setPreferredHangul] = useStorage(
     "virtual-keyboard-hangul-mode",
     defaultHangulMode,
@@ -203,6 +208,8 @@ export function VirtualInputProvider({
         exitSelectionMode,
         toggleSelectionAdjust,
         activeInputPolicy,
+        editingStatus,
+        setEditingStatus,
       }}
     >
       {children}

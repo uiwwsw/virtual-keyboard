@@ -3,6 +3,12 @@ import type { VirtualInputHandle } from "./Input.js";
 import type { InputPolicy } from "../types/inputPolicy.js";
 import type { KeypadLayout } from "../types/keyboard.js";
 
+export interface InputEditingStatus {
+  selectionLength: number;
+  hasValue: boolean;
+  message: string;
+}
+
 interface VirtualInputContextValue {
   inputRef: RefObject<VirtualInputHandle | null>;
   onFocus: (id: string, target: HTMLElement, policy: InputPolicy) => void;
@@ -22,6 +28,8 @@ interface VirtualInputContextValue {
   toggleSelectionAdjust: () => void;
   toggleKorean: () => void;
   activeInputPolicy: Required<InputPolicy>;
+  editingStatus: InputEditingStatus;
+  setEditingStatus: (status: InputEditingStatus) => void;
 }
 export const VirtualInputContext =
   createContext<VirtualInputContextValue | null>(null);

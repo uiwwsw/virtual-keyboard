@@ -204,6 +204,63 @@ describe("VirtualInput integration", () => {
 });
 
 describe("public control and history", () => {
+  it("keeps read-only text natively selectable and copyable without a keypad", async () => {
+    const { createRef } = await import("react");
+    const ref = createRef<import("./Input.js").VirtualInputHandle>();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    render(
+      <VirtualInputProvider keyboardVisibility="always">
+        <VirtualInput ref={ref} readOnly defaultValue="한글 복사" />
+      </VirtualInputProvider>,
+    );
+    act(() => {
+      ref.current!.focus();
+      ref.current!.setSelectionRange(3, 5);
+    });
+    expect(document.getSelection()?.toString()).toBe("복사");
+    await act(async () => ref.current!.copySelection());
+    expect(writeText).toHaveBeenCalledWith("복사");
+    expect(ref.current!.getValue()).toBe("한글 복사");
+    expect(document.querySelector("virtual-keypad")).toBeNull();
+  });
+  it("does not cut a newer selection when asynchronous clipboard writing finishes", async () => {
+    const { createRef } = await import("react");
+    const ref = createRef<import("./Input.js").VirtualInputHandle>();
+    let copied!: () => void;
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: () =>
+          new Promise<void>((resolve) => {
+            copied = resolve;
+          }),
+      },
+    });
+    render(
+      <VirtualInputProvider>
+        <VirtualInput ref={ref} defaultValue="hello world" />
+      </VirtualInputProvider>,
+    );
+    act(() => {
+      ref.current!.focus();
+      ref.current!.setSelectionRange(6, 11);
+    });
+    let operation!: Promise<void>;
+    act(() => {
+      operation = ref.current!.cutSelection();
+    });
+    act(() => ref.current!.setSelectionRange(0, 5));
+    await act(async () => {
+      copied();
+      await operation;
+    });
+    expect(ref.current!.getValue()).toBe("hello world");
+    expect(document.getSelection()?.toString()).toBe("hello");
+  });
   it("exposes focus, selection, value and undo/redo through a ref", async () => {
     const { createRef } = await import("react");
     const ref = createRef<import("./Input.js").VirtualInputHandle>();
