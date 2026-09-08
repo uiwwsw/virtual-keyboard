@@ -49,11 +49,20 @@ export function VirtualInputProvider({
   const [shiftState, setShiftState] = useState(0);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectionAdjusting, setSelectionAdjusting] = useState(false);
-  const [editingStatus, setEditingStatus] = useState<InputEditingStatus>({
+  const [editingStatus, updateEditingStatus] = useState<InputEditingStatus>({
     selectionLength: 0,
     hasValue: false,
     message: "",
   });
+  const setEditingStatus = useCallback((next: InputEditingStatus) => {
+    updateEditingStatus((previous) =>
+      previous.selectionLength === next.selectionLength &&
+      previous.hasValue === next.hasValue &&
+      previous.message === next.message
+        ? previous
+        : next,
+    );
+  }, []);
   const [preferredHangul, setPreferredHangul] = useStorage(
     "virtual-keyboard-hangul-mode",
     defaultHangulMode,
@@ -124,7 +133,12 @@ export function VirtualInputProvider({
   const onBlur = useCallback(
     (event?: React.FocusEvent | boolean) => {
       if (event === true) {
+        const active = document.activeElement;
+        const blurField =
+          active instanceof HTMLElement &&
+          focusedElement.current?.contains(active);
         clearFocus();
+        if (blurField) active.blur();
         return;
       }
       const target =

@@ -99,54 +99,58 @@ test("repeat deletion stops when the captured pointer moves off the key", async 
   await expect(input).toHaveAttribute("data-value", stopped!);
 });
 
-test("long press selects a word; dragging and cancelled holds keep the caret", async ({
+test("holding and releasing never reselects or overwrites the browser caret", async ({
   page,
 }) => {
   await page.goto("/");
   const input = page.getByRole("textbox");
   await input.click();
+  await expect(input).toHaveJSProperty("tagName", "INPUT");
+  await expect(input).toHaveAttribute("inputmode", "none");
   await page.getByRole("button", { name: "한영 전환" }).click();
   await page.keyboard.type("hello world");
-  const letter = input.locator('[data-char-index="7"]');
-  const box = await letter.boundingBox();
-  const x = box!.x + box!.width / 2,
-    y = box!.y + box!.height / 2;
+  const box = (await input.boundingBox())!;
+  const x = box.x + 40,
+    y = box.y + box.height / 2;
   await page.clock.install();
+  await input.evaluate((element) =>
+    (element as HTMLInputElement).setSelectionRange(3, 3),
+  );
   await touch(input, "pointerdown", x, y);
-  await touch(input, "pointermove", x + 40, y);
-  await touch(input, "pointerup", x + 40, y);
   await page.clock.runFor(600);
+  await expect(input).toHaveJSProperty("selectionStart", 3);
+  await expect(input).toHaveJSProperty("selectionEnd", 3);
+  // The OS updates its selection while a finger is held. No application timer or
+  // pointerup handler may replace that range, including a backward selection.
+  await input.evaluate((element) =>
+    (element as HTMLInputElement).setSelectionRange(6, 11, "backward"),
+  );
+  await page.clock.runFor(600);
+  await touch(input, "pointerup", x, y);
+  await expect(input).toHaveJSProperty("selectionStart", 6);
+  await expect(input).toHaveJSProperty("selectionEnd", 11);
+  await expect(input).toHaveJSProperty("selectionDirection", "backward");
   await page.getByRole("button", { name: "x", exact: true }).click();
-  await expect(input).toHaveAttribute("data-value", "hello worldx");
-  await page.getByRole("button", { name: "지우기", exact: true }).click();
+  await expect(input).toHaveValue("hello x");
   await touch(input, "pointerdown", x, y);
   await touch(input, "pointercancel", x, y);
   await page.clock.runFor(600);
-  await expect(
-    page.getByRole("button", { name: "w", exact: true }),
-  ).toBeVisible();
-  await touch(input, "pointerdown", x, y);
-  await touch(page.locator("body"), "pointerdown", 5, 5, 42);
-  await touch(page.locator("body"), "pointerup", 5, 5, 42);
-  await page.clock.runFor(600);
-  await touch(input, "pointerup", x, y);
-  await expect(
-    page.getByRole("button", { name: "w", exact: true }),
-  ).toBeVisible();
-  await touch(input, "pointerdown", x, y);
-  await page.clock.runFor(600);
-  await expect(
-    page.getByRole("button", { name: "복사", exact: true }),
-  ).toBeVisible();
-  await expect
-    .poll(() => page.evaluate(() => window.getSelection()?.toString()))
-    .toBe("world");
-  await touch(input, "pointerup", x, y);
-  await page.getByRole("button", { name: "지우기", exact: true }).click();
-  await expect(input).toHaveAttribute("data-value", "hello ");
-  await expect(
-    page.getByRole("button", { name: "w", exact: true }),
-  ).toBeVisible();
+  await expect(input).toHaveJSProperty("selectionStart", 7);
+  await expect(input).toHaveJSProperty("selectionEnd", 7);
+});
+
+test("the full field including padding is a native touch target", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const input = page.getByRole("textbox");
+  const wrapper = input.locator("..");
+  const outer = (await wrapper.boundingBox())!;
+  const inner = (await input.boundingBox())!;
+  expect(inner.height).toBeGreaterThanOrEqual(outer.height - 2);
+  await input.click({ position: { x: 5, y: 5 } });
+  await expect(input).toBeFocused();
+  await expect(page.locator("virtual-keypad")).toBeVisible();
 });
 
 test("native touch scrolling over the input does not hijack the page", async ({

@@ -60,6 +60,8 @@ try {
     ),
   );
   assert.match(html, /role="textbox"/);
+  assert.match(html, /<input\b/);
+  assert.match(html, /inputMode="none"/);
   assert.match(html, /data-value="안녕하세요"/);
   console.log(
     `Package contains ${paths.length} files, imports successfully, and renders without browser globals.`,

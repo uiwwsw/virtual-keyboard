@@ -29,6 +29,92 @@ const keyButton = (label: string) =>
       .shadowRoot!.querySelectorAll("button"),
   ).find((button) => button.getAttribute("aria-label") === label)!;
 
+const selectedText = () => {
+  const input = screen.getByRole("textbox") as HTMLInputElement;
+  return input.value.slice(input.selectionStart!, input.selectionEnd!);
+};
+
+describe("native text field", () => {
+  it("uses a real input with native selection and suppresses the system keyboard", () => {
+    const input = setup({
+      id: "message",
+      className: "custom-field",
+      defaultValue: "hello world",
+    }) as HTMLInputElement;
+    expect(input.tagName).toBe("INPUT");
+    expect(input.inputMode).toBe("none");
+    expect(input.id).toBe("message");
+    expect(input.parentElement!.className).toBe("custom-field");
+    act(() => {
+      input.setSelectionRange(6, 11, "backward");
+      fireEvent.select(input);
+    });
+    expect(input.selectionDirection).toBe("backward");
+    fireEvent.click(keyButton("x"));
+    expect(input.value).toBe("hello x");
+    expect(input.selectionStart).toBe(7);
+  });
+  it("applies policies to browser edits and restores rejected edits with their caret", () => {
+    const input = setup({
+      mode: "number",
+      defaultValue: "12",
+      maxLength: 3,
+    }) as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { value: "1x32", selectionStart: 3, selectionEnd: 3 },
+    });
+    expect(input.value).toBe("132");
+    expect(input.selectionStart).toBe(2);
+    fireEvent.change(input, {
+      target: { value: "1342", selectionStart: 3, selectionEnd: 3 },
+    });
+    expect(input.value).toBe("132");
+    expect(input.selectionStart).toBe(2);
+    fireEvent.keyDown(input, { key: "z", ctrlKey: true });
+    expect(input.value).toBe("12");
+  });
+  it("lets a native IME finish once without intercepting composing key events", () => {
+    const changed = vi.fn();
+    const input = setup({ onValueChange: changed }) as HTMLInputElement;
+    fireEvent.compositionStart(input);
+    fireEvent.change(input, { target: { value: "ㅎ" } });
+    const key = new KeyboardEvent("keydown", {
+      key: "Backspace",
+      isComposing: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    fireEvent(input, key);
+    expect(key.defaultPrevented).toBe(false);
+    expect(input.value).toBe("ㅎ");
+    fireEvent.change(input, { target: { value: "한" } });
+    expect(changed).not.toHaveBeenCalled();
+    fireEvent.compositionEnd(input, { data: "한" });
+    expect(input.value).toBe("한");
+    expect(changed).toHaveBeenCalledExactlyOnceWith("한");
+    fireEvent.keyDown(input, { key: "z", ctrlKey: true });
+    expect(input.value).toBe("");
+  });
+  it("keeps an external reset when an old native composition ends", () => {
+    const changed = vi.fn();
+    const view = (value: string) => (
+      <VirtualInputProvider>
+        <VirtualInput value={value} onValueChange={changed} />
+      </VirtualInputProvider>
+    );
+    const { rerender } = render(view("old"));
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.compositionStart(input);
+    fireEvent.change(input, { target: { value: "oldㅎ" } });
+    rerender(view("reset"));
+    expect(input.value).toBe("reset");
+    fireEvent.compositionEnd(input, { data: "한" });
+    expect(input.value).toBe("reset");
+    expect(changed).not.toHaveBeenCalled();
+  });
+});
+
 describe("VirtualInput integration", () => {
   it("keeps rapid edits and synchronous selection in order", () => {
     const changed = vi.fn();
@@ -221,7 +307,7 @@ describe("public control and history", () => {
       ref.current!.focus();
       ref.current!.setSelectionRange(3, 5);
     });
-    expect(document.getSelection()?.toString()).toBe("복사");
+    expect(selectedText()).toBe("복사");
     await act(async () => ref.current!.copySelection());
     expect(writeText).toHaveBeenCalledWith("복사");
     expect(ref.current!.getValue()).toBe("한글 복사");
@@ -259,7 +345,7 @@ describe("public control and history", () => {
       await operation;
     });
     expect(ref.current!.getValue()).toBe("hello world");
-    expect(document.getSelection()?.toString()).toBe("hello");
+    expect(selectedText()).toBe("hello");
   });
   it("exposes focus, selection, value and undo/redo through a ref", async () => {
     const { createRef } = await import("react");
