@@ -3,9 +3,7 @@
   "runtime": "library+vercel-demo",
   "execution": "automatic",
   "requireCleanGit": true,
-  "verify": [
-    "npm run check"
-  ],
+  "verify": ["npm run check"],
   "deploy": [
     "env VERCEL_ORG_ID=team_rDak9bbSNX7P2zOvDhhnARwh VERCEL_PROJECT_ID=prj_x1OwlVs8ZCP1NZWFmRcITsqS74eY vercel deploy --prod --yes"
   ],
