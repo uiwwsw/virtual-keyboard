@@ -2,7 +2,7 @@
 
 한글 조합과 커스텀 키패드를 지원하는 React 가상 키보드입니다. 입력란은 실제 `<input inputMode="none">`을 사용해 커서·길게 누르기·선택을 브라우저에 맡기며, 화면 키패드는 Shadow DOM 안의 실제 버튼으로 렌더링됩니다.
 
-[데모](https://composed-input.vercel.app/) · [npm](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard) · [MIT License](./LICENSE)
+[데모](https://virtual-keyboard-uiwwsw.vercel.app/) · [npm](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard) · [MIT License](./LICENSE)
 
 ## Installation
 
@@ -209,6 +209,6 @@ npm의 `package-lock.json`을 의존성 기준으로 사용합니다. Vite 라�
 
 ## 데모 언어와 검색
 
-[한국어 데모](https://composed-input.vercel.app/) · [English demo](https://composed-input.vercel.app/en/) · [English README](README.en.md)
+[한국어 데모](https://virtual-keyboard-uiwwsw.vercel.app/) · [English demo](https://virtual-keyboard-uiwwsw.vercel.app/en/) · [English README](README.en.md)
 
 Virtual Keyboard(버추얼 키보드)가 제품·패키지 이름입니다. 커스텀 키패드는 지원 기능 중 하나입니다. 데모는 한·영 UI, 언어별 제목·설명·초기 HTML·canonical/hreflang·사이트맵을 제공합니다. Provider의 `locale="ko" | "en"`(기본 ko)는 키보드 버튼·접근성·클립보드 상태 안내의 표시 언어이며 입력 모드와 독립적입니다. 입력 문자를 자동 번역하지 않습니다. [SEO 기록](docs/SEO.md).
