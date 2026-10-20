@@ -212,3 +212,7 @@ npm의 `package-lock.json`을 의존성 기준으로 사용합니다. Vite 라�
 [한국어 데모](https://virtual-keyboard-uiwwsw.vercel.app/) · [English demo](https://virtual-keyboard-uiwwsw.vercel.app/en/) · [English README](README.en.md)
 
 Virtual Keyboard(버추얼 키보드)가 제품·패키지 이름입니다. 커스텀 키패드는 지원 기능 중 하나입니다. 데모는 한·영 UI, 언어별 제목·설명·초기 HTML·canonical/hreflang·사이트맵을 제공합니다. Provider의 `locale="ko" | "en"`(기본 ko)는 키보드 버튼·접근성·클립보드 상태 안내의 표시 언어이며 입력 모드와 독립적입니다. 입력 문자를 자동 번역하지 않습니다. [SEO 기록](docs/SEO.md).
+
+### Demo first paint
+
+The deployed Korean/English demo is prerendered from the actual `App` component, then hydrated in place. Keep the initial HTML and React tree identical; do not inject a separate SEO-only placeholder into `#root`. Demo UI uses locally served SUITE with a font preload; its license is in `public/fonts/LICENSE`. Library consumers still control their own page typography.
