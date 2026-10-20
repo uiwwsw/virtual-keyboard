@@ -14,3 +14,5 @@ Published Korean and English pages, sitemap and Google verification file return 
 
 Runtime source baseline: a08833e. GitHub description, homepage and relevant repository topics were updated.
 Format, lint, 85 tests, demo/library builds, SSR package import and consumer type checks passed. English UI entered the Korean syllable 한 using the on-screen keys. Native package version remains 2.2.0; the new locale option is in repository/demo source, not yet a new npm release.
+
+The final CI audit also exposed pre-existing vulnerable development-test dependencies. Vitest was moved to 5.0.5 (compatible with the existing Vite 7 / supported Node versions), and compatible transitive fixes were applied. The full check and audit passed with zero reported vulnerabilities. Built-in editing-key display labels are localized too; custom character key values stay unchanged.

@@ -126,6 +126,8 @@ function KeyButton({
           </svg>
           <span>{active ? "한" : "EN"}</span>
         </span>
+      ) : cell.type === "action" ? (
+        t(label)
       ) : (
         label
       )}
