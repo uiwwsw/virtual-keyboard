@@ -20,3 +20,5 @@ The final CI audit also exposed pre-existing vulnerable development-test depende
 ## Domain migration — 2026-10-20
 
 Public origin and package homepage moved to https://virtual-keyboard-uiwwsw.vercel.app/. Canonical, language alternatives, structured data, robots, sitemap and deployment health checks use the new origin. Naver issued new verification meta 48fc54f57a7a4a7d9a9ee979131bf3cd89f62859. Package 2.2.1 includes the current localized library source and updated README/homepage. Search-console completion is recorded after live verification. The previous Vercel hostname returned DEPLOYMENT_NOT_FOUND at migration start.
+
+Verified migration results: npm publish workflow 39380502900 succeeded and registry version 2.2.1 reports the new homepage. Vercel project domain composed-input.vercel.app is configured as a persistent 301 redirect to virtual-keyboard-uiwwsw.vercel.app; /en/ preserves its path. Google new-property ownership verified and sitemap submitted, initial fetch status is pending/error (not yet confirmed fetched). Naver verification tag is deployed; user CAPTCHA pending. MOVV deployment and all health checks passed.

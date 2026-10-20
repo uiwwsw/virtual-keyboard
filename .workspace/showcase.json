@@ -31,6 +31,6 @@
   ],
   "evidence": {
     "verifiedAt": "2026-10-20",
-    "note": "2026-10-20 새 공개 주소 HTTP200 확인. 한·영 데모 canonical·사이트맵·robots 및 npm 홈페이지 주소 이전. 2.2.1 패치 릴리스 검증 진행."
+    "note": "2026-10-20 새 공개 데모 한·영 페이지·사이트맵·robots HTTP200, 이전 호스트 경로 유지 301 확인. npm 2.2.1 발행 및 registry homepage 새 주소 확인. 로컬 format/lint/85테스트/빌드/SSR·타입 검증과 npm CI 브라우저 테스트 통과."
   }
 }
