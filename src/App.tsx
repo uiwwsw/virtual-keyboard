@@ -1,3 +1,5 @@
+import { t } from "./uiLanguage";
+import { uiLanguage } from "./uiLanguage";
 import { useState } from "react";
 import {
   VirtualInput,
@@ -17,79 +19,86 @@ const modes: {
 }[] = [
   {
     id: "text",
-    title: "자유 입력",
+    title: t("자유 입력"),
     mark: "Aa",
-    description:
+    description: t(
       "한글과 영문을 오가며 자유롭게 입력해 보세요. 한 / EN 키로 언어를 바꿀 수 있습니다.",
-    placeholder: "여기서 첫 문장을 시작해 보세요",
+    ),
+    placeholder: t("여기서 첫 문장을 시작해 보세요"),
     example: "안녕하세요, 반가워요!",
   },
   {
     id: "hangul",
-    title: "한국어",
+    title: t("한국어"),
     mark: "한",
-    description:
+    description: t(
       "두벌식 자판으로 초성부터 받침까지. 조합 중에는 자모 단위로 지워집니다.",
-    placeholder: "한글을 한 글자씩 눌러보세요",
+    ),
+    placeholder: t("한글을 한 글자씩 눌러보세요"),
     example: "매일 조금씩 더 나은 입력",
   },
   {
     id: "number",
-    title: "숫자",
+    title: t("숫자"),
     mark: "123",
-    description:
+    description: t(
       "숫자와 소수점만 허용합니다. 붙여넣은 내용에도 같은 문자 규칙이 적용됩니다.",
-    placeholder: "수량 또는 금액 입력",
+    ),
+    placeholder: t("수량 또는 금액 입력"),
     example: "12800",
   },
   {
     id: "tel",
-    title: "전화번호",
+    title: t("전화번호"),
     mark: "↗",
-    description:
+    description: t(
       "숫자와 +, *, #을 지원하는 다이얼 패드입니다. 붙여넣을 때 구분 기호를 제거합니다.",
+    ),
     placeholder: "01012345678",
     example: "01012345678",
   },
   {
     id: "alpha",
-    title: "영문",
+    title: t("영문"),
     mark: "abc",
-    description:
+    description: t(
       "영문 알파벳만 입력합니다. Shift를 두 번 누르면 대문자 입력이 고정됩니다.",
-    placeholder: "영문 이름 또는 태그",
+    ),
+    placeholder: t("영문 이름 또는 태그"),
     example: "HelloWorld",
   },
   {
     id: "alphanumeric",
-    title: "영문 + 숫자",
+    title: t("영문 + 숫자"),
     mark: "A1",
-    description:
+    description: t(
       "영문과 숫자로 구성된 코드에 사용해 보세요. 물리 키보드 입력도 지원합니다.",
+    ),
     placeholder: "WELCOME2026",
     example: "WELCOME2026",
   },
   {
     id: "custom",
-    title: "커스텀",
+    title: t("커스텀"),
     mark: "⌘",
-    description:
+    description: t(
       "한 번에 여러 글자를 입력하는 매크로 키입니다. 키에 표시할 이름과 실제 값을 따로 설정할 수 있습니다.",
-    placeholder: "빠른 문구를 선택해 보세요",
+    ),
+    placeholder: t("빠른 문구를 선택해 보세요"),
     example: "안녕하세요! 감사합니다. ",
   },
 ];
 const macroLayout: KeypadLayout = [
   [
-    { label: "인사", value: "안녕하세요! " },
-    { label: "감사", value: "감사합니다. " },
-    { label: "확인", value: "확인했습니다. " },
+    { label: t("인사"), value: "안녕하세요! " },
+    { label: t("감사"), value: "감사합니다. " },
+    { label: t("확인"), value: "확인했습니다. " },
   ],
   [
     { label: "←", value: "ArrowLeft", type: "action" },
-    { label: "공백", value: " ", type: "action" },
+    { label: t("공백"), value: " ", type: "action" },
     { label: "⌫", value: "Backspace", type: "action" },
-    { label: "완료", value: "Enter", type: "action" },
+    { label: t("완료"), value: "Enter", type: "action" },
   ],
 ];
 
@@ -103,17 +112,18 @@ function App() {
   const active = modes.find((item) => item.id === mode)!;
   const value = values[mode] ?? "";
   const installation = "npm install @uiwwsw/virtual-keyboard";
-  const code = `<VirtualInputProvider\n  keyboardVisibility="${showKeyboard ? "always" : "never"}"\n  theme="${theme}"\n>\n  <VirtualInput\n    mode="${mode}"${mode === "custom" ? "\n    layout={macroLayout}" : ""}\n    value={value}\n    onValueChange={setValue}\n    aria-label="입력 내용"\n    maxLength={48}\n  />\n</VirtualInputProvider>`;
+  const code = `<VirtualInputProvider\n  keyboardVisibility="${showKeyboard ? "always" : "never"}"\n  theme="${theme}"\n>\n  <VirtualInput\n    mode="${mode}"${mode === "custom" ? "\n    layout={macroLayout}" : ""}\n    value={value}\n    onValueChange={setValue}\n    aria-label="${uiLanguage === "en" ? "Input value" : "입력 내용"}"\n    maxLength={48}\n  />\n</VirtualInputProvider>`;
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(installation);
-      setCopyStatus("설치 명령어를 복사했습니다.");
+      setCopyStatus(t("설치 명령어를 복사했습니다."));
     } catch {
-      setCopyStatus("복사할 수 없습니다. 아래 명령어를 직접 선택해 주세요.");
+      setCopyStatus(t("복사할 수 없습니다. 아래 명령어를 직접 선택해 주세요."));
     }
   };
   const copyExample = async () => {
     const example = `"use client";
+import { uiLanguage } from "./uiLanguage";
 import { useState } from "react";
 import { VirtualInput, VirtualInputProvider${mode === "custom" ? ", type KeypadLayout" : ""} } from "@uiwwsw/virtual-keyboard";
 ${
@@ -134,26 +144,32 @@ ${code
 `;
     try {
       await navigator.clipboard.writeText(example);
-      setCodeStatus("실행 가능한 전체 예제를 복사했습니다.");
+      setCodeStatus(t("실행 가능한 전체 예제를 복사했습니다."));
     } catch {
-      setCodeStatus("복사할 수 없습니다. 코드를 직접 선택해 주세요.");
+      setCodeStatus(t("복사할 수 없습니다. 코드를 직접 선택해 주세요."));
     }
   };
   return (
     <div className="app" data-theme={theme}>
       <a href="#playground" className="skip-link">
-        키보드 체험으로 건너뛰기
+        {t("키보드 체험으로 건너뛰기")}
       </a>
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="Virtual Keyboard 홈">
+        <a className="brand" href="#top" aria-label={t("Virtual Keyboard 홈")}>
           <span className="brand-icon" aria-hidden="true">
             ▦
           </span>{" "}
           virtual<span>keyboard</span>
           <span className="version">React</span>
         </a>
-        <nav aria-label="주요 메뉴">
-          <a href="#guide">사용 방법</a>
+        <nav aria-label={t("주요 메뉴")}>
+          <a
+            href={uiLanguage === "en" ? "/" : "/en/"}
+            hrefLang={uiLanguage === "en" ? "ko" : "en"}
+          >
+            {uiLanguage === "en" ? t("한국어") : "English"}
+          </a>
+          <a href="#guide">{t("사용 방법")}</a>
           <a
             className="github-link"
             href="https://github.com/uiwwsw/virtual-keyboard"
@@ -172,17 +188,18 @@ ${code
               POSSIBILITIES.
             </p>
             <h1 id="hero-title">
-              입력의 감각까지,
+              {t("입력의 감각까지,")}
               <br />
-              <em>직접 설계하세요.</em>
+              <em>{t("직접 설계하세요.")}</em>
             </h1>
             <p className="lead">
-              한글 조합부터 나만의 키패드까지.
+              {t("한글 조합부터 나만의 키패드까지.")}
               <br />
-              웹에서 자연스럽게 이어지는 입력 경험을 만드세요.
+              {t("웹에서 자연스럽게 이어지는 입력 경험을 만드세요.")}
             </p>
             <a className="primary-link" href="#playground">
-              직접 눌러보기 <span>↓</span>
+              {t("직접 눌러보기")}
+              <span>↓</span>
             </a>
           </div>
           <div className="hero-art" aria-hidden="true">
@@ -202,19 +219,23 @@ ${code
               <span>↵</span>
             </div>
             <div className="art-bottom">
-              <span className="status-dot" /> 생각에서 글자로, 끊김 없이.
+              <span className="status-dot" />
+              {t("생각에서 글자로, 끊김 없이.")}
             </div>
           </div>
         </section>
         <div className="feature-strip">
           <span>
-            <b>한글 조합</b> 초성부터 받침까지
+            <b>{t("한글 조합")}</b>
+            {t("초성부터 받침까지")}
           </span>
           <span>
-            <b>7가지 모드</b> 입력에 맞춘 키패드
+            <b>{t("7가지 모드")}</b>
+            {t("입력에 맞춘 키패드")}
           </span>
           <span>
-            <b>React 18 · 19</b> 간결한 컴포넌트 API
+            <b>React 18 · 19</b>
+            {t("간결한 컴포넌트 API")}
           </span>
         </div>
         <section
@@ -225,29 +246,33 @@ ${code
           <div className="section-heading">
             <div>
               <p className="eyebrow">PLAYGROUND</p>
-              <h2 id="playground-title">눌러보면 알 수 있어요.</h2>
+              <h2 id="playground-title">{t("눌러보면 알 수 있어요.")}</h2>
             </div>
-            <div className="theme-switch" role="group" aria-label="테마">
+            <div className="theme-switch" role="group" aria-label={t("테마")}>
               <button
                 type="button"
                 aria-pressed={theme === "light"}
                 onClick={() => setTheme("light")}
               >
-                ☀ 라이트
+                {t("☀ 라이트")}
               </button>
               <button
                 type="button"
                 aria-pressed={theme === "dark"}
                 onClick={() => setTheme("dark")}
               >
-                ☾ 다크
+                {t("☾ 다크")}
               </button>
             </div>
           </div>
           <div className="workbench">
             <aside className="mode-rail">
               <p className="rail-label">INPUT MODES</p>
-              <div className="mode-list" role="group" aria-label="입력 모드">
+              <div
+                className="mode-list"
+                role="group"
+                aria-label={t("입력 모드")}
+              >
                 {modes.map((item) => (
                   <button
                     type="button"
@@ -263,9 +288,9 @@ ${code
                 ))}
               </div>
               <p className="rail-note">
-                필요한 문자만,
+                {t("필요한 문자만,")}
                 <br />
-                원하는 방식으로.
+                {t("원하는 방식으로.")}
               </p>
             </aside>
             <div className="preview">
@@ -273,18 +298,19 @@ ${code
                 <span>
                   <span className="status-dot" /> LIVE PREVIEW
                 </span>
-                <span>직접 입력해 보세요</span>
+                <span>{t("직접 입력해 보세요")}</span>
               </div>
               <h3>{active.title}</h3>
               <p className="mode-description" id="mode-description">
                 {active.description}
               </p>
               <VirtualInputProvider
+                locale={uiLanguage}
                 keyboardVisibility={showKeyboard ? "always" : "never"}
                 theme={theme}
               >
                 <div className="field-heading">
-                  <label id="input-label">입력 내용</label>
+                  <label id="input-label">{t("입력 내용")}</label>
                   <button
                     className="text-button"
                     type="button"
@@ -293,7 +319,7 @@ ${code
                     }
                     disabled={!value}
                   >
-                    초기화 ↺
+                    {t("초기화 ↺")}
                   </button>
                 </div>
                 <VirtualInput
@@ -311,7 +337,7 @@ ${code
                   }
                 />
                 <div className="field-meta">
-                  <span>커서 위치에 붙여넣기 · 길게 눌러 선택</span>
+                  <span>{t("커서 위치에 붙여넣기 · 길게 눌러 선택")}</span>
                   <span>{value.length} / 48</span>
                 </div>
                 <div className="result">
@@ -327,10 +353,12 @@ ${code
                         }))
                       }
                     >
-                      예시 채우기 ↗
+                      {t("예시 채우기 ↗")}
                     </button>
                   </div>
-                  <output aria-label="현재 값">{JSON.stringify(value)}</output>
+                  <output aria-label={t("현재 값")}>
+                    {JSON.stringify(value)}
+                  </output>
                 </div>
                 <label className="keyboard-toggle">
                   <input
@@ -338,7 +366,7 @@ ${code
                     checked={showKeyboard}
                     onChange={(event) => setShowKeyboard(event.target.checked)}
                   />
-                  <span>화면에 가상 키보드 표시</span>
+                  <span>{t("화면에 가상 키보드 표시")}</span>
                 </label>
               </VirtualInputProvider>
             </div>
@@ -350,52 +378,62 @@ ${code
                   type="button"
                   onClick={copyExample}
                 >
-                  예제 복사 ⧉
+                  {t("예제 복사 ⧉")}
                 </button>
               </div>
               <pre>
                 <code>{code}</code>
               </pre>
               <p role="status">
-                {codeStatus || "선택한 모드와 테마가 코드에 바로 반영됩니다."}
+                {codeStatus ||
+                  t("선택한 모드와 테마가 코드에 바로 반영됩니다.")}
               </p>
             </div>
           </div>
           <p className="playground-hint">
-            <kbd>Tab</kbd> 입력란 이동 <span>·</span> <kbd>Shift</kbd> +{" "}
-            <kbd>← →</kbd> 범위 선택 <span>·</span> <kbd>Esc</kbd> 키보드 닫기
+            <kbd>Tab</kbd>
+            {t("입력란 이동")}
+            <span>·</span> <kbd>Shift</kbd> + <kbd>← →</kbd>
+            {t("범위 선택")}
+            <span>·</span> <kbd>Esc</kbd>
+            {t("키보드 닫기")}
           </p>
         </section>
         <section id="guide" className="guide" aria-labelledby="guide-title">
           <div>
             <p className="eyebrow">READY WHEN YOU ARE</p>
             <h2 id="guide-title">
-              프로젝트에 더하는 건,
-              <br />몇 줄이면 충분해요.
+              {t("프로젝트에 더하는 건,")}
+              <br />
+              {t("몇 줄이면 충분해요.")}
             </h2>
             <p>
-              Provider로 감싸고 VirtualInput을 추가하세요.
+              {t("Provider로 감싸고 VirtualInput을 추가하세요.")}
               <br />
-              기본 스타일과 키패드를 바로 사용할 수 있습니다.
+              {t("기본 스타일과 키패드를 바로 사용할 수 있습니다.")}
             </p>
             <a
-              href="https://github.com/uiwwsw/virtual-keyboard#usage"
+              href={
+                uiLanguage === "en"
+                  ? "https://github.com/uiwwsw/virtual-keyboard/blob/main/README.en.md#usage"
+                  : "https://github.com/uiwwsw/virtual-keyboard#usage"
+              }
               target="_blank"
               rel="noreferrer"
             >
-              API 문서 살펴보기 ↗
+              {t("API 문서 살펴보기 ↗")}
             </a>
           </div>
           <div className="install-block">
             <div>
               <span>01 — INSTALL</span>
               <button type="button" onClick={copy}>
-                명령어 복사 ⧉
+                {t("명령어 복사 ⧉")}
               </button>
             </div>
             <code>{installation}</code>
             <p role="status">
-              {copyStatus || "추가 스타일시트 없이 바로 시작하세요."}
+              {copyStatus || t("추가 스타일시트 없이 바로 시작하세요.")}
             </p>
           </div>
         </section>
@@ -410,7 +448,7 @@ ${code
           target="_blank"
           rel="noreferrer"
         >
-          의견 남기기 ↗
+          {t("의견 남기기 ↗")}
         </a>
       </footer>
     </div>

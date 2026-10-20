@@ -41,7 +41,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/build-demo-seo.mjs",
     "build-package": "vite build --mode library && tsc -p tsconfig.build.json",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
@@ -89,5 +89,6 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/uiwwsw/virtual-keyboard.git"
-  }
+  },
+  "homepage": "https://composed-input.vercel.app/"
 }

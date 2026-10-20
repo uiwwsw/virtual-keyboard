@@ -1,3 +1,4 @@
+import { translate } from "../uiLanguage.js";
 import {
   useCallback,
   useEffect,
@@ -105,6 +106,8 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
       toggleKorean,
       setEditingStatus,
     } = useVirtualInputContext();
+    const { locale } = useVirtualInputContext();
+    const t = useCallback((text: string) => translate(text, locale), [locale]);
     const host = useRef<HTMLDivElement>(null);
     const editor = useRef<HTMLInputElement>(null);
     const pendingDOMSelection = useRef(false);
@@ -251,7 +254,7 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
         document.removeEventListener("selectionchange", changed);
         field?.removeEventListener("select", changed);
       };
-    }, [readNativeSelection]);
+    }, [readNativeSelection, t]);
 
     useBrowserLayoutEffect(() => {
       if (
@@ -283,8 +286,8 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
       if (pasteFeedback.current !== null) {
         setStatus(
           displayedValue === pasteFeedback.current
-            ? "붙여넣었어요"
-            : "입력값이 적용되지 않았어요",
+            ? t("붙여넣었어요")
+            : t("입력값이 적용되지 않았어요"),
         );
         pasteFeedback.current = null;
       }
@@ -325,24 +328,24 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
         if (disabled || readOnly || nativeComposing.current) return;
         readNativeSelection();
         if (!text) {
-          setStatus("붙여넣을 텍스트가 없어요");
+          setStatus(t("붙여넣을 텍스트가 없어요"));
           return;
         }
         const sanitized = policy.sanitizeValue(text).replace(/[\r\n\t]+/g, " ");
         if (!sanitized || !policy.filterKey(sanitized)) {
-          setStatus("이 입력란에 붙여넣을 수 없는 내용이에요");
+          setStatus(t("이 입력란에 붙여넣을 수 없는 내용이에요"));
           return;
         }
         const next = insertText(current.current, sanitized, false, maxLength);
         if (next === current.current) {
-          setStatus("입력 길이 제한을 초과했어요");
+          setStatus(t("입력 길이 제한을 초과했어요"));
           return;
         }
         pasteFeedback.current = next.value;
         commit(next);
         editor.current?.focus({ preventScroll: true });
       },
-      [disabled, readOnly, policy, maxLength, readNativeSelection, commit],
+      [disabled, readOnly, policy, maxLength, readNativeSelection, commit, t],
     );
 
     const undo = useCallback(() => {
@@ -456,12 +459,14 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
         const error = cause instanceof Error ? cause : new Error(String(cause));
         if (mounted.current) {
           setStatus(
-            "클립보드에 접근할 수 없습니다. 입력란을 길게 눌러 기본 편집 메뉴를 사용해 주세요.",
+            t(
+              "클립보드에 접근할 수 없습니다. 입력란을 길게 눌러 기본 편집 메뉴를 사용해 주세요.",
+            ),
           );
           onClipboardError?.(error);
         }
       },
-      [onClipboardError],
+      [onClipboardError, t],
     );
     const copySelection = useCallback(async () => {
       readNativeSelection();
@@ -504,8 +509,8 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
             previousFocus.focus({ preventScroll: true });
         }
       }
-      if (mounted.current) setStatus("복사했어요");
-    }, [readNativeSelection]);
+      if (mounted.current) setStatus(t("복사했어요"));
+    }, [readNativeSelection, t]);
     const cutSelection = useCallback(async () => {
       if (disabled || readOnly) return;
       readNativeSelection();
@@ -557,7 +562,9 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
           editor.current?.focus({ preventScroll: true });
           reportError(error);
           setStatus(
-            "클립보드를 읽을 수 없어요. 입력란을 길게 눌러 ‘붙여넣기’를 선택해 주세요.",
+            t(
+              "클립보드를 읽을 수 없어요. 입력란을 길게 눌러 ‘붙여넣기’를 선택해 주세요.",
+            ),
           );
         }
       } finally {
@@ -571,6 +578,7 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
       insertPastedText,
       readNativeSelection,
       reportError,
+      t,
       cancelPaste,
     ]);
     const handle = useMemo<VirtualInputHandle>(
@@ -679,7 +687,7 @@ export const VirtualInput = forwardRef<VirtualInputHandle, VirtualInputProps>(
         current.current.value.slice(start, end),
       );
       if (cut) commit(deleteText(current.current, -1));
-      else setStatus("복사했어요");
+      else setStatus(t("복사했어요"));
     };
     const acceptNativeValue = (field: HTMLInputElement) => {
       if (disabled || readOnly) return;

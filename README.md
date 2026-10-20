@@ -206,3 +206,9 @@ npm의 `package-lock.json`을 의존성 기준으로 사용합니다. Vite 라�
 ## Migration from 2.0
 
 2.1부터 입력란 내부는 실제 input입니다. 공개 값·ref API와 컨테이너의 `className`/`style`은 유지합니다. 내부 문자 span이나 가짜 커서를 선택하던 CSS·DOM 코드는 제거하세요. 선택 범위를 직접 읽을 때는 input의 `selectionStart`, `selectionEnd`, `selectionDirection`을 사용합니다. `id`와 접근성 속성은 실제 input으로 이동하므로 `label htmlFor`를 연결할 수 있습니다.
+
+## 데모 언어와 검색
+
+[한국어 데모](https://composed-input.vercel.app/) · [English demo](https://composed-input.vercel.app/en/) · [English README](README.en.md)
+
+Virtual Keyboard(버추얼 키보드)가 제품·패키지 이름입니다. 커스텀 키패드는 지원 기능 중 하나입니다. 데모는 한·영 UI, 언어별 제목·설명·초기 HTML·canonical/hreflang·사이트맵을 제공합니다. Provider의 `locale="ko" | "en"`(기본 ko)는 키보드 버튼·접근성·클립보드 상태 안내의 표시 언어이며 입력 모드와 독립적입니다. 입력 문자를 자동 번역하지 않습니다. [SEO 기록](docs/SEO.md).

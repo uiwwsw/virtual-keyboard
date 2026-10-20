@@ -26,6 +26,8 @@ import { isMobileAgent } from "../utils/isMobileAgent.js";
 const GLOBAL_FOCUS_EVENT = "virtual-keyboard:focus-change";
 export interface VirtualInputProviderProps {
   children: ReactNode;
+  /** Language for keyboard labels and accessibility/status messages. */
+  locale?: "ko" | "en";
   layout?: KeypadLayout;
   defaultHangulMode?: boolean;
   theme?: "light" | "dark";
@@ -34,6 +36,7 @@ export interface VirtualInputProviderProps {
 }
 export function VirtualInputProvider({
   children,
+  locale = "ko",
   layout = qwerty,
   defaultHangulMode = true,
   theme,
@@ -206,6 +209,7 @@ export function VirtualInputProvider({
   return (
     <VirtualInputContext.Provider
       value={{
+        locale,
         inputRef,
         focusId,
         onFocus,

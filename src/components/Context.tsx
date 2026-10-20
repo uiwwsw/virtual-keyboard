@@ -11,6 +11,7 @@ export interface InputEditingStatus {
 }
 
 interface VirtualInputContextValue {
+  locale: "ko" | "en";
   inputRef: RefObject<VirtualInputHandle | null>;
   onFocus: (id: string, target: HTMLElement, policy: InputPolicy) => void;
   onBlur: (event?: React.FocusEvent | boolean) => void;

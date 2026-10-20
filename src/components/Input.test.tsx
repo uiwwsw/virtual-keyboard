@@ -388,3 +388,25 @@ describe("public control and history", () => {
     expect(changed).not.toHaveBeenCalled();
   });
 });
+
+describe("keyboard label localization", () => {
+  it("uses English controls while preserving Korean composition mode", () => {
+    render(
+      <VirtualInputProvider locale="en" keyboardVisibility="always">
+        <VirtualInput aria-label="Message" mode="hangul" />
+      </VirtualInputProvider>,
+    );
+    const input = screen.getByRole("textbox");
+    fireEvent.focus(input);
+    const keypad = document.querySelector("virtual-keypad")!.shadowRoot!;
+    expect(
+      keypad.querySelector('[aria-label="Virtual keyboard"]'),
+    ).not.toBeNull();
+    expect(keypad.querySelector('[aria-label="Backspace"]')).not.toBeNull();
+    expect(keypad.querySelector('[aria-label="키보드 닫기"]')).toBeNull();
+    fireEvent.click(keyButton("ㅎ"));
+    fireEvent.click(keyButton("ㅏ"));
+    fireEvent.click(keyButton("ㄴ"));
+    expect(valueOf(input)).toBe("한");
+  });
+});

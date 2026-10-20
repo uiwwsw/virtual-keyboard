@@ -1,3 +1,4 @@
+import { translate } from "../uiLanguage.js";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import symbols from "../assets/symbols.json";
 import { createPortal } from "react-dom";
@@ -47,6 +48,8 @@ function KeyButton({
   busy?: boolean;
   dispatch: () => void;
 }) {
+  const { locale } = useVirtualInputContext();
+  const t = (text: string) => translate(text, locale);
   const press = usePress(dispatch, {
     disabled,
     repeat: ["Backspace", "Delete", "ArrowLeft", "ArrowRight"].includes(value),
@@ -60,7 +63,7 @@ function KeyButton({
     <button
       type="button"
       disabled={disabled}
-      aria-label={labels[value] ?? label}
+      aria-label={t(labels[value] ?? label)}
       aria-pressed={active}
       aria-busy={busy || undefined}
       className={
@@ -73,15 +76,15 @@ function KeyButton({
       title={
         languageKey
           ? disabled
-            ? `${active ? "한국어" : "영어"} 전용`
-            : `${active ? "영어" : "한국어"}로 전환`
+            ? `${active ? t("한국어") : "영어"} 전용`
+            : `${active ? "영어" : t("한국어")}로 전환`
           : undefined
       }
       style={{ flex: cell.width && cell.width > 0 ? cell.width : 1 }}
       {...press}
     >
       {busy ? (
-        "읽는 중…"
+        t("읽는 중…")
       ) : deleteIcon ? (
         <svg
           data-key-icon={value === "Backspace" ? "backspace" : "delete"}
@@ -136,6 +139,7 @@ export function VirtualKeypad({
   onHeightChange: (height: number) => void;
 }) {
   const context = useVirtualInputContext();
+  const t = (text: string) => translate(text, context.locale);
   const {
     inputRef,
     hangulMode,
@@ -293,7 +297,7 @@ export function VirtualKeypad({
     }
   };
   const forced = getForcedHangulMode(activeInputPolicy.mode) !== null;
-  const successMessage = ["복사했어요", "붙여넣었어요"].includes(
+  const successMessage = [t("복사했어요"), t("붙여넣었어요")].includes(
     editingStatus.message,
   );
   const style: CSSProperties = {
@@ -486,7 +490,7 @@ export function VirtualKeypad({
         }
       `}
     >
-      <section className="keyboard" role="group" aria-label="가상 키보드">
+      <section className="keyboard" role="group" aria-label={t("가상 키보드")}>
         <div className="toolbar">
           {editingStatus.selectionLength > 0 && !selectionMode ? (
             <>
@@ -496,19 +500,21 @@ export function VirtualKeypad({
               >
                 {successMessage
                   ? editingStatus.message
-                  : `${editingStatus.selectionLength}자 선택`}
+                  : context.locale === "en"
+                    ? `${editingStatus.selectionLength} characters selected`
+                    : `${editingStatus.selectionLength}자 선택`}
               </span>
               <div
                 className="selection-actions"
                 role="group"
-                aria-label="선택한 텍스트 편집"
+                aria-label={t("선택한 텍스트 편집")}
               >
                 {["Copy", "Cut", "Paste"].map((value) => (
                   <KeyButton
                     key={value}
                     cell={{ value, type: "action" }}
                     value={value}
-                    label={labels[value]}
+                    label={t(labels[value])}
                     disabled={value === "Paste" && editingStatus.pasting}
                     busy={value === "Paste" && editingStatus.pasting}
                     dispatch={() => dispatch({ value, type: "action" })}
@@ -521,17 +527,17 @@ export function VirtualKeypad({
               {successMessage
                 ? editingStatus.message
                 : selectionMode
-                  ? "텍스트 편집"
+                  ? t("텍스트 편집")
                   : symbolsMode && supportsSymbols
-                    ? "숫자 · 기호"
+                    ? t("숫자 · 기호")
                     : activeInputPolicy.mode === "number"
-                      ? "숫자"
+                      ? t("숫자")
                       : activeInputPolicy.mode === "tel"
-                        ? "전화번호"
+                        ? t("전화번호")
                         : hangulMode
-                          ? "한국어 · 두벌식"
+                          ? t("한국어 · 두벌식")
                           : "English"}
-              {shiftLocked ? " · Shift 고정" : ""}
+              {shiftLocked ? t(" · Shift 고정") : ""}
             </span>
           )}
           {!selectionMode && !editingStatus.selectionLength && (
@@ -539,7 +545,7 @@ export function VirtualKeypad({
               <KeyButton
                 cell={{ value: "Paste", type: "action" }}
                 value="Paste"
-                label="붙여넣기"
+                label={t("붙여넣기")}
                 disabled={editingStatus.pasting}
                 busy={editingStatus.pasting}
                 dispatch={() => dispatch({ value: "Paste", type: "action" })}
@@ -552,7 +558,7 @@ export function VirtualKeypad({
               <button
                 type="button"
                 className="close"
-                aria-label="숫자·기호 전환"
+                aria-label={t("숫자·기호 전환")}
                 aria-pressed={symbolsMode}
                 {...symbolsPress}
               >
@@ -563,9 +569,9 @@ export function VirtualKeypad({
             type="button"
             className="close"
             {...closePress}
-            aria-label="키보드 닫기"
+            aria-label={t("키보드 닫기")}
           >
-            닫기 ↓
+            {t("닫기 ↓")}
           </button>
         </div>
         {editingStatus.message && !successMessage && (
