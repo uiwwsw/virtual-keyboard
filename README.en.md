@@ -1,6 +1,6 @@
 # React Virtual Keyboard
 
-[한국어](README.md) · [Live demo](https://composed-input.vercel.app/en/) · [npm](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard)
+[한국어](README.md) · [Live demo](https://virtual-keyboard-uiwwsw.vercel.app/en/) · [npm](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard)
 
 An accessible React on-screen keyboard with Korean Hangul composition, English input, numeric and phone keypads, custom layouts and input policies. Virtual Keyboard is the product name; custom keypads are one feature. Supports React 18 and 19.
 
