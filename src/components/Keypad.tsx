@@ -76,8 +76,12 @@ function KeyButton({
       title={
         languageKey
           ? disabled
-            ? `${active ? t("한국어") : "영어"} 전용`
-            : `${active ? "영어" : t("한국어")}로 전환`
+            ? locale === "en"
+              ? `${active ? "Korean" : "English"} only`
+              : `${active ? "한국어" : "영어"} 전용`
+            : locale === "en"
+              ? `Switch to ${active ? "English" : "Korean"}`
+              : `${active ? "영어" : "한국어"}로 전환`
           : undefined
       }
       style={{ flex: cell.width && cell.width > 0 ? cell.width : 1 }}

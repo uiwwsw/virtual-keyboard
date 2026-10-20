@@ -85,14 +85,24 @@ const modes: {
       "한 번에 여러 글자를 입력하는 매크로 키입니다. 키에 표시할 이름과 실제 값을 따로 설정할 수 있습니다.",
     ),
     placeholder: t("빠른 문구를 선택해 보세요"),
-    example: "안녕하세요! 감사합니다. ",
+    example:
+      uiLanguage === "en" ? "Hello! Thank you. " : "안녕하세요! 감사합니다. ",
   },
 ];
 const macroLayout: KeypadLayout = [
   [
-    { label: t("인사"), value: "안녕하세요! " },
-    { label: t("감사"), value: "감사합니다. " },
-    { label: t("확인"), value: "확인했습니다. " },
+    {
+      label: t("인사"),
+      value: uiLanguage === "en" ? "Hello! " : "안녕하세요! ",
+    },
+    {
+      label: t("감사"),
+      value: uiLanguage === "en" ? "Thank you. " : "감사합니다. ",
+    },
+    {
+      label: t("확인"),
+      value: uiLanguage === "en" ? "Confirmed. " : "확인했습니다. ",
+    },
   ],
   [
     { label: "←", value: "ArrowLeft", type: "action" },
@@ -169,7 +179,9 @@ ${code
           >
             {uiLanguage === "en" ? t("한국어") : "English"}
           </a>
-          <a href="#guide">{t("사용 방법")}</a>
+          <a className="guide-link" href="#guide">
+            {t("사용 방법")}
+          </a>
           <a
             className="github-link"
             href="https://github.com/uiwwsw/virtual-keyboard"

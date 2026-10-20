@@ -701,7 +701,7 @@ footer .brand {
     gap: 14px;
     font-size: 11px;
   }
-  .site-header nav a:first-child,
+  .site-header nav .guide-link,
   .version {
     display: none;
   }

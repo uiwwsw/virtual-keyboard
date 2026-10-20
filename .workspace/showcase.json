@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "id": "virtual-keyboard",
+  "visibility": "public",
+  "name": "버추얼 키보드",
+  "en": "Virtual Keyboard",
+  "category": "개발 도구",
+  "symbol": "⌨",
+  "color": "#b6cddd",
+  "summary": "한글 조합부터 맞춤 키패드까지.",
+  "description": "React에서 한글 조합·영문·숫자·전화번호·커스텀 키패드를 구현하는 가상 키보드 라이브러리입니다. 한국어·영어 데모에서 7가지 입력 모드와 조작 안내를 체험할 수 있습니다.",
+  "features": [
+    "한글 조합과 7가지 입력 모드",
+    "커스텀 키패드·매크로",
+    "한국어·영어 데모·접근성 안내"
+  ],
+  "status": "live",
+  "links": [
+    {
+      "platform": "web",
+      "url": "https://composed-input.vercel.app/"
+    },
+    {
+      "platform": "source",
+      "url": "https://github.com/uiwwsw/virtual-keyboard"
+    },
+    {
+      "platform": "package",
+      "url": "https://www.npmjs.com/package/@uiwwsw/virtual-keyboard"
+    }
+  ],
+  "evidence": {
+    "verifiedAt": "2026-10-20",
+    "note": "main 030df5d 데모 배포 및 한·영 HTML·사이트맵 HTTP200. format/lint/85테스트/데모·라이브러리빌드/SSR패키지·소비자타입검증 통과. 영어키보드 한글조합 테스트 포함. locale prop은 소스·데모에 반영했으며 npm 신규 버전 배포는 별도."
+  }
+}

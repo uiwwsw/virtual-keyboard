@@ -403,6 +403,11 @@ describe("keyboard label localization", () => {
       keypad.querySelector('[aria-label="Virtual keyboard"]'),
     ).not.toBeNull();
     expect(keypad.querySelector('[aria-label="Backspace"]')).not.toBeNull();
+    expect(
+      keypad
+        .querySelector('[aria-label="Switch Korean / English"]')
+        ?.getAttribute("title"),
+    ).toBe("Korean only");
     expect(keypad.querySelector('[aria-label="키보드 닫기"]')).toBeNull();
     fireEvent.click(keyButton("ㅎ"));
     fireEvent.click(keyButton("ㅏ"));
