@@ -9,8 +9,7 @@
       "source": "/:path*",
       "has": [
         {
-          "type": "header",
-          "key": "host",
+          "type": "host",
           "value": "composed-input.vercel.app"
         }
       ],
