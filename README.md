@@ -219,4 +219,4 @@ The deployed Korean/English demo is prerendered from the actual `App` component,
 
 ### Demo address
 
-The demo is hosted at `https://virtual-keyboard-uiwwsw.vercel.app/`. The retired `composed-input.vercel.app` domain has been removed; do not recreate its alias or redirect. Canonical URLs and the sitemap use the current origin.
+The demo is hosted at `https://virtual-keyboard-uiwwsw.vercel.app/`. The legacy `composed-input.vercel.app` domain is retained only as a Vercel project-domain 301 redirect to the current origin, preserving paths. Do not serve a separate demo on it. Canonical URLs and the sitemap use the current origin.
