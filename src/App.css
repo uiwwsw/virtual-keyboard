@@ -696,10 +696,19 @@ footer .brand {
   }
   .site-header {
     min-height: 76px;
+    flex-wrap: wrap;
+    padding: 14px 0;
+    row-gap: 8px;
   }
   .site-header nav {
+    margin-left: auto;
     gap: 14px;
     font-size: 11px;
+  }
+  .site-header nav a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
   .site-header nav .guide-link,
   .version {
