@@ -1,5 +1,5 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
-const origin = "https://composed-input.vercel.app",
+const origin = "https://virtual-keyboard-uiwwsw.vercel.app",
   template = await readFile("demo-dist/index.html", "utf8");
 const esc = (v) =>
   String(v)

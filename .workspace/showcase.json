@@ -18,7 +18,7 @@
   "links": [
     {
       "platform": "web",
-      "url": "https://composed-input.vercel.app/"
+      "url": "https://virtual-keyboard-uiwwsw.vercel.app/"
     },
     {
       "platform": "source",
@@ -31,6 +31,6 @@
   ],
   "evidence": {
     "verifiedAt": "2026-10-20",
-    "note": "main 030df5d 데모 배포 및 한·영 HTML·사이트맵 HTTP200. format/lint/85테스트/데모·라이브러리빌드/SSR패키지·소비자타입검증 통과. 영어키보드 한글조합 테스트 포함. locale prop은 소스·데모에 반영했으며 npm 신규 버전 배포는 별도."
+    "note": "2026-10-20 새 공개 주소 HTTP200 확인. 한·영 데모 canonical·사이트맵·robots 및 npm 홈페이지 주소 이전. 2.2.1 패치 릴리스 검증 진행."
   }
 }

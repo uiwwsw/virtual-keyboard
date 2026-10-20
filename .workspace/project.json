@@ -8,9 +8,9 @@
     "env VERCEL_ORG_ID=team_rDak9bbSNX7P2zOvDhhnARwh VERCEL_PROJECT_ID=prj_x1OwlVs8ZCP1NZWFmRcITsqS74eY vercel deploy --prod --yes"
   ],
   "healthchecks": [
-    "https://composed-input.vercel.app/",
-    "https://composed-input.vercel.app/en/",
-    "https://composed-input.vercel.app/sitemap.xml",
-    "https://composed-input.vercel.app/robots.txt"
+    "https://virtual-keyboard-uiwwsw.vercel.app/",
+    "https://virtual-keyboard-uiwwsw.vercel.app/en/",
+    "https://virtual-keyboard-uiwwsw.vercel.app/sitemap.xml",
+    "https://virtual-keyboard-uiwwsw.vercel.app/robots.txt"
   ]
 }

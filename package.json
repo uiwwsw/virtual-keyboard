@@ -1,6 +1,6 @@
 {
   "name": "@uiwwsw/virtual-keyboard",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "type": "module",
   "types": "dist/types/index.d.ts",
   "main": "dist/index.js",
@@ -90,5 +90,5 @@
     "type": "git",
     "url": "git+https://github.com/uiwwsw/virtual-keyboard.git"
   },
-  "homepage": "https://composed-input.vercel.app/"
+  "homepage": "https://virtual-keyboard-uiwwsw.vercel.app/"
 }
