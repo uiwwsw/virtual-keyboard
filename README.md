@@ -217,6 +217,6 @@ Virtual Keyboard(버추얼 키보드)가 제품·패키지 이름입니다. 커�
 
 The deployed Korean/English demo is prerendered from the actual `App` component, then hydrated in place. Keep the initial HTML and React tree identical; do not inject a separate SEO-only placeholder into `#root`. Demo UI uses locally served SUITE with a font preload; its license is in `public/fonts/LICENSE`. Library consumers still control their own page typography.
 
-### Legacy demo address
+### Demo address
 
-`https://composed-input.vercel.app/` is retained as a verified Vercel project domain with a 301 redirect to `https://virtual-keyboard-uiwwsw.vercel.app/`. The domain redirect preserves paths, including `/en/`; keep this project-domain setting when changing deployments. `vercel.json` also declares the legacy host redirect. Canonical URLs and the sitemap use the new origin.
+The demo is hosted at `https://virtual-keyboard-uiwwsw.vercel.app/`. The retired `composed-input.vercel.app` domain has been removed; do not recreate its alias or redirect. Canonical URLs and the sitemap use the current origin.

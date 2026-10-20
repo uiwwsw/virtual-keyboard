@@ -3,18 +3,5 @@
   "outputDirectory": "demo-dist",
   "framework": "vite",
   "cleanUrls": true,
-  "trailingSlash": true,
-  "redirects": [
-    {
-      "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "composed-input.vercel.app"
-        }
-      ],
-      "destination": "https://virtual-keyboard-uiwwsw.vercel.app/:path*",
-      "statusCode": 301
-    }
-  ]
+  "trailingSlash": true
 }
