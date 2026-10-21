@@ -1,14 +1,8 @@
 # Virtual Keyboard
 
-[![AI-friendly: docs and types](https://img.shields.io/badge/AI--friendly-docs_%26_types-294f37)](docs/AI_INTEGRATION.md)
-
 한글 조합과 커스텀 키패드를 지원하는 React 가상 키보드입니다. 입력란은 실제 `<input inputMode="none">`을 사용해 커서·길게 누르기·선택을 브라우저에 맡기며, 화면 키패드는 Shadow DOM 안의 실제 버튼으로 렌더링됩니다.
 
 [데모](https://virtual-keyboard-uiwwsw.vercel.app/) · [npm](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard) · [MIT License](./LICENSE)
-
-## AI-friendly integration
-
-타입으로 확인할 수 있는 API, 실행 예제, 동작 제약을 제공해 개발자와 AI 코딩 도구가 실제 계약을 읽고 연동할 수 있도록 합니다. [AI 연동 가이드](docs/AI_INTEGRATION.md)에서 진입점과 주의사항을 확인하세요. 배지는 프로젝트 자체 설명이며 외부 인증을 뜻하지 않습니다.
 
 ## Installation
 
