@@ -1,8 +1,14 @@
 # React Virtual Keyboard
 
+[![AI-friendly: docs and types](https://img.shields.io/badge/AI--friendly-docs_%26_types-294f37)](docs/AI_INTEGRATION.md)
+
 [한국어](README.md) · [Live demo](https://virtual-keyboard-uiwwsw.vercel.app/en/) · [npm](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard)
 
 An accessible React on-screen keyboard with Korean Hangul composition, English input, numeric and phone keypads, custom layouts and input policies. Virtual Keyboard is the product name; custom keypads are one feature. Supports React 18 and 19.
+
+## AI-friendly integration
+
+Typed APIs, runnable examples, and explicit behavior boundaries help developers and coding assistants integrate from verified interfaces. See the [AI integration guide](docs/AI_INTEGRATION.md) for entry points and constraints. The badge describes project-maintained resources, not third-party certification.
 
 ## Installation
 
