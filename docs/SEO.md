@@ -8,17 +8,9 @@ Demo UI and keyboard accessibility/status labels support Korean and English thro
 
 Run npm run check and verify both public languages and a keyboard interaction before release. Search engine registration/indexing status is tracked after deployment.
 
-## 2026-10-20 production verification
+## Domain redirects
 
-Published Korean and English pages, sitemap and Google verification file return HTTP 200. Google Search Console ownership verification and sitemap submission completed. Naver ownership verification and sitemap submission completed on 2026-10-20 after the user completed the anti-bot CAPTCHA. Site-specific submission status must not be described as indexing completion.
-
-Runtime source baseline: a08833e. GitHub description, homepage and relevant repository topics were updated.
-Format, lint, 85 tests, demo/library builds, SSR package import and consumer type checks passed. English UI entered the Korean syllable 한 using the on-screen keys. Native package version remains 2.2.0; the new locale option is in repository/demo source, not yet a new npm release.
-
-The final CI audit also exposed pre-existing vulnerable development-test dependencies. Vitest was moved to 5.0.5 (compatible with the existing Vite 7 / supported Node versions), and compatible transitive fixes were applied. The full check and audit passed with zero reported vulnerabilities. Built-in editing-key display labels are localized too; custom character key values stay unchanged.
-
-## Domain migration — 2026-10-20
-
-Public origin and package homepage moved to https://virtual-keyboard-uiwwsw.vercel.app/. Canonical, language alternatives, structured data, robots, sitemap and deployment health checks use the new origin. Naver issued new verification meta 48fc54f57a7a4a7d9a9ee979131bf3cd89f62859. Package 2.2.1 includes the current localized library source and updated README/homepage. Search-console completion is recorded after live verification. The previous Vercel hostname returned DEPLOYMENT_NOT_FOUND at migration start.
-
-Verified migration results: npm publish workflow 39380502900 succeeded and registry version 2.2.1 reports the new homepage. Vercel project domain composed-input.vercel.app is configured as a persistent 301 redirect to virtual-keyboard-uiwwsw.vercel.app; /en/ preserves its path. Google new-property ownership verified and sitemap submitted, initial fetch status is pending/error (not yet confirmed fetched). Naver verification tag is deployed; user CAPTCHA pending. MOVV deployment and all health checks passed.
+The previous demo domain `composed-input.vercel.app` permanently redirects to
+`virtual-keyboard-uiwwsw.vercel.app`, preserving paths such as `/en/`.
+When changing the primary origin, update canonical URLs, language alternatives,
+structured data, robots, sitemap and package homepage together.
