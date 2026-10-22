@@ -1,5 +1,10 @@
 # Virtual Keyboard
 
+[![npm version](https://img.shields.io/npm/v/%40uiwwsw%2Fvirtual-keyboard?style=flat-square)](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard)
+[![npm monthly downloads](https://img.shields.io/npm/dm/%40uiwwsw%2Fvirtual-keyboard?style=flat-square)](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard)
+[![CI on main](https://github.com/uiwwsw/virtual-keyboard/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/uiwwsw/virtual-keyboard/actions/workflows/ci.yml)
+[![MIT license](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](https://github.com/uiwwsw/virtual-keyboard/blob/main/LICENSE)
+
 한글 조합과 커스텀 키패드를 지원하는 React 가상 키보드입니다. 입력란은 실제 `<input inputMode="none">`을 사용해 커서·길게 누르기·선택을 브라우저에 맡기며, 화면 키패드는 Shadow DOM 안의 실제 버튼으로 렌더링됩니다.
 
 [데모](https://virtual-keyboard-uiwwsw.vercel.app/) · [npm](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard) · [MIT License](./LICENSE)
