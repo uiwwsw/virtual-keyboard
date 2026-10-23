@@ -1,4 +1,4 @@
-name: Public documentation review
+name: Commit hygiene
 on: [push, pull_request]
 permissions:
   contents: read
@@ -11,7 +11,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - name: Review added public content (warnings only)
+      - name: Check added public content and credentials
         env:
           REVIEW_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
           REVIEW_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}

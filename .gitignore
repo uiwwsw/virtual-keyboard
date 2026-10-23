@@ -29,3 +29,24 @@ playwright-report
 test-results
 .vercel
 .env*
+
+# Private local notes and credentials
+.local-notes/
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+!.env.*.example
+!.env.*.sample
+!.env.*.template
+
+# Machine-local assistant instructions
+AGENTS.md
+CLAUDE.md
+GEMINI.md
