@@ -49,6 +49,9 @@ for filename in config.get('packages', []):
     if not (path.parent / 'AI-TRAINING-NOTICE.md').exists():
         failures.append(filename + ': distributed notice missing')
 if '--built' in sys.argv:
+    outputs = config.get('outputs', [])
+    if outputs and not any((root / output).exists() for output in outputs):
+        failures.append('declared build output missing: build at least one configured artifact before publication')
     for output in config.get('outputs', []):
         path = root / output
         if not path.exists():

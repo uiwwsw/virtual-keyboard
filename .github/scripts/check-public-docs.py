@@ -27,7 +27,9 @@ SECRET_RULES = [
 def sensitive_file(path):
     p = PurePosixPath(path)
     name = p.name.lower()
-    return name in {"agents.md", "claude.md", "gemini.md"} or ((name == ".env" or name.startswith(".env.")) and not name.endswith((".example", ".sample", ".template"))) or p.suffix.lower() in {".p12", ".pfx", ".jks", ".keystore"}
+    if any(part.lower() in {'.private', '.secrets', '.local-notes'} for part in p.parts):
+        return True
+    return name in {"agents.md", "claude.md", "gemini.md"} or ((name == ".env" or name.startswith(".env.")) and not name.endswith((".example", ".sample", ".template"))) or p.suffix.lower() in {".p12", ".pfx", ".jks", ".keystore", ".p8", ".mobileprovision", ".provisionprofile"}
 
 
 def public_file(path):
