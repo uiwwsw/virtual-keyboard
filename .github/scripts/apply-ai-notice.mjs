@@ -5,11 +5,8 @@ import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const config = JSON.parse(await readFile(join(root, '.github/ai-notice.json'), 'utf8'));
+if (config.exempt) { console.log('Profile repository is exempt from the shared AI notice.'); process.exit(0); }
 const notice = await readFile(join(root, 'AI-TRAINING-NOTICE.md'), 'utf8');
-const short = '사전 서면 동의 없는 AI 학습·미세조정 및 학습용 데이터 수집에 반대합니다.';
-const english = 'No AI training, fine-tuning or training-data collection without prior written consent.';
-const footer = `<details data-ai-training-notice="true" class="ai-training-notice"><summary>AI 학습·수집 반대 · AI training opt-out</summary><p>${short}</p><p lang="en">${english}</p><p>기존 라이선스와 제삼자·사용자 콘텐츠의 권리는 유지됩니다. Existing licenses and third-party/user rights remain unchanged.</p><a href="./ai-training-notice.txt">전문 · Full notice</a></details>`;
-const css = '.ai-training-notice{box-sizing:border-box;max-width:72rem;margin:1rem auto;padding:.75rem 1rem;font:inherit;font-size:.875rem;line-height:1.6;overflow-wrap:anywhere}.ai-training-notice summary{cursor:pointer;min-height:2.75rem;display:list-item;align-content:center}.ai-training-notice p{margin:.5rem 0}.ai-training-notice a{color:inherit;text-decoration:underline}@media print{.ai-training-notice{display:none!important}}\n';
 const bots = ['GPTBot', 'ClaudeBot', 'Google-Extended', 'Applebot-Extended', 'CCBot'];
 const robotBlock = '\n# AI training and training-data collection opt-out\n' + bots.map(bot => `User-agent: ${bot}\nDisallow: /\n`).join('\n');
 async function exists(path) { try { await access(path); return true; } catch { return false; } }
@@ -21,15 +18,11 @@ async function walk(directory) {
     if (!entry.isFile() || !entry.name.endsWith('.html')) continue;
     let html = await readFile(file, 'utf8');
     if (!/<!doctype html|<html[\s>]/i.test(html)) continue;
-    if (!html.includes('data-ai-training-notice')) {
-      html = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, footer + '\n</body>') : html.replace(/<\/html>/i, footer + '\n</html>');
-    }
-    if (!html.includes('ai-training-notice.css')) {
-      html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, '<link rel="stylesheet" href="./ai-training-notice.css">\n</head>') : html.replace(/<html[^>]*>/i, '$&<head><link rel="stylesheet" href="./ai-training-notice.css"></head>');
-    }
+    // Remove the former shared footer when processing an older build output.
+    html = html.replace(/<details\b[^>]*data-ai-training-notice[^>]*>[\s\S]*?<\/details>/gi, '')
+      .replace(/<link\b[^>]*href=["'][^"']*ai-training-notice\.css["'][^>]*>/gi, '');
     await writeFile(file, html);
     await writeFile(join(dirname(file), 'ai-training-notice.txt'), notice);
-    await writeFile(join(dirname(file), 'ai-training-notice.css'), css);
   }
 }
 let count = 0;

@@ -12,5 +12,6 @@
   "outputs": [
     "demo-dist",
     "dist"
-  ]
+  ],
+  "uiPolicy": "source-only"
 }
