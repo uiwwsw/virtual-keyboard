@@ -76,3 +76,10 @@ const layout: KeypadLayout = [
 Use a supported Node version from package.json. Run npm ci and npm run check; the demo build is demo-dist, the library build is dist. Follow workspace SSD rules when applicable. The Korean reference README covers the full API and migration notes; its code identifiers apply in either language.
 
 MIT license. Use the GitHub issue tracker for bugs and feature requests.
+
+<!-- ai-training-notice -->
+## AI 학습·수집 반대 / AI training notice
+
+사전 서면 동의 없는 AI 학습·미세조정 및 학습용 데이터 수집에 반대합니다. No AI training, fine-tuning or training-data collection without prior written consent.
+
+[전문 / Full notice](AI-TRAINING-NOTICE.md). 기존 라이선스와 제삼자·사용자 콘텐츠의 권리는 유지됩니다. Existing licenses and third-party/user rights remain unchanged.

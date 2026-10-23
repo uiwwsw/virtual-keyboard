@@ -6,7 +6,8 @@
   "main": "dist/index.js",
   "module": "dist/index.js",
   "files": [
-    "dist"
+    "dist",
+    "AI-TRAINING-NOTICE.md"
   ],
   "license": "MIT",
   "keywords": [
@@ -41,7 +42,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/build-demo-seo.mjs",
+    "build": "tsc -b && vite build && node scripts/build-demo-seo.mjs && node .github/scripts/apply-ai-notice.mjs",
     "build-package": "vite build --mode library && tsc -p tsconfig.build.json",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
