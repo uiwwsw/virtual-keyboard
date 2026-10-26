@@ -1,0 +1,56 @@
+#movv-usage-choice {
+  position: fixed;
+  z-index: 90;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  right: 16px;
+  max-width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  font: inherit;
+  color: CanvasText;
+}
+#movv-usage-choice.usage-above-nav {
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  max-height: calc(100dvh - 112px);
+}
+#movv-usage-choice .usage-panel {
+  background: Canvas;
+  border: 1px solid #888;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 8px 32px #0003;
+}
+#movv-usage-choice p {
+  font: inherit;
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+#movv-usage-choice button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid #888;
+  border-radius: 8px;
+  background: Canvas;
+  color: CanvasText;
+  padding: 8px 12px;
+  min-height: 40px;
+}
+#movv-usage-choice .usage-allow {
+  margin-left: 8px;
+  background: #193f36;
+  color: #fff;
+}
+#movv-usage-choice .usage-preference {
+  font-size: 12px;
+  box-shadow: 0 2px 8px #0002;
+}
+#movv-usage-choice a {
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+}
+#movv-usage-choice .usage-detail {
+  font-size: 12px;
+  margin-top: 16px;
+  margin-bottom: 0;
+}

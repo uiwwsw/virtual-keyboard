@@ -9,6 +9,33 @@ const esc = (v) =>
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll('"', "&quot;");
+const usageConfig = {
+  service: "virtual-keyboard",
+  origin: "https://virtual-keyboard-uiwwsw.vercel.app",
+  hosts: ["virtual-keyboard-uiwwsw.vercel.app"],
+  routes: [
+    { match: "^/$", path: "/", name: "home_ko" },
+    { match: "^/en/?$", path: "/en/", name: "home_en" },
+  ],
+  sections: { top: "home", playground: "playground", guide: "guide" },
+  controls: [
+    "mode_text",
+    "mode_hangul",
+    "mode_number",
+    "mode_tel",
+    "mode_alpha",
+    "mode_alphanumeric",
+    "mode_custom",
+  ],
+  outbound: [
+    { url: "https://github.com/uiwwsw/virtual-keyboard", name: "github" },
+    {
+      url: "https://www.npmjs.com/package/@uiwwsw/virtual-keyboard",
+      name: "npm",
+    },
+  ],
+};
+const usageTag = `<script type="module" src="/usage-analytics.js" data-usage-config="${esc(JSON.stringify(usageConfig))}"></script>`;
 for (const en of [false, true]) {
   const lang = en ? "en" : "ko",
     path = en ? "/en/" : "/";
@@ -36,7 +63,7 @@ for (const en of [false, true]) {
     .replace(/<html lang="ko">/, `<html lang="${lang}">`)
     .replace(/<title>[\s\S]*?<\/title>/, "")
     .replace(/<meta\s+name="description"[\s\S]*?\/>/, "")
-    .replace("</head>", meta + "</head>")
+    .replace("</head>", () => meta + usageTag + "</head>")
     .replace('<div id="root"></div>', `<div id="root">${content}</div>`);
   await mkdir(`demo-dist${path}`, { recursive: true });
   await writeFile(`demo-dist${path}index.html`, html);

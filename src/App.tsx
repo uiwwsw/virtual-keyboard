@@ -289,6 +289,7 @@ ${code
                   <button
                     type="button"
                     key={item.id}
+                    data-usage-target={`mode_${item.id}`}
                     aria-pressed={mode === item.id}
                     className="mode-button"
                     onClick={() => setMode(item.id)}
