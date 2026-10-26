@@ -63,7 +63,7 @@ for (const en of [false, true]) {
     .replace(/<html lang="ko">/, `<html lang="${lang}">`)
     .replace(/<title>[\s\S]*?<\/title>/, "")
     .replace(/<meta\s+name="description"[\s\S]*?\/>/, "")
-    .replace("</head>", meta + usageTag + "</head>")
+    .replace("</head>", () => meta + usageTag + "</head>")
     .replace('<div id="root"></div>', `<div id="root">${content}</div>`);
   await mkdir(`demo-dist${path}`, { recursive: true });
   await writeFile(`demo-dist${path}index.html`, html);
