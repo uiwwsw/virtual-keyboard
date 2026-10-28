@@ -8,8 +8,31 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
 jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      published: ${{ steps.version_check.outputs.published }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+      - name: Check whether version is already published
+        id: version_check
+        run: node scripts/check-published.mjs
+
   publish:
+    needs: version-check
+    if: needs.version-check.outputs.published == 'false'
+    timeout-minutes: 20
     runs-on: ubuntu-latest
 
     steps:
@@ -35,12 +58,7 @@ jobs:
       - name: Verify browser behavior
         run: npm run test:e2e
 
-      - name: Check whether version is already published
-        id: version_check
-        run: node scripts/check-published.mjs
-
       - name: Publish to NPM
-        if: steps.version_check.outputs.published == 'false'
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
