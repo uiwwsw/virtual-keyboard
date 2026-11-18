@@ -1,0 +1,12 @@
+.env*
+.git
+.local-notes
+.next
+.vercel
+demo-dist
+dist
+node_modules
+site-dist
+web-dist
+**/node_modules
+**/.next

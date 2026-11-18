@@ -1,22 +1,18 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "demo-dist",
-  "framework": "vite",
-  "cleanUrls": true,
-  "trailingSlash": true,
-  "headers": [
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "",
+  "buildCommand": "",
+  "outputDirectory": "vercel-proxy",
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  },
+  "rewrites": [
     {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        }
-      ]
+      "source": "/:path*",
+      "destination": "https://virtual-keyboard.movvcorp.duckdns.org/:path*"
     }
   ]
 }
