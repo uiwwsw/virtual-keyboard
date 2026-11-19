@@ -1,0 +1,10 @@
+name: virtual-keyboard
+services:
+  web:
+    build: .
+    image: virtual-keyboard-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8444:80"
+    logging:
+      options: { max-size: 10m, max-file: "3" }
