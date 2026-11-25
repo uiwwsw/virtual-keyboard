@@ -1,12 +1,42 @@
-# Virtual Keyboard
+<div align="center">
 
-[![npm version](https://img.shields.io/npm/v/%40uiwwsw%2Fvirtual-keyboard?style=flat-square)](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard)
-[![CI on main](https://github.com/uiwwsw/virtual-keyboard/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/uiwwsw/virtual-keyboard/actions/workflows/ci.yml)
-[![MIT license](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](https://github.com/uiwwsw/virtual-keyboard/blob/main/LICENSE)
+<img src="https://raw.githubusercontent.com/uiwwsw/virtual-keyboard/main/public/keyboard.svg" alt="Virtual Keyboard 로고" width="96" height="96">
 
-React용 화면 키보드(가상 키보드) 컴포넌트입니다. 한글 두벌식 입력, 영문·숫자·전화번호 키패드, 사용자 정의 레이아웃, 입력 문자 제한을 제공합니다. 입력란은 `inputMode="none"`인 실제 `<input>`이라 커서·길게 누르기·선택은 브라우저가 처리하고, 키패드는 Shadow DOM 안의 `<button>`으로 그립니다. 한글 음절 조합 계산은 [es-hangul](https://github.com/toss/es-hangul)에 맡깁니다. 직접 만든 부분과 비슷한 라이브러리는 [구성](#구성)에 정리했습니다.
+<h1>Virtual Keyboard</h1>
 
-[데모](https://virtual-keyboard-uiwwsw.vercel.app/) · [npm](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard) · [MIT License](./LICENSE)
+<p>React용 화면 키보드 컴포넌트입니다. 한글 두벌식 입력, 영문·숫자·전화번호 키패드, 사용자 정의 레이아웃, 입력 문자 제한을 제공합니다.</p>
+
+<p>
+  <a href="https://www.npmjs.com/package/@uiwwsw/virtual-keyboard"><img alt="npm version" src="https://img.shields.io/npm/v/%40uiwwsw%2Fvirtual-keyboard?style=flat-square"></a>
+  <a href="https://github.com/uiwwsw/virtual-keyboard/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/npm/l/%40uiwwsw%2Fvirtual-keyboard?style=flat-square"></a>
+  <a href="https://github.com/uiwwsw/virtual-keyboard/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/uiwwsw/virtual-keyboard/ci.yml?branch=main&label=CI&style=flat-square"></a>
+  <a href="https://www.npmjs.com/package/@uiwwsw/virtual-keyboard"><img alt="react peer dependency" src="https://img.shields.io/npm/dependency-version/%40uiwwsw%2Fvirtual-keyboard/peer/react?style=flat-square"></a>
+  <a href="https://www.npmjs.com/package/@uiwwsw/virtual-keyboard"><img alt="types" src="https://img.shields.io/npm/types/%40uiwwsw%2Fvirtual-keyboard?style=flat-square"></a>
+  <a href="https://github.com/toss/es-hangul"><img alt="uses es-hangul" src="https://img.shields.io/badge/uses-es--hangul-blue?style=flat-square"></a>
+</p>
+
+<p>
+  <a href="https://virtual-keyboard-uiwwsw.vercel.app/">데모</a> ·
+  <a href="https://www.npmjs.com/package/@uiwwsw/virtual-keyboard">npm</a> ·
+  <a href="./CHANGELOG.md">변경 내역</a> ·
+  <a href="./README.en.md">English</a>
+</p>
+
+</div>
+
+## 제공하는 것
+
+- `VirtualInputProvider`와 `VirtualInput` 두 컴포넌트, 그리고 `InputMode`, `InputPolicy`, `Key`, `KeypadLayout` 타입
+- 입력 모드 7가지: `text`, `hangul`, `number`, `tel`, `alpha`, `alphanumeric`, `custom`
+- 한글 두벌식 입력. 음절 조합 계산은 es-hangul이 하고, 이 라이브러리는 편집 상태·키패드·입력란 연결을 맡습니다
+- QWERTY, 숫자, 전화번호 키패드와 기호·편집 화면
+- 레이아웃 JSON으로 만드는 사용자 정의 키패드. 여러 글자를 한 번에 넣는 매크로 키 지원
+- `filterKey`, `sanitizeValue`로 입력과 붙여넣기 문자 제한, `maxLength`로 길이 제한
+- `inputMode="none"`인 실제 `<input>`. 커서·길게 누르기·선택은 브라우저가 처리합니다
+- Shadow DOM 안의 `<button>`으로 그리는 키패드
+- 입력란별 실행 취소·다시 실행(최대 100개), 키패드 복사·잘라내기·붙여넣기 버튼
+- 물리 키보드 입력 해석, 라이트·다크 테마, 키패드 표시 조건(`auto`·`always`·`never`), 한국어·영어 키패드 라벨(`locale`)
+- TypeScript 타입 포함, ESM 패키지
 
 ## Installation
 
@@ -43,6 +73,26 @@ export default function App() {
 추가 CSS 파일을 불러올 필요가 없습니다. `className`과 `style`은 입력란을 감싼 컨테이너에 적용됩니다. 내부 input은 여백·글꼴·색상을 이어받고 컨테이너 전체를 터치 영역으로 사용합니다. 기본 `keyboardVisibility="auto"`는 모바일 또는 터치 중심 장치에서 화면 키보드를 표시합니다. 데스크톱 데모에는 `always`, 물리 키보드만 사용할 때는 `never`를 지정하세요.
 
 `value`를 제공하면 부모가 입력 상태를 관리합니다. `defaultValue`는 최초 값에만 사용됩니다. 입력 정책은 사용자의 새 입력과 붙여넣기에 적용되며, 부모가 전달하는 `value`와 기존 값은 임의로 변경하지 않습니다.
+
+## 제공하지 않는 것 / 한계
+
+- 운영체제 IME 전체를 대체하지 않습니다.
+- 한글 조합은 두벌식 기준입니다. 천지인 같은 다른 배열은 구현하지 않았습니다.
+- `type="password"`, 자동완성, `name`을 통한 폼 제출 설정은 공개 API에 없습니다.
+- 한 줄 입력만 지원합니다. 여러 줄 입력란은 없습니다.
+- `number` 모드는 문자 필터입니다. 소수점 개수, 부호, 금액 범위 같은 업무 규칙은 앱에서 검증하세요.
+- `inputMode="none"`의 시스템 키보드 억제는 브라우저·기기별로 동작이 다를 수 있습니다.
+- 모바일 판단은 휴리스틱입니다. 정확한 표시가 필요하면 `keyboardVisibility`를 직접 지정하세요.
+- 자동 접근성 검사(axe, WCAG A/AA 규칙)는 통과하지만 VoiceOver·TalkBack 같은 보조기기에서의 사용성은 검증하지 않았습니다.
+
+## 기반
+
+- [es-hangul](https://github.com/toss/es-hangul) (Toss, MIT): 한글 조합·분해 함수의 출처입니다. 이 패키지의 필수 의존성입니다.
+- [React](https://react.dev/): 컴포넌트 렌더링과 `createPortal`. peer 의존성이며 번들에 포함하지 않습니다.
+- 브라우저 표준: [inputmode 속성](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/inputmode), [Shadow DOM](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM), [Intl.Segmenter](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter), [Visual Viewport API](https://developer.mozilla.org/en-US/docs/Web/API/Visual_Viewport_API)
+- 한글 음절 영역은 [Unicode Standard 3.12절](https://www.unicode.org/versions/latest/)과 [Hangul Syllables 차트](https://www.unicode.org/charts/PDF/UAC00.pdf)에 정의돼 있습니다.
+- 비슷한 라이브러리: [simple-keyboard](https://github.com/hodgef/simple-keyboard)와 [react-simple-keyboard](https://github.com/hodgef/react-simple-keyboard) (MIT)는 레이아웃을 바꿔 쓸 수 있는 범용 화면 키보드입니다. 이 패키지는 이들 코드를 쓰지 않으며, 범용성과 레이아웃 생태계는 이쪽이 넓습니다. 이 패키지는 한글 조합과 실제 `<input>` 선택 상태의 연동에 범위를 좁혔습니다. 한글 지원 방식은 각 문서를 확인하세요.
+- 비슷한 라이브러리: [Hangul.js](https://github.com/e-/Hangul.js) (MIT)는 한글 조합·분해 라이브러리입니다. 사용하지 않지만 es-hangul과 같은 영역을 다룹니다.
 
 ## Input modes
 
@@ -225,20 +275,6 @@ ref.current?.setSelectionRange(0, 2);
 
 한글 조합 알고리즘은 직접 구현하지 않았습니다. 자모를 음절로 합치고 분해하는 계산은 `es-hangul`에 맡기며, 이 저장소는 그 함수를 호출하는 시점(조합 중인지, 이전 글자가 한글인지)과 커서·선택·실행 취소와의 연결을 담당합니다. 두벌식 배열과 한글 음절 조합 규칙 자체는 표준입니다.
 
-### 비슷한 라이브러리와 크레딧
-
-- [es-hangul](https://github.com/toss/es-hangul) (Toss, MIT): 한글 조합·분해 함수의 출처입니다. 이 패키지의 필수 의존성입니다.
-- [simple-keyboard](https://github.com/hodgef/simple-keyboard)와 [react-simple-keyboard](https://github.com/hodgef/react-simple-keyboard) (MIT): 레이아웃을 바꿔 쓸 수 있는 범용 화면 키보드입니다. 이 패키지는 이들 코드를 쓰지 않으며, 범용성과 레이아웃 생태계는 이쪽이 넓습니다. 이 패키지는 한글 조합과 실제 `<input>` 선택 상태의 연동에 범위를 좁혔습니다. 한글 지원 방식은 각 문서를 확인하세요.
-- [Hangul.js](https://github.com/e-/Hangul.js) (MIT): 한글 조합·분해 라이브러리입니다. 사용하지 않지만 es-hangul과 같은 영역을 다룹니다.
-- 표준 문서: [inputmode 속성](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/inputmode), [Shadow DOM](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM), [Intl.Segmenter](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter), [Visual Viewport API](https://developer.mozilla.org/en-US/docs/Web/API/Visual_Viewport_API), 한글 음절 영역은 [Unicode Standard 3.12절](https://www.unicode.org/versions/latest/)과 [Hangul Syllables 차트](https://www.unicode.org/charts/PDF/UAC00.pdf)에 정의돼 있습니다.
-
-### 한계
-
-- 운영체제 IME 전체를 대체하지 않습니다. 한글 조합은 두벌식 기준이며 천지인 같은 다른 배열의 조합은 구현하지 않았습니다.
-- `inputMode="none"`의 시스템 키보드 억제는 브라우저·기기별로 동작이 다를 수 있습니다.
-- 모바일 판단은 휴리스틱입니다. 정확한 표시가 필요하면 `keyboardVisibility`를 직접 지정하세요.
-- 자동 접근성 검사(axe, WCAG A/AA 규칙)를 통과하더라도 VoiceOver·TalkBack 같은 보조기기에서의 사용성은 검증하지 않았습니다.
-
 ## Development
 
 ```bash
@@ -284,3 +320,7 @@ The deployed Korean/English demo is prerendered from the actual `App` component,
 ### Demo address
 
 The demo is hosted at `https://virtual-keyboard-uiwwsw.vercel.app/`. The legacy `composed-input.vercel.app` domain is retained only as a Vercel project-domain 301 redirect to the current origin, preserving paths. Do not serve a separate demo on it. Canonical URLs and the sitemap use the current origin.
+
+## License
+
+[MIT](./LICENSE)
