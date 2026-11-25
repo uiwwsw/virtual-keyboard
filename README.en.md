@@ -1,18 +1,50 @@
-# React Virtual Keyboard
+<div align="center">
 
-[![npm version](https://img.shields.io/npm/v/%40uiwwsw%2Fvirtual-keyboard?style=flat-square)](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard)
-[![CI on main](https://github.com/uiwwsw/virtual-keyboard/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/uiwwsw/virtual-keyboard/actions/workflows/ci.yml)
-[![MIT license](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](https://github.com/uiwwsw/virtual-keyboard/blob/main/LICENSE)
+<img src="https://raw.githubusercontent.com/uiwwsw/virtual-keyboard/main/public/keyboard.svg" alt="Virtual Keyboard logo" width="96" height="96">
 
-[한국어](README.md) · [Live demo](https://virtual-keyboard-uiwwsw.vercel.app/en/) · [npm](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard)
+<h1>React Virtual Keyboard</h1>
 
-An on-screen keyboard component for React. It provides Korean two-set (dubeolsik) input, English, numeric and phone keypads, custom layouts and input character filters. The field is a real `<input inputMode="none">`, so the browser handles the caret, long press and selection; the keypad is drawn as `<button>` elements inside a Shadow DOM. Hangul syllable composition is delegated to [es-hangul](https://github.com/toss/es-hangul). What is written here and how it relates to similar libraries is listed under [Architecture](#architecture). Works with React 18 and 19.
+<p>An on-screen keyboard component for React. It provides Korean two-set (dubeolsik) input, English, numeric and phone keypads, custom layouts and input character filters.</p>
+
+<p>
+  <a href="https://www.npmjs.com/package/@uiwwsw/virtual-keyboard"><img alt="npm version" src="https://img.shields.io/npm/v/%40uiwwsw%2Fvirtual-keyboard?style=flat-square"></a>
+  <a href="https://github.com/uiwwsw/virtual-keyboard/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/npm/l/%40uiwwsw%2Fvirtual-keyboard?style=flat-square"></a>
+  <a href="https://github.com/uiwwsw/virtual-keyboard/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/uiwwsw/virtual-keyboard/ci.yml?branch=main&label=CI&style=flat-square"></a>
+  <a href="https://www.npmjs.com/package/@uiwwsw/virtual-keyboard"><img alt="react peer dependency" src="https://img.shields.io/npm/dependency-version/%40uiwwsw%2Fvirtual-keyboard/peer/react?style=flat-square"></a>
+  <a href="https://www.npmjs.com/package/@uiwwsw/virtual-keyboard"><img alt="types" src="https://img.shields.io/npm/types/%40uiwwsw%2Fvirtual-keyboard?style=flat-square"></a>
+  <a href="https://github.com/toss/es-hangul"><img alt="uses es-hangul" src="https://img.shields.io/badge/uses-es--hangul-blue?style=flat-square"></a>
+</p>
+
+<p>
+  <a href="https://virtual-keyboard-uiwwsw.vercel.app/en/">Demo</a> ·
+  <a href="https://www.npmjs.com/package/@uiwwsw/virtual-keyboard">npm</a> ·
+  <a href="./CHANGELOG.md">Changelog</a> ·
+  <a href="./README.md">한국어</a>
+</p>
+
+</div>
+
+## What it provides
+
+- Two components, `VirtualInputProvider` and `VirtualInput`, and the types `InputMode`, `InputPolicy`, `Key` and `KeypadLayout`
+- Seven input modes: `text`, `hangul`, `number`, `tel`, `alpha`, `alphanumeric`, `custom`
+- Korean two-set input. es-hangul does the syllable composition; this library handles editing state, the keypad and input wiring
+- QWERTY, number and phone keypads, plus symbol and edit screens
+- Custom keypads from layout JSON, including macro keys that insert several characters at once
+- Character filtering for typing and pasting through `filterKey` and `sanitizeValue`, and a length limit through `maxLength`
+- A real `<input inputMode="none">`; the browser handles the caret, long press and selection
+- A keypad drawn as `<button>` elements inside a Shadow DOM
+- Per-input undo and redo (up to 100 entries), and copy, cut and paste buttons on the keypad
+- Physical keyboard handling, light and dark themes, keypad visibility (`auto`, `always`, `never`), and Korean or English keypad labels (`locale`)
+- TypeScript types included, ESM package
 
 ## Installation
 
 ```sh
 npm install @uiwwsw/virtual-keyboard
 ```
+
+Requires React 18 or 19.
 
 ## Usage
 
@@ -38,6 +70,26 @@ export default function Example() {
 ```
 
 The `locale` option changes keyboard labels, accessibility text and clipboard status messages, not user-entered text or the input language. Default: `ko`. `en` provides English labels.
+
+## Not included / Limits
+
+- It does not replace the operating system IME.
+- Composition follows the two-set layout. Other Korean layouts such as Cheonjiin are not implemented.
+- `type="password"`, autofill and form submission through `name` are not in the public API.
+- Single-line input only. There is no multi-line field.
+- `number` mode is a character filter. Validate rules such as decimal count, sign and amount range in your app.
+- Suppressing the system keyboard with `inputMode="none"` can behave differently across browsers and devices.
+- Mobile detection is a heuristic. Set `keyboardVisibility` explicitly when you need a fixed behavior.
+- It passes automated accessibility checks (axe, WCAG A/AA rules), but use with assistive technology such as VoiceOver or TalkBack has not been tested.
+
+## Built on
+
+- [es-hangul](https://github.com/toss/es-hangul) (Toss, MIT): source of the Hangul composition and decomposition functions. A required dependency of this package.
+- [React](https://react.dev/): rendering and `createPortal`. A peer dependency, not bundled.
+- Browser standards: the [inputmode attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/inputmode), [Shadow DOM](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM), [Intl.Segmenter](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter) and the [Visual Viewport API](https://developer.mozilla.org/en-US/docs/Web/API/Visual_Viewport_API)
+- The Hangul syllable block is defined in section 3.12 of the [Unicode Standard](https://www.unicode.org/versions/latest/) and the [Hangul Syllables chart](https://www.unicode.org/charts/PDF/UAC00.pdf).
+- Similar libraries: [simple-keyboard](https://github.com/hodgef/simple-keyboard) and [react-simple-keyboard](https://github.com/hodgef/react-simple-keyboard) (MIT) are general-purpose on-screen keyboards with swappable layouts. This package uses none of their code. They are broader and have a larger layout ecosystem; this package narrows its scope to Hangul composition and syncing with a real `<input>` selection. Check their documentation for how they handle Hangul.
+- Similar libraries: [Hangul.js](https://github.com/e-/Hangul.js) (MIT) is a Hangul composition and decomposition library covering the same area as es-hangul. Not used here.
 
 ## Input modes
 
@@ -116,22 +168,10 @@ Written in this repository: editing state handling (selection replacement, emoji
 
 The Hangul composition algorithm is not implemented here. Joining and splitting jamo is done by `es-hangul`. This repository decides when to call it (whether a composition is in progress and whether the previous character is Hangul) and ties the result to caret, selection and undo. The two-set (dubeolsik) key arrangement and the Hangul syllable composition rules are standards.
 
-### Similar libraries and credits
-
-- [es-hangul](https://github.com/toss/es-hangul) (Toss, MIT): source of the Hangul composition and decomposition functions. A required dependency of this package.
-- [simple-keyboard](https://github.com/hodgef/simple-keyboard) and [react-simple-keyboard](https://github.com/hodgef/react-simple-keyboard) (MIT): general-purpose on-screen keyboards with swappable layouts. This package uses none of their code. They are broader and have a larger layout ecosystem; this package narrows its scope to Hangul composition and syncing with a real `<input>` selection. Check their documentation for how they handle Hangul.
-- [Hangul.js](https://github.com/e-/Hangul.js) (MIT): a Hangul composition and decomposition library covering the same area as es-hangul. Not used here.
-- Standards: the [inputmode attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/inputmode), [Shadow DOM](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM), [Intl.Segmenter](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter) and the [Visual Viewport API](https://developer.mozilla.org/en-US/docs/Web/API/Visual_Viewport_API). The Hangul syllable block is defined in section 3.12 of the [Unicode Standard](https://www.unicode.org/versions/latest/) and the [Hangul Syllables chart](https://www.unicode.org/charts/PDF/UAC00.pdf).
-
-### Limits
-
-- It does not replace the operating system IME. Composition follows the two-set layout; other Korean layouts such as Cheonjiin are not implemented.
-- Suppressing the system keyboard with `inputMode="none"` can behave differently across browsers and devices.
-- Mobile detection is a heuristic. Set `keyboardVisibility` explicitly when you need a fixed behavior.
-- Passing automated accessibility checks (axe, WCAG A/AA rules) does not cover use with assistive technology such as VoiceOver or TalkBack, which has not been tested.
-
 ## Development
 
 Use a supported Node version from package.json. Run npm ci and npm run check; the demo build is demo-dist, the library build is dist. Follow workspace SSD rules when applicable. The Korean reference README covers the full API and migration notes; its code identifiers apply in either language.
 
-MIT license. Use the GitHub issue tracker for bugs and feature requests.
+## License
+
+[MIT](./LICENSE). Use the GitHub issue tracker for bugs and feature requests.
