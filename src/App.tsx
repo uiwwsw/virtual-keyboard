@@ -196,18 +196,19 @@ ${code
         <section className="hero" aria-labelledby="hero-title">
           <div className="hero-copy">
             <p className="eyebrow">
-              <span className="status-dot" /> A SMALL KEYBOARD. MORE
-              POSSIBILITIES.
+              <span className="status-dot" /> REACT ON-SCREEN KEYBOARD
             </p>
             <h1 id="hero-title">
-              {t("입력의 감각까지,")}
+              {t("React 화면 키보드로")}
               <br />
-              <em>{t("직접 설계하세요.")}</em>
+              <em>{t("한글을 입력합니다.")}</em>
             </h1>
             <p className="lead">
-              {t("한글 조합부터 나만의 키패드까지.")}
+              {t(
+                "한글 두벌식, 영문, 숫자, 전화번호 키패드와 사용자 정의 레이아웃.",
+              )}
               <br />
-              {t("웹에서 자연스럽게 이어지는 입력 경험을 만드세요.")}
+              {t("한글 조합 계산은 es-hangul을 사용합니다.")}
             </p>
             <a className="primary-link" href="#playground">
               {t("직접 눌러보기")}
@@ -216,7 +217,7 @@ ${code
           </div>
           <div className="hero-art" aria-hidden="true">
             <div className="art-caption">
-              <span>DESIGNED FOR YOUR INPUT</span>
+              <span>HANGUL COMPOSITION</span>
               <span>01 / 07</span>
             </div>
             <div className="sample-word">
@@ -232,14 +233,14 @@ ${code
             </div>
             <div className="art-bottom">
               <span className="status-dot" />
-              {t("생각에서 글자로, 끊김 없이.")}
+              {t("ㅎ + ㅏ + ㄴ = 한")}
             </div>
           </div>
         </section>
         <div className="feature-strip">
           <span>
             <b>{t("한글 조합")}</b>
-            {t("초성부터 받침까지")}
+            {t("초성·중성·종성 조합")}
           </span>
           <span>
             <b>{t("7가지 모드")}</b>
@@ -247,7 +248,7 @@ ${code
           </span>
           <span>
             <b>React 18 · 19</b>
-            {t("간결한 컴포넌트 API")}
+            {t("컴포넌트 두 개")}
           </span>
         </div>
         <section

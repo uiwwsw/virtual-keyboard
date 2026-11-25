@@ -10,7 +10,7 @@ describe("demo first render", () => {
     host.innerHTML = renderToString(createElement(App));
     document.body.append(host);
     const heading = host.querySelector("h1");
-    expect(heading?.textContent).toContain("입력의 감각까지");
+    expect(heading?.textContent).toContain("React 화면 키보드로");
     const errors: unknown[] = [];
     let root: ReturnType<typeof hydrateRoot>;
     await act(async () => {

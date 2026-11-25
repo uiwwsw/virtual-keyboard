@@ -1,11 +1,10 @@
 # Virtual Keyboard
 
 [![npm version](https://img.shields.io/npm/v/%40uiwwsw%2Fvirtual-keyboard?style=flat-square)](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard)
-[![npm monthly downloads](https://img.shields.io/npm/dm/%40uiwwsw%2Fvirtual-keyboard?style=flat-square)](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard)
 [![CI on main](https://github.com/uiwwsw/virtual-keyboard/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/uiwwsw/virtual-keyboard/actions/workflows/ci.yml)
 [![MIT license](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](https://github.com/uiwwsw/virtual-keyboard/blob/main/LICENSE)
 
-한글 조합과 커스텀 키패드를 지원하는 React 가상 키보드입니다. 입력란은 실제 `<input inputMode="none">`을 사용해 커서·길게 누르기·선택을 브라우저에 맡기며, 화면 키패드는 Shadow DOM 안의 실제 버튼으로 렌더링됩니다.
+React용 화면 키보드(가상 키보드) 컴포넌트입니다. 한글 두벌식 입력, 영문·숫자·전화번호 키패드, 사용자 정의 레이아웃, 입력 문자 제한을 제공합니다. 입력란은 `inputMode="none"`인 실제 `<input>`이라 커서·길게 누르기·선택은 브라우저가 처리하고, 키패드는 Shadow DOM 안의 `<button>`으로 그립니다. 한글 음절 조합 계산은 [es-hangul](https://github.com/toss/es-hangul)에 맡깁니다. 직접 만든 부분과 비슷한 라이브러리는 [구성](#구성)에 정리했습니다.
 
 [데모](https://virtual-keyboard-uiwwsw.vercel.app/) · [npm](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard) · [MIT License](./LICENSE)
 
@@ -179,6 +178,66 @@ ref.current?.setSelectionRange(0, 2);
 클립보드는 붙여넣기를 명시적으로 실행할 때 읽습니다. 읽는 동안 버튼에 진행 상태를 표시하고 연속 실행을 막습니다. 대기 중 커서·값·입력란·입력 정책이 바뀌면 요청을 취소하므로 새 위치에서 다시 눌러 주세요. 빈 클립보드, 허용되지 않는 내용, 길이 제한, 부모가 거절한 값은 완료 메시지와 구분해 알립니다.
 
 브라우저가 클립보드 읽기를 제한하면 현재 선택 범위를 유지하고 기본 붙여넣기 메뉴를 안내합니다. 입력란을 길게 눌러 `붙여넣기`를 선택하거나 Ctrl/Cmd + V를 사용할 수 있습니다. 기본 붙여넣기 이벤트에도 같은 입력 정책과 실행 취소를 적용합니다. OS의 권한 창과 붙여넣기 메뉴는 브라우저가 표시합니다. [Clipboard API의 브라우저별 제약](https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API#security_considerations)을 참고하세요.
+
+## 구성
+
+### 소스 모듈
+
+`src/index.ts`가 공개하는 것은 `VirtualInput`, `VirtualInputProvider`와 타입(`InputMode`, `InputPolicy`, `Key`, `KeypadLayout` 등)뿐입니다. 나머지는 내부 모듈입니다.
+
+| 경로                               | 역할                                                                                                                                               |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `components/Provider.tsx`          | 포커스된 입력란 하나를 추적하고 Shift·한영·선택 모드·테마·표시 조건을 관리합니다. 키패드를 `document.body`에 포털로 띄우고 높이만큼 여백을 둡니다. |
+| `components/Context.tsx`           | Provider와 입력란·키패드가 공유하는 React Context와 타입                                                                                           |
+| `components/Input.tsx`             | `<input inputMode="none">`을 감싼 입력란. 키 입력, 물리 키보드, 네이티브 IME, 선택, 복사·붙여넣기, 실행 취소를 편집 엔진에 연결합니다.             |
+| `components/Keypad.tsx`            | 화면 키패드. 레이아웃 JSON을 `<button>`으로 그리고 Shift·기호·편집 화면 전환, 상단 도구 모음, 클립보드 상태 표시를 처리합니다.                     |
+| `components/ShadowWrapper.tsx`     | 호스트 요소에 Shadow Root를 붙이고 `<style>`과 자식을 포털로 넣어 키패드 CSS가 페이지와 섞이지 않게 합니다.                                        |
+| `hooks/usePress.ts`                | 키를 손 뗄 때 실행하고, 키 밖으로 벗어나거나 취소되면 실행하지 않으며, 지우기·화살표는 길게 누르면 반복합니다.                                     |
+| `hooks/useStorage.ts`              | 한영 선호도를 `localStorage`에 저장합니다. 저장소가 막혀 있어도 메모리 상태는 갱신하며 같은 탭·다른 탭의 변경을 동기화합니다.                      |
+| `hooks/useVisualViewport.ts`       | `window.visualViewport`의 크기·확대·오프셋을 읽어 키패드를 보이는 영역 아래에 맞춥니다. 지원하지 않으면 `window` 크기를 사용합니다.                |
+| `hooks/useSystemTheme.ts`          | `prefers-color-scheme`을 읽어 `theme`을 생략했을 때 쓸 테마를 정합니다.                                                                            |
+| `utils/editing.ts`                 | DOM과 무관한 편집 상태(`value`, `caret`, `anchor`, `composing`)의 삽입·삭제·커서 이동. 한글 조합은 es-hangul을 호출해 처리합니다.                  |
+| `utils/nativeEditing.ts`           | 브라우저가 바꾼 input 값에서 달라진 구간만 찾아 입력 정책과 길이 제한을 적용합니다. 네이티브 IME 조합 완료와 기본 붙여넣기 경로에 쓰입니다.        |
+| `utils/history.ts`                 | 입력란별 실행 취소·다시 실행 기록(최대 100개). 한글 조합 한 번을 한 단계로 묶습니다.                                                               |
+| `utils/inputPolicy.ts`             | 모드별 기본 레이아웃·키 필터·정리 함수와 강제 언어 모드(`hangul`은 한글, `alpha`·`number` 등은 영문)                                               |
+| `utils/keyboard.ts`                | 키 정의를 실제 입력 문자로 바꿉니다. 한글 모드의 영문 키는 es-hangul의 `convertQwertyToHangul`로 두벌식 자모에 대응시킵니다.                       |
+| `utils/parseKeyInput.ts`           | 물리 키보드 이벤트를 같은 규칙으로 해석합니다. 이미 한글로 들어온 키(macOS IME 등)와 Ctrl/Cmd 조합은 구분합니다.                                   |
+| `utils/isHangul.ts`                | 한글 자모·음절 범위(`U+1100–11FF`, `U+3130–318F`, `U+AC00–D7AF`) 정규식 검사                                                                       |
+| `utils/isMobileAgent.ts`           | User-Agent, 터치 지점 수, `(pointer: coarse)`로 `keyboardVisibility="auto"`의 모바일 판단을 합니다. 휴리스틱이라 오판할 수 있습니다.               |
+| `types/`                           | `InputPolicy`, `InputMode`, `Key`, `KeypadLayout`, `Viewport` 타입                                                                                 |
+| `assets/*.json`                    | QWERTY, 숫자 패드, 전화 패드, 기호, 편집 화면의 키 배열 데이터                                                                                     |
+| `uiLanguage.ts`, `uiMessages.json` | 키패드 라벨·상태 문구의 한국어→영어 사전. 기본 한국어이며 `locale="en"`일 때 번역합니다. 입력 문자는 번역하지 않습니다.                            |
+| `App.tsx`, `App.css`, `main.tsx`   | 데모 사이트. 패키지에는 포함되지 않습니다(`files`가 `dist`만 가리킴).                                                                              |
+| `*.test.ts(x)`, `test/setup.ts`    | Vitest 단위·컴포넌트 테스트. 브라우저 동작은 `e2e/`의 Playwright가 검사합니다.                                                                     |
+
+### 의존성
+
+| 패키지                       | 구분       | 용도                                                                                                                                                                             |
+| ---------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `react`, `react-dom` (18·19) | peer       | 컴포넌트 렌더링과 `createPortal`. 번들에 포함하지 않습니다.                                                                                                                      |
+| `es-hangul`                  | dependency | 자모를 음절로 합치는 `assemble`, 마지막 자모를 지우는 `removeLastCharacter`, 영문 키를 두벌식 자모로 바꾸는 `convertQwertyToHangul`. 번들에 포함하지 않고 설치 시 함께 받습니다. |
+
+실행 시 이 외의 npm 패키지는 쓰지 않습니다. 개발 도구로 Vite, TypeScript, ESLint, Prettier, Vitest, Testing Library, jsdom, Playwright, `@axe-core/playwright`를 사용합니다. 브라우저 표준 API는 `Intl.Segmenter`(글자·단어 경계), Shadow DOM, `inputMode`, Pointer Events, `ResizeObserver`, Visual Viewport, Clipboard API, `localStorage`, `matchMedia`입니다.
+
+### 직접 만든 것과 가져온 것
+
+직접 만든 부분은 편집 상태 처리(선택 교체, 이모지·결합 문자 경계, 조합 중 삭제 규칙, 길이 제한 시 편집 거절), 실행 취소 기록, 네이티브 변경 구간 추출, 입력 정책, 손 뗄 때 실행하는 키 처리, Provider의 포커스·표시 조정, 키패드 UI와 레이아웃 데이터입니다.
+
+한글 조합 알고리즘은 직접 구현하지 않았습니다. 자모를 음절로 합치고 분해하는 계산은 `es-hangul`에 맡기며, 이 저장소는 그 함수를 호출하는 시점(조합 중인지, 이전 글자가 한글인지)과 커서·선택·실행 취소와의 연결을 담당합니다. 두벌식 배열과 한글 음절 조합 규칙 자체는 표준입니다.
+
+### 비슷한 라이브러리와 크레딧
+
+- [es-hangul](https://github.com/toss/es-hangul) (Toss, MIT): 한글 조합·분해 함수의 출처입니다. 이 패키지의 필수 의존성입니다.
+- [simple-keyboard](https://github.com/hodgef/simple-keyboard)와 [react-simple-keyboard](https://github.com/hodgef/react-simple-keyboard) (MIT): 레이아웃을 바꿔 쓸 수 있는 범용 화면 키보드입니다. 이 패키지는 이들 코드를 쓰지 않으며, 범용성과 레이아웃 생태계는 이쪽이 넓습니다. 이 패키지는 한글 조합과 실제 `<input>` 선택 상태의 연동에 범위를 좁혔습니다. 한글 지원 방식은 각 문서를 확인하세요.
+- [Hangul.js](https://github.com/e-/Hangul.js) (MIT): 한글 조합·분해 라이브러리입니다. 사용하지 않지만 es-hangul과 같은 영역을 다룹니다.
+- 표준 문서: [inputmode 속성](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/inputmode), [Shadow DOM](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM), [Intl.Segmenter](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter), [Visual Viewport API](https://developer.mozilla.org/en-US/docs/Web/API/Visual_Viewport_API), 한글 음절 영역은 [Unicode Standard 3.12절](https://www.unicode.org/versions/latest/)과 [Hangul Syllables 차트](https://www.unicode.org/charts/PDF/UAC00.pdf)에 정의돼 있습니다.
+
+### 한계
+
+- 운영체제 IME 전체를 대체하지 않습니다. 한글 조합은 두벌식 기준이며 천지인 같은 다른 배열의 조합은 구현하지 않았습니다.
+- `inputMode="none"`의 시스템 키보드 억제는 브라우저·기기별로 동작이 다를 수 있습니다.
+- 모바일 판단은 휴리스틱입니다. 정확한 표시가 필요하면 `keyboardVisibility`를 직접 지정하세요.
+- 자동 접근성 검사(axe, WCAG A/AA 규칙)를 통과하더라도 VoiceOver·TalkBack 같은 보조기기에서의 사용성은 검증하지 않았습니다.
 
 ## Development
 
