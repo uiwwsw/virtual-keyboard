@@ -37,7 +37,7 @@ export default function Example() {
 }
 ```
 
-The `locale` option is available in the source update documented here; check the installed package version before using a newly added option. It changes keyboard labels, accessibility text and clipboard status messages, not user-entered text or the input language. Default: `ko`. `en` provides English labels.
+The `locale` option changes keyboard labels, accessibility text and clipboard status messages, not user-entered text or the input language. Default: `ko`. `en` provides English labels.
 
 ## Input modes
 

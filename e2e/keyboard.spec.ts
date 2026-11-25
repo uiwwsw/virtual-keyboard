@@ -5,7 +5,7 @@ test.beforeEach(async ({ page }) => {
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: /입력의 감각까지/ }),
+    page.getByRole("heading", { name: /React 화면 키보드로/ }),
   ).toBeVisible();
   expect(errors).toEqual([]);
 });
