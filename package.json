@@ -10,21 +10,16 @@
   ],
   "license": "MIT",
   "keywords": [
-    "한글",
-    "키보드",
-    "가상",
-    "input",
-    "custom",
-    "keyboard",
-    "폰번호 전용",
-    "숫자 전용",
-    "composition",
-    "IME",
+    "react",
+    "virtual-keyboard",
+    "on-screen-keyboard",
     "hangul",
-    "no composition issue",
-    "korean input",
-    "웹 한글 입력",
-    "조합 이슈 해결"
+    "korean",
+    "한글",
+    "가상 키보드",
+    "es-hangul",
+    "input-mode",
+    "keypad"
   ],
   "exports": {
     ".": {
@@ -81,7 +76,7 @@
     "vite": "^7.0.0",
     "vitest": "^5.0.5"
   },
-  "description": "Accessible React virtual keyboard with Korean composition and configurable input policies.",
+  "description": "React on-screen keyboard component with Korean two-set composition (via es-hangul), English, number and phone keypads, and input filters.",
   "sideEffects": false,
   "engines": {
     "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
@@ -90,5 +85,8 @@
     "type": "git",
     "url": "git+https://github.com/uiwwsw/virtual-keyboard.git"
   },
-  "homepage": "https://virtual-keyboard-uiwwsw.vercel.app/"
+  "homepage": "https://virtual-keyboard-uiwwsw.vercel.app/",
+  "bugs": {
+    "url": "https://github.com/uiwwsw/virtual-keyboard/issues"
+  }
 }

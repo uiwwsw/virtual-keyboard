@@ -1,11 +1,10 @@
 # Virtual Keyboard
 
 [![npm version](https://img.shields.io/npm/v/%40uiwwsw%2Fvirtual-keyboard?style=flat-square)](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard)
-[![npm monthly downloads](https://img.shields.io/npm/dm/%40uiwwsw%2Fvirtual-keyboard?style=flat-square)](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard)
 [![CI on main](https://github.com/uiwwsw/virtual-keyboard/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/uiwwsw/virtual-keyboard/actions/workflows/ci.yml)
 [![MIT license](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](https://github.com/uiwwsw/virtual-keyboard/blob/main/LICENSE)
 
-한글 조합과 커스텀 키패드를 지원하는 React 가상 키보드입니다. 입력란은 실제 `<input inputMode="none">`을 사용해 커서·길게 누르기·선택을 브라우저에 맡기며, 화면 키패드는 Shadow DOM 안의 실제 버튼으로 렌더링됩니다.
+React용 화면 키보드(가상 키보드) 컴포넌트입니다. 한글 두벌식 입력, 영문·숫자·전화번호 키패드, 사용자 정의 레이아웃, 입력 문자 제한을 제공합니다. 입력란은 `inputMode="none"`인 실제 `<input>`이라 커서·길게 누르기·선택은 브라우저가 처리하고, 키패드는 Shadow DOM 안의 `<button>`으로 그립니다. 한글 음절 조합 계산은 [es-hangul](https://github.com/toss/es-hangul)에 맡깁니다. 직접 만든 부분과 비슷한 라이브러리는 [구성](#구성)에 정리했습니다.
 
 [데모](https://virtual-keyboard-uiwwsw.vercel.app/) · [npm](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard) · [MIT License](./LICENSE)
 

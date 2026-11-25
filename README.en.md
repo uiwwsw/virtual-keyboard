@@ -1,13 +1,12 @@
 # React Virtual Keyboard
 
 [![npm version](https://img.shields.io/npm/v/%40uiwwsw%2Fvirtual-keyboard?style=flat-square)](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard)
-[![npm monthly downloads](https://img.shields.io/npm/dm/%40uiwwsw%2Fvirtual-keyboard?style=flat-square)](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard)
 [![CI on main](https://github.com/uiwwsw/virtual-keyboard/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/uiwwsw/virtual-keyboard/actions/workflows/ci.yml)
 [![MIT license](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](https://github.com/uiwwsw/virtual-keyboard/blob/main/LICENSE)
 
 [한국어](README.md) · [Live demo](https://virtual-keyboard-uiwwsw.vercel.app/en/) · [npm](https://www.npmjs.com/package/@uiwwsw/virtual-keyboard)
 
-An accessible React on-screen keyboard with Korean Hangul composition, English input, numeric and phone keypads, custom layouts and input policies. Virtual Keyboard is the product name; custom keypads are one feature. Supports React 18 and 19.
+An on-screen keyboard component for React. It provides Korean two-set (dubeolsik) input, English, numeric and phone keypads, custom layouts and input character filters. The field is a real `<input inputMode="none">`, so the browser handles the caret, long press and selection; the keypad is drawn as `<button>` elements inside a Shadow DOM. Hangul syllable composition is delegated to [es-hangul](https://github.com/toss/es-hangul). What is written here and how it relates to similar libraries is listed under [Architecture](#architecture). Works with React 18 and 19.
 
 ## Installation
 
