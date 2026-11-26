@@ -1,10 +1,7 @@
 name: Publish to NPM
 
 on:
-  # Once a week (Monday 10:00 KST) or by hand. Publishes only when the
-  # package.json version is not on npm yet.
-  schedule:
-    - cron: '0 1 * * 1'
+  # By hand only: releases are cut deliberately, not on a timer.
   workflow_dispatch:
 
 permissions:
