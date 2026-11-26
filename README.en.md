@@ -4,7 +4,7 @@
 
 <h1>React Virtual Keyboard</h1>
 
-<p>On-screen keyboard component for React</p>
+<p>React on-screen keyboard that composes Hangul as you type</p>
 
 <p>
   <a href="https://www.npmjs.com/package/@uiwwsw/virtual-keyboard"><img alt="npm version" src="https://img.shields.io/npm/v/%40uiwwsw%2Fvirtual-keyboard?style=flat-square"></a>
@@ -24,8 +24,16 @@
 
 </div>
 
-On-screen keyboard component for React. Hangul two-set composition is computed by [es-hangul](https://github.com/toss/es-hangul); this library implements editing state, keypads and the wiring to a real `<input>`.
-It is a small package with a single maintainer and almost no users.
+A React component that solves Hangul composition on an on-screen keyboard. Pressing jamo builds the syllable right away with no candidate picking, and deleting, moving the caret and undoing during composition behave like a real Korean input method. Syllable assembly uses Toss's [es-hangul](https://github.com/toss/es-hangul); this library handles the editing behavior and keypads on top of it.
+
+## How it differs
+
+- **Composes as you type.** Pressing `ㄱ`, `ㅏ`, `ㄴ` puts `간` straight into the input. [simple-keyboard](https://github.com/hodgef/simple-keyboard)'s Korean layout makes you pick the finished syllable from a candidate box.
+- **Deleting during composition removes one jamo.** `간` becomes `가`; the whole syllable is not lost.
+- **One syllable is one undo step,** not one step per jamo.
+- **A real `<input>`.** `inputMode="none"` only suppresses the system keyboard; caret, selection, long-press and the copy menu are the browser's own. Forms, accessibility tools and automated tests treat it as a normal input.
+- **Input rules cover paste too.** `filterKey`, `sanitizeValue` and `maxLength` apply to keys and paste alike, and an overflowing edit is rejected instead of deleting trailing text.
+- **No clash with app CSS.** The keypad is drawn as `<button>`s inside a Shadow DOM.
 
 ## What works now
 
@@ -52,15 +60,6 @@ It is a small package with a single maintainer and almost no users.
 - Suppressing the system keyboard with `inputMode="none"` differs across browsers and devices
 - Mobile detection is a heuristic. Set `keyboardVisibility` explicitly for fixed behavior
 - No framework-agnostic core for non-React frameworks
-
-## Where it stands
-
-- Weekly npm downloads (last week, api.npmjs.org): this package 80, react-simple-keyboard 237,797, simple-keyboard 80,748, es-hangul 173,386. The gap is roughly 3,000 times.
-- One maintainer. One GitHub contributor, 1 star, 0 forks, and no known production users.
-- React only. simple-keyboard is a framework-agnostic JavaScript core that can be used from React, Angular and Vue.
-- simple-keyboard has a separate `simple-keyboard-layouts` package with layouts for many languages, Korean included. This package has QWERTY, number, phone and custom layouts only.
-- Hangul composition depends on es-hangul. It is not an algorithm written here.
-- It fits when you need Korean two-set input in React on a real `<input>` and want the browser to keep the caret and selection. For other uses, simple-keyboard is the better choice.
 
 ## Installation
 
