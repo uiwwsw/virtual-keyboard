@@ -1,9 +1,13 @@
 name: Publish to NPM
 
 on:
+  # Publish only when a merge to main changes the package version file.
   push:
     branches:
       - main
+    paths:
+      - package.json
+  workflow_dispatch:
 
 permissions:
   contents: read

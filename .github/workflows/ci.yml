@@ -1,8 +1,9 @@
 name: Validate
 on:
-  pull_request:
-  push:
-    branches: [main]
+  # Not on every commit: run by hand when needed, plus once a week.
+  workflow_dispatch:
+  schedule:
+    - cron: '47 1 * * 1'
 permissions:
   contents: read
 concurrency:
