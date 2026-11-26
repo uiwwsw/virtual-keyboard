@@ -1,12 +1,10 @@
 name: Publish to NPM
 
 on:
-  # Publish only when a merge to main changes the package version file.
-  push:
-    branches:
-      - main
-    paths:
-      - package.json
+  # Once a week (Monday 10:00 KST) or by hand. Publishes only when the
+  # package.json version is not on npm yet.
+  schedule:
+    - cron: '0 1 * * 1'
   workflow_dispatch:
 
 permissions:
