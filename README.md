@@ -4,7 +4,7 @@
 
 <h1>Virtual Keyboard</h1>
 
-<p>React용 화면 키보드 컴포넌트</p>
+<p>누르는 대로 한글이 조합되는 React 화면 키보드</p>
 
 <p>
   <a href="https://www.npmjs.com/package/@uiwwsw/virtual-keyboard"><img alt="npm version" src="https://img.shields.io/npm/v/%40uiwwsw%2Fvirtual-keyboard?style=flat-square"></a>
@@ -24,8 +24,16 @@
 
 </div>
 
-React용 화면 키보드 컴포넌트입니다. 한글 두벌식 조합 계산은 [es-hangul](https://github.com/toss/es-hangul)을 쓰고, 이 라이브러리는 편집 상태, 키패드, 실제 `<input>` 연결을 구현합니다.
-단일 관리자가 유지하는 작은 패키지이며 아직 쓰는 사람이 거의 없습니다.
+화면 키보드에서 한글을 입력할 때 생기는 조합 문제를 해결한 React 컴포넌트입니다. 자모를 누르면 후보를 고를 필요 없이 바로 글자로 합쳐지고, 조합 중 지우기·커서 이동·실행 취소가 실제 한글 입력기처럼 동작합니다. 음절 계산은 토스의 [es-hangul](https://github.com/toss/es-hangul)을 쓰고, 이 라이브러리는 그 위의 편집 동작과 키패드를 맡습니다.
+
+## 다른 키보드와 다른 점
+
+- **누르는 대로 조합됩니다.** `ㄱ`, `ㅏ`, `ㄴ`을 누르면 입력란에 바로 `간`이 됩니다. [simple-keyboard](https://github.com/hodgef/simple-keyboard)의 한국어 레이아웃은 자모를 누른 뒤 후보 상자에서 완성 글자를 골라야 합니다.
+- **조합 중 지우기가 자모 단위입니다.** `간`에서 지우면 `가`가 됩니다. 글자 전체가 사라지지 않습니다.
+- **한 글자 조합이 실행 취소 한 번입니다.** 자모마다 되돌리지 않습니다.
+- **실제 `<input>`을 씁니다.** `inputMode="none"`으로 시스템 키보드만 막고, 커서·선택·길게 누르기·복사 메뉴는 브라우저 기본 동작을 그대로 씁니다. 폼, 접근성 도구, 자동 테스트가 일반 입력란처럼 다룹니다.
+- **입력 규칙이 붙여넣기까지 지켜집니다.** `filterKey`, `sanitizeValue`, `maxLength`가 키 입력과 붙여넣기에 같이 적용되고, 길이를 넘는 입력은 뒤쪽 글자를 지우지 않고 거절합니다.
+- **앱 CSS와 섞이지 않습니다.** 키패드는 Shadow DOM 안의 `<button>`으로 그려집니다.
 
 ## 지금 되는 것
 
@@ -52,15 +60,6 @@ React용 화면 키보드 컴포넌트입니다. 한글 두벌식 조합 계산�
 - `inputMode="none"`의 시스템 키보드 억제는 브라우저·기기별로 다를 수 있음
 - 모바일 판단은 휴리스틱. 정확한 표시가 필요하면 `keyboardVisibility`를 직접 지정해야 함
 - React 외 프레임워크용 코어 없음
-
-## 현재 위치
-
-- 주간 npm 다운로드(최근 1주, api.npmjs.org): 이 패키지 80, react-simple-keyboard 237,797, simple-keyboard 80,748, es-hangul 173,386. 사용량 차이가 3,000배 가까이 납니다.
-- 유지 관리자 1명. GitHub 기여자 1명, 스타 1개, 포크 0개. 알려진 실사용 사례가 없습니다.
-- React 전용입니다. simple-keyboard는 프레임워크에 묶이지 않는 JavaScript 코어이고 React, Angular, Vue에서 쓸 수 있습니다.
-- simple-keyboard는 별도 `simple-keyboard-layouts` 패키지로 한국어를 포함한 여러 언어 레이아웃을 제공합니다. 이 패키지의 레이아웃은 QWERTY, 숫자, 전화번호와 사용자 정의뿐입니다.
-- 한글 조합 계산은 es-hangul에 의존합니다. 직접 만든 알고리즘이 아닙니다.
-- 맞는 경우는 React에서 실제 `<input>`에 한글 두벌식 입력을 붙이고 커서·선택을 브라우저에 맡기려는 때입니다. 그 밖의 용도는 simple-keyboard가 낫습니다.
 
 ## Installation
 
