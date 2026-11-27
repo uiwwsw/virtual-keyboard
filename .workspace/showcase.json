@@ -2,7 +2,7 @@
   "schema": 1,
   "id": "virtual-keyboard",
   "visibility": "public",
-  "name": "버추얼 키보드",
+  "name": "Virtual Keyboard",
   "en": "Virtual Keyboard",
   "category": "개발 도구",
   "symbol": "⌨",
@@ -30,7 +30,7 @@
     }
   ],
   "evidence": {
-    "verifiedAt": "2026-10-20",
-    "note": "2026-10-20 새 공개 데모 한·영 페이지·사이트맵·robots HTTP200, 이전 호스트 경로 유지 301 확인. npm 2.2.1 발행 및 registry homepage 새 주소 확인. 로컬 format/lint/85테스트/빌드/SSR·타입 검증과 npm CI 브라우저 테스트 통과."
+    "verifiedAt": "2026-11-27",
+    "note": "2026-11-27 표시 이름을 npm·GitHub 이름과 같은 영어(Virtual Keyboard)로 통일. 2026-10-20 새 공개 데모 한·영 페이지·사이트맵·robots HTTP200, 이전 호스트 경로 유지 301 확인. npm 2.2.1 발행 및 registry homepage 새 주소 확인. 로컬 format/lint/85테스트/빌드/SSR·타입 검증과 npm CI 브라우저 테스트 통과."
   }
 }
